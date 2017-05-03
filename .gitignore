@@ -1,0 +1,34 @@
+#ant specific
+/dist/
+/build/
+
+#netbeans specific
+core
+/nbproject/
+/lib/*.properties
+/lib/CopyLibs/
+
+
+#java specific
+*.class
+
+#Package files
+.jar
+.war
+.ear
+
+.exe
+
+#general swap/backup files
+*.so
+*.log
+*.log.*
+*.lck
+*.out
+*~
+*.swp
+*.DS_Store
+*.lock
+
+/transducers/
+/plugins/
