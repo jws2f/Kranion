@@ -157,8 +157,8 @@ public abstract class Clippable extends Renderable {
 
                 if (shader == null) {
                     shader = new ShaderProgram();
-                    shader.addShader(GL_VERTEX_SHADER, "shaders/Clippable.vs.glsl");
-                    shader.addShader(GL_FRAGMENT_SHADER, "shaders/Clippable.fs.glsl");
+                    shader.addShader(GL_VERTEX_SHADER, "/org/fusfoundation/kranion/shaders/Clippable.vs.glsl");
+                    shader.addShader(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/Clippable.fs.glsl");
                     shader.compileShaderProgram();
                 }
 

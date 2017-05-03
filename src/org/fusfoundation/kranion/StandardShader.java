@@ -50,8 +50,8 @@ public class StandardShader extends ShaderProgram {
     
     public StandardShader() {
         if (staticShaderID == 0) {
-            this.addShader(GL_VERTEX_SHADER, "shaders/standardADS.vs.glsl");
-            this.addShader(GL_FRAGMENT_SHADER, "shaders/standardADS.fs.glsl");
+            this.addShader(GL_VERTEX_SHADER, "/org/fusfoundation/kranion/shaders/standardADS.vs.glsl");
+            this.addShader(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/standardADS.fs.glsl");
             this.compileShaderProgram();
             staticShaderID = super.getShaderProgramID();
         }

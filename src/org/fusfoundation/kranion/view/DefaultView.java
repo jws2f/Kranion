@@ -154,10 +154,10 @@ public class DefaultView extends View {
 //    private ImageVolume4D ctImage, mrImage;
     
     private Transducer transducerModel;
-    private PlyFileReader stereotacticFrame = new PlyFileReader("meshes/Frame1v3.ply");
-    private PlyFileReader mrBore2 = new PlyFileReader("meshes/Bore.ply");
-    private PlyFileReader mrHousing = new PlyFileReader("meshes/Housing.ply");
-    private PlyFileReader mrPedestal = new PlyFileReader("meshes/Pedestal.ply");
+    private PlyFileReader stereotacticFrame = new PlyFileReader("/org/fusfoundation/kranion/meshes/Frame1v3.ply");
+    private PlyFileReader mrBore2 = new PlyFileReader("/org/fusfoundation/kranion/meshes/Bore.ply");
+    private PlyFileReader mrHousing = new PlyFileReader("/org/fusfoundation/kranion/meshes/Housing.ply");
+    private PlyFileReader mrPedestal = new PlyFileReader("/org/fusfoundation/kranion/meshes/Pedestal.ply");
     private Landmark currentTarget = new Landmark();
     private Landmark currentSteering = new Landmark();
     private Cylinder mrBore, mrBoreOuter;
@@ -563,14 +563,15 @@ public class DefaultView extends View {
             mrPedestal.setColor(0.25f, 0.25f, 0.25f, 1f);
                                
             ShaderProgram shader = new ShaderProgram();
-            shader.addShader(GL_VERTEX_SHADER, "shaders/Collision.vs.glsl");
-            shader.addShader(GL_FRAGMENT_SHADER, "shaders/Collision.fs.glsl");
+            shader.addShader(GL_VERTEX_SHADER, "/org/fusfoundation/kranion/shaders/Collision.vs.glsl");
+            shader.addShader(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/Collision.fs.glsl");
             shader.compileShaderProgram();
             stereotacticFrame.setShader(shader);
         
 
         } catch (IOException e) {
             System.out.println(e);
+            e.printStackTrace();
         }
         
         transRayTracer.init(transducerModel);
@@ -1420,7 +1421,7 @@ public class DefaultView extends View {
             
             // Mouse dragged
             if (mouseButton1Drag == true && Mouse.isButtonDown(0)) {
-                System.out.println("*** Mouse dragged");
+//                System.out.println("*** Mouse dragged");
                 if (orientAnimator != null) {
                     orientAnimator.cancelAnimation();
                 }
@@ -1546,7 +1547,7 @@ public class DefaultView extends View {
             }
             // Mouse pressed, init drag
             else if (button1down && !mouseButton1Drag) {
-                System.out.println("*** Mouse pressed, drag init");
+//                System.out.println("*** Mouse pressed, drag init");
                 mouseButton1Drag = true;
                 
                 this.mouseStartX = x;
@@ -1616,7 +1617,7 @@ public class DefaultView extends View {
             }
             // Mouse released, end drag
             else if (!button1down && mouseButton1Drag) {
-                System.out.println("*** Mouse released, drag end");
+//                System.out.println("*** Mouse released, drag end");
                 mouseButton1Drag = false;
                 trackball.mouseReleased(x, y);
                 registerBallCT.mouseReleased(x, y);

@@ -1623,16 +1623,16 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
                 + "}";
         
         Shader vertexShader = new Shader();
-        vertexShader.addShaderSource(GL_VERTEX_SHADER, "shaders/ImageCanvasVolRend.vs.glsl");
+        vertexShader.addShaderSource(GL_VERTEX_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRend.vs.glsl");
 
         Shader fragShader = new Shader();
-        fragShader.addShaderSource(GL_FRAGMENT_SHADER, "shaders/ImageCanvasVolRend.fs.glsl");
+        fragShader.addShaderSource(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRend.fs.glsl");
         
         Shader fragShaderPressure = new Shader();
-        fragShaderPressure.addShaderSource(GL_FRAGMENT_SHADER, "shaders/ImageCanvasVolRendWPressure.fs.glsl");
+        fragShaderPressure.addShaderSource(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRendWPressure.fs.glsl");
         
         Shader fragShaderThermometry = new Shader();
-        fragShaderThermometry.addShaderSource(GL_FRAGMENT_SHADER, "shaders/ImageCanvasVolRendThermometry.fs.glsl");
+        fragShaderThermometry.addShaderSource(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRendThermometry.fs.glsl");
         
         Shader fragShader2D = new Shader();
         fragShader2D.addShaderSourceString(GL_FRAGMENT_SHADER, fsrc2D);

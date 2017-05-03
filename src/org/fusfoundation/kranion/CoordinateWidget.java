@@ -62,7 +62,7 @@ public class CoordinateWidget extends GUIControl{
 
     private Trackball extTrackball;
     private Trackball intTrackball = new Trackball(1, 1, 1);
-    private static PlyFileReader body = new PlyFileReader("meshes/humanbody.ply");
+    private static PlyFileReader body = new PlyFileReader("/org/fusfoundation/kranion/meshes/humanbody.ply");
 
     public CoordinateWidget() {
         super();

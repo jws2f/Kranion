@@ -70,6 +70,9 @@ import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Font;
 import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import javax.imageio.ImageIO;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 
@@ -195,16 +198,32 @@ public class Main implements ProgressListener {
         System.out.println("Display: mode set");
         //Display.setFullscreen(true);
         Display.setResizable(true);
-        Display.setTitle("Brain Tranducer Model");
+        Display.setTitle("Kranion");
         
         System.out.println("Setting pixel format...");
         PixelFormat pixelFormat = new PixelFormat(24, 8, 24, 8, 1);
         org.lwjgl.opengl.ContextAttribs contextAtrigs = new ContextAttribs(2, 1);
         
+        try {
+            ByteBuffer[] list = new ByteBuffer[3];
+            InputStream rstm = this.getClass().getResourceAsStream("/org/fusfoundation/kranion/images/icon32.png");
+            BufferedImage img = ImageIO.read(rstm);
+            list[0] = this.convertToByteBuffer(img);
+            rstm = this.getClass().getResourceAsStream("/org/fusfoundation/kranion/images/icon64.png");
+            img = ImageIO.read(rstm);
+            list[1] = this.convertToByteBuffer(img);
+            rstm = this.getClass().getResourceAsStream("/org/fusfoundation/kranion/images/icon256.png");
+            img = ImageIO.read(rstm);
+            list[2] = this.convertToByteBuffer(img);
+            Display.setIcon(list);
+        } catch (Exception e) {
+            System.out.println("Failed to set window icon.");
+        }
+
         System.out.println("Creating display...");
         //Display.create(pixelFormat, contextAtrigs);
         Display.create();
-                
+    
         System.out.println("GL Vendor: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VENDOR));
         System.out.println("GL Version: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VERSION));
         System.out.println("GLSL Language Version: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL20.GL_SHADING_LANGUAGE_VERSION));
@@ -239,6 +258,22 @@ public class Main implements ProgressListener {
         }
     }
     
+    private ByteBuffer convertToByteBuffer(BufferedImage image) {
+        byte[] buffer = new byte[image.getWidth() * image.getHeight() * 4];
+        int counter = 0;
+        for (int i = 0; i < image.getHeight(); i++) {
+            for (int j = 0; j < image.getWidth(); j++) {
+                int colorSpace = image.getRGB(j, i);
+                buffer[counter + 0] = (byte) ((colorSpace << 8) >> 24);
+                buffer[counter + 1] = (byte) ((colorSpace << 16) >> 24);
+                buffer[counter + 2] = (byte) ((colorSpace << 24) >> 24);
+                buffer[counter + 3] = (byte) (colorSpace >> 24);
+                counter += 4;
+            }
+        }
+        return ByteBuffer.wrap(buffer);
+    }
+
     private void checkGLSupport() {
         String vendor = org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VENDOR);
         String version = org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VERSION);

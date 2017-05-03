@@ -152,6 +152,10 @@ public class PlyFileReader extends Clippable {
         PushbackInputStream stream = new PushbackInputStream(rstm);
 
         readPlyHeader(stream);
+        
+System.out.println("read ply header");
+System.out.println("ply is bin? " + isBinaryFormat);
+System.out.println("ply vert count = " + vertcount);
 
         vertsBuffer = BufferUtils.createFloatBuffer(vertcount * 3);
         normsBuffer = BufferUtils.createFloatBuffer(vertcount * 3);
@@ -322,13 +326,20 @@ public class PlyFileReader extends Clippable {
         
     	// read vertex location
     	byte data[] = new byte[12];
-    	int nread = stream.read(data);
-    	if (nread != 12) throw new IOException();
+        DataInputStream dis = new DataInputStream(stream);
+//    	int nread = stream.read(data);
+    	dis.readFully(data);
+//    	if (nread != 12) {
+//            System.out.println("Failed to completely read vert data.");
+//            throw new IOException();
+//        }
     	     
         Vector3f pos = new Vector3f();
         pos.x = ByteBuffer.wrap(data, 0, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
         pos.y = ByteBuffer.wrap(data, 4, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
         pos.z = ByteBuffer.wrap(data, 8, 4).order(ByteOrder.LITTLE_ENDIAN).getFloat();
+        
+//        System.out.println(pos);
 
         vertsBuffer.put(pos.x);
         vertsBuffer.put(pos.y);
@@ -343,8 +354,9 @@ public class PlyFileReader extends Clippable {
         
         // read vertex normal. we need to make sure it is unit length
 
-        nread = stream.read(data);
-    	if (nread != 12) throw new IOException();
+        dis.readFully(data);
+//        nread = stream.read(data);
+//    	if (nread != 12) throw new IOException();
        
         
         objCenter.x += pos.x;
@@ -389,9 +401,12 @@ public class PlyFileReader extends Clippable {
             return;
         }
         
+        DataInputStream dis = new DataInputStream(stream);
     	byte data[] = new byte[12];
-    	int nread = stream.read(data);
-    	if (nread != 12) throw new IOException();
+        
+        dis.readFully(data);
+//    	int nread = stream.read(data);
+//    	if (nread != 12) throw new IOException();
  
         for(int i=0; i<count; i++) {
 	    	int index = ByteBuffer.wrap(data, i*4, 4).order(ByteOrder.LITTLE_ENDIAN).getInt();
