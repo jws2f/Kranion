@@ -7,6 +7,8 @@ core
 /nbproject/
 /lib/*.properties
 /lib/CopyLibs/
+manifest.mf
+build.xml
 
 
 #java specific
