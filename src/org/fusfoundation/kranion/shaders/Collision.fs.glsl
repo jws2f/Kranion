@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 #version 120
-varying vec3 ecPos;
+varying vec4 ecPos;
 varying vec4 wPos, color;
 varying vec3 normal;
 
@@ -43,8 +43,8 @@ void main()
     vec4 Iamb = vec4(0.05, 0.05, 0.05, 1); //gl_FrontLightProduct[0].ambient;
 
     // If any fragments have world positions outside the transducer, color them red
-    if (length(wPos) > 150f && wPos.z > 0f) matColor = vec4(0.8, 0, 0, 1);
-    if (length(wPos.xy) > 150f && wPos.z <= 0f && wPos.z > -35.0) matColor = vec4(0.8, 0, 0, 1);
+    if (length(wPos) > 150.0 && wPos.z > 0) matColor = vec4(0.8, 0, 0, 1);
+    if (length(wPos.xy) > 150.0 && wPos.z <= 0 && wPos.z > -35.0) matColor = vec4(0.8, 0, 0, 1);
 
     vec4 Idiff = matColor /*gl_FrontLightProduct[0].diffuse*/ * max(dot(n, lightDir), 0.0);
 

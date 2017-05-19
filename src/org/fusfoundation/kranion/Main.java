@@ -44,6 +44,21 @@ import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.*;
 
+
+import org.lwjgl.PointerBuffer;
+
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
+import java.util.List;
+
+import org.lwjgl.opencl.CL;
+
+import org.lwjgl.opencl.CLDevice;
+import org.lwjgl.opencl.CLPlatform;
+import org.lwjgl.opencl.CLContext;
+
+import static org.lwjgl.opencl.CL10.*;
+
 import java.lang.reflect.Constructor;
 
 
@@ -86,6 +101,8 @@ public class Main implements ProgressListener {
     public static final int DISPLAY_HEIGHT = 1024;
     public static final int DISPLAY_WIDTH = 1680;
     public static final Logger LOGGER = Logger.getLogger(Main.class.getName());
+    
+    public static float OpenGLVersion = -1f;
 
     private float viewportAspect = 1f;
 
@@ -189,20 +206,22 @@ public class Main implements ProgressListener {
             DisplayMode current = modes[i];
             System.out.println(current.getWidth() + "x" + current.getHeight() + "x" +
                     current.getBitsPerPixel() + " " + current.getFrequency() + "Hz");
-            if (current.getBitsPerPixel() == 32 && current.getWidth() == 1920 && current.getFrequency() == 60)
+            if (current.getBitsPerPixel() == 32 && current.getWidth() == 2560 && current.getHeight() == 1440 && current.getFrequency() == 60)
                 chosenMode = current;
         }
         DisplayMode mode = new DisplayMode(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+//        mode = chosenMode;
         System.out.println("Display: " + mode.getBitsPerPixel() + " bpp");
         Display.setDisplayMode(mode);
+//        Display.setFullscreen(true);
         System.out.println("Display: mode set");
-        //Display.setFullscreen(true);
         Display.setResizable(true);
         Display.setTitle("Kranion");
         
         System.out.println("Setting pixel format...");
         PixelFormat pixelFormat = new PixelFormat(24, 8, 24, 8, 1);
-        org.lwjgl.opengl.ContextAttribs contextAtrigs = new ContextAttribs(2, 1);
+        org.lwjgl.opengl.ContextAttribs contextAtribs = new ContextAttribs(2, 1);
+        contextAtribs.withForwardCompatible(true);
         
         try {
             ByteBuffer[] list = new ByteBuffer[3];
@@ -221,8 +240,8 @@ public class Main implements ProgressListener {
         }
 
         System.out.println("Creating display...");
-        //Display.create(pixelFormat, contextAtrigs);
-        Display.create();
+        Display.create(pixelFormat, contextAtribs);
+        //Display.create();
     
         System.out.println("GL Vendor: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VENDOR));
         System.out.println("GL Version: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VERSION));
@@ -230,6 +249,8 @@ public class Main implements ProgressListener {
         System.out.println("GL Renderer: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_RENDERER));
 
         checkGLSupport();
+        
+        checkCLSupport();
             
 
         //Keyboard
@@ -256,6 +277,9 @@ public class Main implements ProgressListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        
+        resizeGL();
+        resizeGL();
     }
     
     private ByteBuffer convertToByteBuffer(BufferedImage image) {
@@ -274,13 +298,47 @@ public class Main implements ProgressListener {
         return ByteBuffer.wrap(buffer);
     }
 
+    private void checkCLSupport() {
+        try {
+            // Initialize OpenCL and create a context and command queue
+            CL.create();
+            System.out.println("CL created");
+
+            CLPlatform platform = CLPlatform.getPlatforms().get(0);
+            System.out.println("Platform created: " + platform.getInfoString(CL_PLATFORM_NAME) + " version: " + platform.getInfoString(CL_PLATFORM_VERSION));
+
+            PointerBuffer ctxProps = BufferUtils.createPointerBuffer(3);
+            ctxProps.put(CL_CONTEXT_PLATFORM).put(platform).put(0).flip();
+            System.out.println("CTX created");
+
+            IntBuffer errcode_ret = BufferUtils.createIntBuffer(1);
+            System.out.println("ERRCODE created");
+
+            List<CLDevice> devices = platform.getDevices(CL_DEVICE_TYPE_GPU);
+            
+            System.out.println(devices.size() + " GPU devices found.");
+            
+            // long context = clCreateContext(platform, devices, null, null, null);
+             CLContext context = clCreateContext(ctxProps, devices.get(0), null, null);
+             
+              System.out.println("Device: " + devices.get(0).getInfoString(CL_DEVICE_NAME));
+            System.out.println("CONTEXT created");
+        } catch (Exception e) {
+            System.out.println("*** Problem initializing OpenCL");
+        }
+        
+    }
+    
     private void checkGLSupport() {
         String vendor = org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VENDOR);
         String version = org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VERSION);
+        int nMaxTexUnits = org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL20.GL_MAX_TEXTURE_IMAGE_UNITS);
+        int nMaxCombinedTexUnits = org.lwjgl.opengl.GL11.glGetInteger(org.lwjgl.opengl.GL20.GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
         
         try {
         float versionVal = 0f;
-        StringTokenizer tok = new StringTokenizer(version, ".");
+        System.out.println("  Texture unit count = " + nMaxTexUnits + ", Max combined textures = " + nMaxCombinedTexUnits);
+        StringTokenizer tok = new StringTokenizer(version, ". ");
         if (tok.hasMoreElements()) {
             versionVal = Float.parseFloat(tok.nextToken());
         }
@@ -288,9 +346,11 @@ public class Main implements ProgressListener {
             versionVal += Float.parseFloat(tok.nextToken())/10f;
         }
         
+        Main.OpenGLVersion = versionVal;
+        
         if (versionVal < 4.5f) {
             JOptionPane.showMessageDialog(null, "OpenGL 4.5 or later required.\n\nYou have:\n" + vendor + "\n" + version);
-            System.exit(1);
+//            System.exit(1);
         }
         }
         catch(Exception e) {

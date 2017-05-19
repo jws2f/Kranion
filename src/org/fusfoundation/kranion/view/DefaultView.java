@@ -351,6 +351,8 @@ public class DefaultView extends View {
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 250, 200, 25, controller).setTitle("Load CT...").setCommand("loadCT"));
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 215, 200, 25, controller).setTitle("Load MR...").setCommand("loadMR"));
+        
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 150, 200, 25, this).setTitle("Exit").setCommand("exit"));
                 
 //        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 250, 220, 25, controller).setTitle("Find Fiducials").setCommand("findFiducials"));
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 215, 220, 25, this).setTitle("Save Skull Params").setCommand("saveSkullParams"));
@@ -2509,8 +2511,8 @@ public class DefaultView extends View {
             float xrot = processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.Y);
             float yrot = processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.X);
             float zrot = processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.RX);
-//            float zoom =  processAxisInput(controller, net.java.games.input.Component.Identifier.Axis.RY);
-            float zoom =  processTriggerInput(gameController, net.java.games.input.Component.Identifier.Axis.Z);
+            float zoom =  processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.RY);
+//            float zoom =  processTriggerInput(gameController, net.java.games.input.Component.Identifier.Axis.Z);
             if (zoom == 0f) {
                 zoom =  -processTriggerInput(gameController, net.java.games.input.Component.Identifier.Axis.RZ);   
             }
@@ -2656,9 +2658,20 @@ public class DefaultView extends View {
 //            }
 
             
+            String preferredControllerName = null;
             for (int i=0; i<controls.length; i++) {
                 System.out.println(controls[i].getName());
-                if (controls[i].getName().startsWith("Controller")) {
+                if (preferredControllerName == null && controls[i].getName().startsWith("NVIDIA Shield")) {
+                    preferredControllerName = new String(controls[i].getName());
+                }
+                else if (controls[i].getName().startsWith("Controller")) {
+                    preferredControllerName = new String(controls[i].getName());
+                }
+            }
+            
+            for (int i=0; i<controls.length; i++) {
+                System.out.println(controls[i].getName());
+                if (preferredControllerName != null && controls[i].getName().equalsIgnoreCase(preferredControllerName)) {
                     gameController = controls[i];
                     break;
                 }
@@ -2724,6 +2737,10 @@ public class DefaultView extends View {
                 break;
             case "translateFrame":
                 this.currentMouseMode = mouseMode.FRAME_TRANSLATE;
+                break;
+            case "exit":
+                this.release();
+                System.exit(0);
                 break;
         }
     }

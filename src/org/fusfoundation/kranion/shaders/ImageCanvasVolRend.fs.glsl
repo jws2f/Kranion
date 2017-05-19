@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#version 130
+#version 120
 
 uniform int slice;
 uniform int last_slice;
@@ -74,10 +74,10 @@ vec3 blinn_phong(vec3 N, vec3 V, vec3 L, int light)
 void main(void)
 {
        vec4 color = vec4(1);
-        float ctTexVal = texture(ct_tex, gl_TexCoord[0].stp).r;
-        float ovlyTexVal = texture(ovly_tex, gl_TexCoord[5].stp).r;//floating point texture now, so no * 32767.0;
+        float ctTexVal = texture3D(ct_tex, gl_TexCoord[0].stp).r;
+        float ovlyTexVal = texture3D(ovly_tex, gl_TexCoord[5].stp).r;//floating point texture now, so no * 32767.0;
         //float ctOpacity = texture1D(lut_tex, ctTexVal).r;
-        color = texture(lut_tex, ctTexVal);
+        color = texture1D(lut_tex, ctTexVal);
 
         float ctsample = ctTexVal * 32767.0 * 2.0;
         float mrsample = 0;

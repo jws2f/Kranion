@@ -35,7 +35,7 @@ uniform float mr_threshold;
 uniform sampler3D ct_tex;
 uniform sampler3D mr_tex;
 uniform sampler3D ct_grad_tex;
-uniform sampler3D mr_grad_tex;
+//uniform sampler3D mr_grad_tex;
 uniform sampler1D lut_tex;
 uniform sampler3D ovly_tex;
 //layout(location=0) out vec4 colorout;

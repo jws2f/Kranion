@@ -23,7 +23,7 @@
  */
 #version 120
 varying vec4 diffuse,ambientGlobal, ambient, wPos;
-varying vec3 ecPos;
+varying vec4 ecPos;
 varying vec3 normal,halfVector;
 uniform float time;
 

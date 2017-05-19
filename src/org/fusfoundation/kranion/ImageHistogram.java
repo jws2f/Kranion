@@ -69,6 +69,8 @@ public class ImageHistogram {
                 
         release();
         
+        if (Main.OpenGLVersion < 4f) return;
+        
         initShader();
         
         // Create a buffer of ints to hold output histogram
@@ -103,6 +105,8 @@ public class ImageHistogram {
         }
         
         if (tn == null) return; //TODO: should prob throw exception
+        
+        if (Main.OpenGLVersion < 4f) return;
                 
         setupImageTexture(image, 0);
         

@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 #version 120
-varying vec3 ecPos;
+varying vec4 ecPos;
 varying vec4 wPos, color;
 varying vec3 normal;
 uniform vec3 offset;
@@ -52,7 +52,7 @@ void main()
  
     /* compute the vertex position  in camera space. */
     gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
-    ecPos = vec3(gl_ClipVertex);
+    ecPos = gl_ClipVertex;
     wPos = rot * (gl_Vertex + vec4(offset.x, offset.y, -offset.z, 1));
            
     gl_Position = ftransform();

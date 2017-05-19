@@ -146,7 +146,7 @@ public class Framebuffer extends Renderable implements Resizeable {
         release();
         
         nMSAAsamples = samples;
-        
+         
         width = w;
         height = h;
         
@@ -156,19 +156,37 @@ public class Framebuffer extends Renderable implements Resizeable {
         glGenTextures(buffer);
         renderedTextureID = buffer.get();
  
-        // Create color buffer texture to bind to FBO
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, renderedTextureID);
-  
-        // Filtering
-//        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_S, GL_CLAMP);
-//        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_T, GL_CLAMP);
+        if (nMSAAsamples == 1 || Main.OpenGLVersion < 3f) {
+            // Create color buffer texture to bind to FBO
+            glBindTexture(GL_TEXTURE_2D, renderedTextureID);
+
+            // Filtering
+    //        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    //        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+            // create texture
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer)null);
+            
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
+        else {
+            // Create color buffer texture to bind to FBO
+            glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, renderedTextureID);
+
+            // Filtering
+    //        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    //        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    //        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    //        glTexParameteri(GL_TEXTURE_2D_MULTISAMPLE, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+            // create texture
+            glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, nMSAAsamples, GL_RGBA8, width, height, true);
+            
+            glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
+        }
         
-        // create texture
-        glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, nMSAAsamples, GL_RGBA8, width, height, true);
-        
-        glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, 0);
         
         // create FBO
         buffer.rewind();
@@ -183,12 +201,24 @@ public class Framebuffer extends Renderable implements Resizeable {
         
      
         glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBufferID);
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, nMSAAsamples, GL_DEPTH24_STENCIL8, width, height);
+        
+        if (nMSAAsamples == 1 || Main.OpenGLVersion < 3f) {
+            glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
+        }
+        else {
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, nMSAAsamples, GL_DEPTH24_STENCIL8, width, height);
+        }
+        
         glBindRenderbuffer(GL_RENDERBUFFER, 0);
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, depthRenderBufferID);
         
         // Set "renderedTexture" as our colour attachement #0
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, renderedTextureID, 0);
+        if (nMSAAsamples == 1 || Main.OpenGLVersion < 3f) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, renderedTextureID, 0);
+        }
+        else {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D_MULTISAMPLE, renderedTextureID, 0);
+        }
         
         glDrawBuffer(GL_NONE);
         if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE){

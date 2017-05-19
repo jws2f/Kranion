@@ -27,7 +27,7 @@ uniform vec4 ambientColor;
 uniform vec4 diffuseColor;
 uniform vec4 specularColor;
 uniform float specularCoefficient;
-varying vec3 ecPos;
+varying vec4 ecPos;
 varying vec3 normal;
 
 void main()
@@ -41,7 +41,7 @@ void main()
            
     /* compute the vertex position  in eye space. */
     gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;
-    ecPos = vec3(gl_ClipVertex);
+    ecPos = gl_ClipVertex;
 
     gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
 

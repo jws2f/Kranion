@@ -24,9 +24,11 @@
 package org.fusfoundation.kranion;
 
 
+import com.sun.scenario.effect.impl.BufferUtil;
 import java.nio.ByteBuffer;
 
 import java.nio.IntBuffer;
+import java.nio.FloatBuffer;
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.*;
@@ -36,6 +38,7 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL42.*;
 import static org.lwjgl.opengl.GL43.GL_COMPUTE_SHADER;
+import org.lwjgl.util.vector.Vector3f;
 
 /**
  *
@@ -46,11 +49,83 @@ public class ImageGradientVolume {
     private int imageVolumeTexture=0;    
     private ImageVolume image = null;
     
+    private int pixelOffsets[] = new int[27];
+    
     
     public ImageGradientVolume() {
         initShader();
     }
     
+    // 3x3x3 Sobel mask offsets and weights
+    private static Vector3f offsets[] = {
+        new Vector3f(-1, -1, -1), new Vector3f(-1, 0, -1), new Vector3f(-1, 1, -1),
+        new Vector3f(-1, -1, 0), new Vector3f(-1, 0, 0), new Vector3f(-1, 1, 0),
+        new Vector3f(-1, -1, 1), new Vector3f(-1, 0, 1), new Vector3f(-1, 1, 1),
+        new Vector3f(0, -1, -1), new Vector3f(0, 0, -1), new Vector3f(0, 1, -1),
+        new Vector3f(0, -1, 0), new Vector3f(0, 0, 0), new Vector3f(0, 1, 0),
+        new Vector3f(0, -1, 1), new Vector3f(0, 0, 1), new Vector3f(0, 1, 1),
+        new Vector3f(1, -1, -1), new Vector3f(1, 0, -1), new Vector3f(1, 1, -1),
+        new Vector3f(1, -1, 0), new Vector3f(1, 0, 0), new Vector3f(1, 1, 0),
+        new Vector3f(1, -1, 1), new Vector3f(1, 0, 1), new Vector3f(1, 1, 1)
+    };
+
+    private static float sqr3 = (float) Math.sqrt(3.0) / 3;
+    private static float sqr2 = (float) Math.sqrt(2.0) / 2;
+
+    private static float xGradZH[] = {
+        -sqr3, -sqr2, -sqr3,
+        -sqr2, -1, -sqr2,
+        -sqr3, -sqr2, -sqr3,
+        0, 0, 0,
+        0, 0, 0,
+        0, 0, 0,
+        sqr3, sqr2, sqr3,
+        sqr2, 1, sqr2,
+        sqr3, sqr2, sqr3
+    };
+
+// 3x3x3 Zucker-Hummel weights
+    private static float yGradZH[] = {
+        -sqr3, 0, sqr3,
+        -sqr2, 0, sqr2,
+        -sqr3, 0, sqr3,
+        -sqr2, 0, sqr2,
+        -1, 0, 1,
+        -sqr2, 0, sqr2,
+        -sqr3, 0, sqr3,
+        -sqr2, 0, sqr2,
+        -sqr3, 0, sqr3
+    };
+
+    private static float zGradZH[] = {
+        -sqr3, -sqr2, -sqr3,
+        0, 0, 0,
+        sqr3, sqr2, sqr3,
+        -sqr2, -1, -sqr2,
+        0, 0, 0,
+        sqr2, 1, sqr2,
+        -sqr3, -sqr2, -sqr3,
+        0, 0, 0,
+        sqr3, sqr2, sqr3
+    };
+
+//vec3 gradient_delta = vec3(0.003, 0.003, 0.00375);
+    private static Vector3f gradient_delta = new Vector3f(0.0045f, 0.0045f, 0.00689f);
+
+    Vector3f findNormal(short[] imageData, int position) {
+        Vector3f grad = new Vector3f();
+        for (int i = 0; i < 27; i++) {
+            //Vector3f coord = position + (offset[i] * gradient_delta);
+            //float s = texture(image_tex, coord).r * 4095.0;
+            int indexOffset = position + pixelOffsets[i];
+            float s = imageData[indexOffset] & 0xff - 1024;
+            grad.x += s * xGradZH[i];
+            grad.y += s * yGradZH[i];
+            grad.z += s * zGradZH[i];
+        }
+        return grad;
+    }
+
     public void calculate() {
         if (image == null) return;
                 
@@ -69,6 +144,11 @@ public class ImageGradientVolume {
         
         // we already have a gradient texture built, return
         if (gradientTextureName != null && gradientTextureName > 0) return;
+        
+        if (Main.OpenGLVersion < 4f) {
+            calculateSW();
+            return;
+        }
                 
         buildTexture(image);
         setupImageTexture(image, 0, 1);
@@ -134,6 +214,96 @@ public class ImageGradientVolume {
 //        System.out.println("\nTotal histogram votes: " + total);
 //        System.out.println("Should be: " + (iWidth * iHeight * iDepth));
         
+    }
+    
+    public void calculateSW() {
+        if (image == null) return;
+                
+        int iWidth = image.getDimension(0).getSize();
+        int iHeight = image.getDimension(1).getSize();
+        int iDepth = image.getDimension(2).getSize();
+        
+        float xres = image.getDimension(0).getSampleWidth(0);
+        float yres = image.getDimension(1).getSampleWidth(1);
+        float zres = image.getDimension(2).getSampleWidth(2);
+                
+        Integer imageTextureName = (Integer) image.getAttribute("textureName");
+        Integer gradientTextureName = (Integer) image.getAttribute("gradientTexName");
+        
+        if (imageTextureName == null) return; //TODO: should prob throw exception
+        
+        // we already have a gradient texture built, return
+        if (gradientTextureName != null && gradientTextureName > 0) return;
+        
+        for (int i=0; i<27; i++) {
+            Vector3f offset = offsets[i];
+            pixelOffsets[i] = (int)offset.x + (int)offset.y * iWidth + (int)offset.z * iWidth * iHeight;
+        }
+        
+        float[] gradients = new float[iWidth * iHeight * iDepth * 4];
+        
+        FloatBuffer gradArray = BufferUtil.newFloatBuffer(iWidth * iHeight * iDepth * 4);
+        
+        short idata[] = (short[])image.getData();
+        
+        for (int x=1; x<iWidth-1; x++) {
+            System.out.println("Gradient calc: x = " + x);
+            int index = x;
+            
+            for (int y=1; y<iHeight-1; y++) {
+                int index2 = index + y*iWidth;
+                
+                for (int z=1; z<iDepth-1; z++) {
+                    int index3 = index2 + z*iWidth*iHeight;
+                                       
+                    Vector3f grad = findNormal(idata, index3);
+                    
+                    gradients[index3*4] = -grad.x;
+                    gradients[index3*4+1] = -grad.y;
+                    gradients[index3*4+2] = -grad.z;
+                    gradients[index3*4+3] = (float)Math.sqrt(grad.x * grad.x + grad.y * grad.y + grad.z * grad.z);
+                    
+                }
+            }
+        }
+        
+        gradArray.put(gradients);
+        System.out.println("gradArray size = " + gradArray.capacity());
+        gradArray.flip();
+        gradients = null;
+        
+                //System.out.println("build new texture");
+                ByteBuffer buf = ByteBuffer.allocateDirect(4);
+                IntBuffer texName = buf.asIntBuffer();
+
+                releaseTexture();
+
+                glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+                glGenTextures(texName);
+                int textureName = texName.get(0);
+
+                glBindTexture(GL_TEXTURE_3D, textureName);
+
+                image.setAttribute("gradientTexName", textureName);
+
+                glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+                glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+                glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+                glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+                int pixelType = image.getVoxelType();
+                int width = image.getDimension(0).getSize();
+                int height = image.getDimension(1).getSize();
+                int depth = image.getDimension(2).getSize();
+
+                System.out.println("  building 16bit gradient texture");
+
+                //ShortBuffer pixelBuf = (tmp.asShortBuffer());
+                //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
+                glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, width, height, depth, 0, GL_RGBA, GL_FLOAT, gradArray);
+                
+                glBindTexture(GL_TEXTURE_3D, 0);
     }
     
     private void releaseTexture() {
@@ -203,8 +373,9 @@ public class ImageGradientVolume {
 
                 //ShortBuffer pixelBuf = (tmp.asShortBuffer());
                 //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
-                //glTexImage3D(GL_TEXTURE_3D, 0, GL_ALPHA16, texWidth, texHeight, texDepth, 0, GL_ALPHA, GL_SHORT, pixelBuf);
-                glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, width, height, depth);
+                glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, width, height, depth, 0, GL_RGBA, GL_HALF_FLOAT, (ByteBuffer)null);
+                
+                //glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, width, height, depth);
             }
             int value;
             value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_WIDTH);

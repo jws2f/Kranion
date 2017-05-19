@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#version 130
+#version 120
 
 uniform float alpha;
 uniform sampler2D fb_tex;
@@ -30,7 +30,7 @@ void main(void)
 {
     vec4 color;
 
-    color = texture(fb_tex, gl_TexCoord[0].st);
+    color = texture2D(fb_tex, gl_TexCoord[0].st);
     color.a *= alpha;
 
     gl_FragColor = color;
