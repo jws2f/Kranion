@@ -29,6 +29,7 @@ import java.nio.IntBuffer;
 import java.util.*;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL21.*;
 
 /**
  *
@@ -95,9 +96,10 @@ public class ShaderProgram {
         }
 
         glLinkProgram(shaderProgramID);
-        glValidateProgram(shaderProgramID);       
+        //glValidateProgram(shaderProgramID);       
         IntBuffer resultValidate = BufferUtils.createIntBuffer(1);
-        glGetProgram(shaderProgramID, GL_VALIDATE_STATUS, resultValidate);
+        //glGetProgram(shaderProgramID, GL_VALIDATE_STATUS, resultValidate);
+        glGetProgram(shaderProgramID, GL_LINK_STATUS, resultValidate);
         
         if (resultValidate.get() == 0) {
             System.out.println("Shader validaiton error:");
