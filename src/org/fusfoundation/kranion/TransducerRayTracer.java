@@ -272,8 +272,8 @@ public class TransducerRayTracer extends Renderable {
         
         
         posSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, posSSBo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, floatPosBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, posSSBo);
+        glBufferData(GL_ARRAY_BUFFER, floatPosBuffer, GL_STATIC_DRAW);
         
         
         floatPosBuffer = ByteBuffer.allocateDirect(1024 * 4*12 * 20*3).order(ByteOrder.nativeOrder()).asFloatBuffer();
@@ -306,8 +306,8 @@ public class TransducerRayTracer extends Renderable {
         
         
         outDiscSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, outDiscSSBo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, outDiscSSBo);
+        glBufferData(GL_ARRAY_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
  
         // Rays between transducer surface and skull
         floatPosBuffer = ByteBuffer.allocateDirect(1024 * 4*8 * 2).order(ByteOrder.nativeOrder()).asFloatBuffer();
@@ -331,8 +331,8 @@ public class TransducerRayTracer extends Renderable {
         
         
         outRaysSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, outRaysSSBo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, outRaysSSBo);
+        glBufferData(GL_ARRAY_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
 
 /////
         // Envelope survey data
@@ -357,8 +357,8 @@ public class TransducerRayTracer extends Renderable {
         
         
         envSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, envSSBo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, envSSBo);
+        glBufferData(GL_ARRAY_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
 /////
         
 //        // Create a buffer of vertices to hold the output of the raytrace procedure
@@ -389,8 +389,8 @@ public class TransducerRayTracer extends Renderable {
         floatOutBuffer.flip();
         
         outSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, outSSBo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, floatOutBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, outSSBo);
+        glBufferData(GL_ARRAY_BUFFER, floatOutBuffer, GL_STATIC_DRAW);
         
         FloatBuffer floatColBuffer = ByteBuffer.allocateDirect(1024*4*4 * 6).order(ByteOrder.nativeOrder()).asFloatBuffer();
         for (int i=0; i<1024 * 6; i++) {
@@ -403,11 +403,11 @@ public class TransducerRayTracer extends Renderable {
         floatColBuffer.flip();
 
         colSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, colSSBo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, floatColBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, colSSBo);
+        glBufferData(GL_ARRAY_BUFFER, floatColBuffer, GL_STATIC_DRAW);
         
         distSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, distSSBo);
+        glBindBuffer(GL_ARRAY_BUFFER, distSSBo);
         FloatBuffer distBuffer = ByteBuffer.allocateDirect(1024*4 *4).order(ByteOrder.nativeOrder()).asFloatBuffer();
         for (int i=0; i<1024; i++) {
             //distance from focus
@@ -420,10 +420,10 @@ public class TransducerRayTracer extends Renderable {
             distBuffer.put(0f);
         }
         distBuffer.flip();
-        glBufferData(GL_SHADER_STORAGE_BUFFER,distBuffer,GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER,distBuffer,GL_STATIC_DRAW);
         
         sdrSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, sdrSSBo);
+        glBindBuffer(GL_ARRAY_BUFFER, sdrSSBo);
         FloatBuffer sdrBuffer = ByteBuffer.allocateDirect(1024*4 *(60 + 3)).order(ByteOrder.nativeOrder()).asFloatBuffer();
         for (int i=0; i<1024; i++) {
             for (int j=0; j<60; j++) {
@@ -436,28 +436,28 @@ public class TransducerRayTracer extends Renderable {
             sdrBuffer.put(0f);
         }
         sdrBuffer.flip();
-        glBufferData(GL_SHADER_STORAGE_BUFFER,sdrBuffer,GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER,sdrBuffer,GL_STATIC_DRAW);
         
         pressureSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, pressureSSBo);
+        glBindBuffer(GL_ARRAY_BUFFER, pressureSSBo);
         FloatBuffer pressureBuffer = ByteBuffer.allocateDirect(1024*4 * 1).order(ByteOrder.nativeOrder()).asFloatBuffer();
         for (int i=0; i<1024; i++) {
                  //ct values along transit of skull per element
                 pressureBuffer.put(0f);
         }
         pressureBuffer.flip();
-        glBufferData(GL_SHADER_STORAGE_BUFFER, pressureBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, pressureBuffer, GL_STATIC_DRAW);
         
         phaseSSBo = glGenBuffers();
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, phaseSSBo);
+        glBindBuffer(GL_ARRAY_BUFFER, phaseSSBo);
         FloatBuffer phaseBuffer = ByteBuffer.allocateDirect(1024*4 * 1).order(ByteOrder.nativeOrder()).asFloatBuffer();
         for (int i=0; i<1024; i++) {
                  //ct values along transit of skull per element
                 phaseBuffer.put(0f);
         }
         phaseBuffer.flip();
-        glBufferData(GL_SHADER_STORAGE_BUFFER,phaseBuffer, GL_STATIC_DRAW);        
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBufferData(GL_ARRAY_BUFFER,phaseBuffer, GL_STATIC_DRAW);        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     
     private void doCalc() {
@@ -678,16 +678,16 @@ public class TransducerRayTracer extends Renderable {
 
         envFloats.flip();
         
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, envSSBo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, envFloats, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, envSSBo);
+        glBufferData(GL_ARRAY_BUFFER, envFloats, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     
     public void writeSkullMeasuresFile(File outFile) {
 
         if (outFile != null) {
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
             FloatBuffer floatPhases = dists.asFloatBuffer();
             int count = 0;
 
@@ -719,8 +719,8 @@ public class TransducerRayTracer extends Renderable {
                 e.printStackTrace();
             }
 
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
     }
     
@@ -729,8 +729,8 @@ public class TransducerRayTracer extends Renderable {
             doCalc();
             doPressureCalc(new Vector4f());
             
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, phaseSSBo);
-            ByteBuffer phases = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+            glBindBuffer(GL_ARRAY_BUFFER, phaseSSBo);
+            ByteBuffer phases = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
             FloatBuffer floatPhases = phases.asFloatBuffer();
             int count = 0, zeroCount = 0;
 
@@ -772,8 +772,8 @@ public class TransducerRayTracer extends Renderable {
                 e.printStackTrace();
             }
 
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
     }
     
@@ -781,8 +781,8 @@ public class TransducerRayTracer extends Renderable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
             FloatBuffer floatPhases = dists.asFloatBuffer();
             int count = 0;
 
@@ -797,8 +797,8 @@ public class TransducerRayTracer extends Renderable {
                     }                    
                 }
                 
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);        
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -806,8 +806,8 @@ public class TransducerRayTracer extends Renderable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
             FloatBuffer floatPhases = dists.asFloatBuffer();
             int count = 0;
 
@@ -822,8 +822,8 @@ public class TransducerRayTracer extends Renderable {
                     }
                 }
                 
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);        
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1028,9 +1028,9 @@ public class TransducerRayTracer extends Renderable {
         }
         envFloats.flip();
         
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, envSSBo);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, envFloats, GL_DYNAMIC_DRAW);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, envSSBo);
+        glBufferData(GL_ARRAY_BUFFER, envFloats, GL_DYNAMIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     
     private int calcElementsOn(Vector4f offset) {
@@ -1050,8 +1050,8 @@ public class TransducerRayTracer extends Renderable {
         glDisable(GL_TEXTURE_3D);
 
         ///glMapBuffer
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, distSSBo);
-        ByteBuffer distances = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+        glBindBuffer(GL_ARRAY_BUFFER, distSSBo);
+        ByteBuffer distances = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
         FloatBuffer floatDistances = distances.asFloatBuffer();
         int numberOn = 0;
 //        float sdrSum = 0f;
@@ -1068,8 +1068,8 @@ public class TransducerRayTracer extends Renderable {
         
 //        System.out.println("SDR = " + sdrSum/numberOn);
         
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         return numberOn;
     }
@@ -1088,8 +1088,8 @@ public class TransducerRayTracer extends Renderable {
 //        glDisable(GL_TEXTURE_3D);
 
         ///glMapBuffer
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, pressureSSBo);
-        ByteBuffer pressures = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+        glBindBuffer(GL_ARRAY_BUFFER, pressureSSBo);
+        ByteBuffer pressures = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
         FloatBuffer floatPressures = pressures.asFloatBuffer();
         float totalPressure = 0f;
 
@@ -1097,8 +1097,8 @@ public class TransducerRayTracer extends Renderable {
             totalPressure += floatPressures.get();
         }
         
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         return totalPressure;
     }
@@ -1168,8 +1168,8 @@ public class TransducerRayTracer extends Renderable {
         
         
         ///glMapBuffer
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER,distSSBo);
-        ByteBuffer distances = glMapBuffer(GL_SHADER_STORAGE_BUFFER,GL_READ_WRITE,null);
+        glBindBuffer(GL_ARRAY_BUFFER,distSSBo);
+        ByteBuffer distances = glMapBuffer(GL_ARRAY_BUFFER,GL_READ_WRITE,null);
         FloatBuffer floatDistances = distances.asFloatBuffer();
         float distanceSum = 0.0f;
         int distanceNum = 0;
@@ -1212,8 +1212,8 @@ public class TransducerRayTracer extends Renderable {
 //        System.out.println("Std Dev: "+stDev);
 //        System.out.println("% Within 3 mm of focus: "+(percentOn*100) + "(" + numberOn + " of 1024)");
 //        System.out.println("SDR: " + sdrSum/distanceNum);
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
         
 //        glTranslatef(0, 0, 150);
 

@@ -109,16 +109,14 @@ public class ImageGradientVolume {
         sqr3, sqr2, sqr3
     };
 
-//vec3 gradient_delta = vec3(0.003, 0.003, 0.00375);
-    private static Vector3f gradient_delta = new Vector3f(0.0045f, 0.0045f, 0.00689f);
-
+    // for calculating normals with CPU
     Vector3f findNormal(short[] imageData, int position) {
         Vector3f grad = new Vector3f();
         for (int i = 0; i < 27; i++) {
             //Vector3f coord = position + (offset[i] * gradient_delta);
             //float s = texture(image_tex, coord).r * 4095.0;
             int indexOffset = position + pixelOffsets[i];
-            float s = imageData[indexOffset] & 0xff - 1024;
+            float s = (float)(imageData[indexOffset] & 0xfff) - 1024f;
             grad.x += s * xGradZH[i];
             grad.y += s * yGradZH[i];
             grad.z += s * zGradZH[i];
@@ -145,7 +143,7 @@ public class ImageGradientVolume {
         // we already have a gradient texture built, return
         if (gradientTextureName != null && gradientTextureName > 0) return;
         
-        if (Main.OpenGLVersion < 4f) {
+        if (Main.OpenGLVersion < 4.5f) {
             calculateSW();
             return;
         }
@@ -216,7 +214,7 @@ public class ImageGradientVolume {
         
     }
     
-    public void calculateSW() {
+    private void calculateSW() {
         if (image == null) return;
                 
         int iWidth = image.getDimension(0).getSize();
@@ -226,6 +224,8 @@ public class ImageGradientVolume {
         float xres = image.getDimension(0).getSampleWidth(0);
         float yres = image.getDimension(1).getSampleWidth(1);
         float zres = image.getDimension(2).getSampleWidth(2);
+        
+        Vector3f voxelSize = new Vector3f(xres, yres, zres);
                 
         Integer imageTextureName = (Integer) image.getAttribute("textureName");
         Integer gradientTextureName = (Integer) image.getAttribute("gradientTexName");
@@ -258,10 +258,16 @@ public class ImageGradientVolume {
                                        
                     Vector3f grad = findNormal(idata, index3);
                     
-                    gradients[index3*4] = -grad.x;
-                    gradients[index3*4+1] = -grad.y;
-                    gradients[index3*4+2] = -grad.z;
-                    gradients[index3*4+3] = (float)Math.sqrt(grad.x * grad.x + grad.y * grad.y + grad.z * grad.z);
+                    grad.x /= voxelSize.x;
+                    grad.y /= voxelSize.y;
+                    grad.z /= voxelSize.z;
+                    
+                    float mag = grad.length();
+                    
+                    gradients[index3*4] = -grad.x/mag;
+                    gradients[index3*4+1] = -grad.y/mag;
+                    gradients[index3*4+2] = -grad.z/mag;
+                    gradients[index3*4+3] = mag;
                     
                 }
             }

@@ -302,6 +302,7 @@ public class Main implements ProgressListener {
         try {
             // Initialize OpenCL and create a context and command queue
             CL.create();
+            System.out.println("\n****************");
             System.out.println("CL created");
 
             CLPlatform platform = CLPlatform.getPlatforms().get(0);
@@ -312,18 +313,33 @@ public class Main implements ProgressListener {
             System.out.println("CTX created");
 
             IntBuffer errcode_ret = BufferUtils.createIntBuffer(1);
-            System.out.println("ERRCODE created");
-
+            
             List<CLDevice> devices = platform.getDevices(CL_DEVICE_TYPE_GPU);
             
             System.out.println(devices.size() + " GPU devices found.");
             
             // long context = clCreateContext(platform, devices, null, null, null);
-             CLContext context = clCreateContext(ctxProps, devices.get(0), null, null);
-             
+            //CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, Thread.currentThread().getId(), null, Display.getDrawable(), errcode_ret);
+            CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, CL_DEVICE_TYPE_GPU, null, Display.getDrawable(), errcode_ret);
+                         
               System.out.println("Device: " + devices.get(0).getInfoString(CL_DEVICE_NAME));
-            System.out.println("CONTEXT created");
+              System.out.println("Device CL extensions: " + devices.get(0).getInfoString(CL_DEVICE_EXTENSIONS));
+            System.out.println("CONTEXT created. error code = " + errcode_ret.get(0));
+            
+            
+            errcode_ret.clear();
+org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQueue(context, devices.get(0), org.lwjgl.opencl.CL10.CL_QUEUE_PROFILING_ENABLE, errcode_ret);
+   // checkCLError throw a CLExcepetion if the error code does not equal CL_SUCCESS. This exception should be caught and all currently created resources released. See later. 
+   org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
+   
+            org.lwjgl.opencl.CL10.clReleaseCommandQueue(queue);
+            org.lwjgl.opencl.CL10.clReleaseContext(context);    
+            org.lwjgl.opencl.CL.destroy();
+            System.out.println("CL context released, CL shutdown");
+            System.out.println("****************\n");
+            
         } catch (Exception e) {
+            e.printStackTrace();
             System.out.println("*** Problem initializing OpenCL");
         }
         

@@ -142,7 +142,8 @@ const float zGradZH[27] = {
 };
 
 //vec3 gradient_delta = vec3(0.003, 0.003, 0.00375);
-vec3 gradient_delta = vec3(0.0045, 0.0045, 0.00689);
+//vec3 gradient_delta = vec3(0.0045, 0.0045, 0.00689);
+vec3 gradient_delta = vec3(1);
 
 vec3 findNormal(vec3 position)
 {
@@ -182,15 +183,7 @@ void main() {
                          gl_GlobalInvocationID.z);
 
     vec4 value;
-
-    vec3 diff, sample1, sample2;
-    //sample1.x = texture(image_tex, srcCoord-vec3(gradient_delta.x,0.0,0.0) ).r;
-    //sample2.x = texture(image_tex, srcCoord+vec3(gradient_delta.x,0.0,0.0) ).r;
-    //sample1.y = texture(image_tex, srcCoord-vec3(0.0,gradient_delta.y,0.0) ).r;
-    //sample2.y = texture(image_tex, srcCoord+vec3(0.0,gradient_delta.y,0.0) ).r;
-    //sample1.z = texture(image_tex, srcCoord-vec3(0.0,0.0,gradient_delta.z) ).r;
-    //sample2.z = texture(image_tex, srcCoord+vec3(0.0,0.0,gradient_delta.z) ).r;
-    //diff = sample1 - sample2;
+    vec3 diff;
 
     diff = -findNormal(srcCoord);
 

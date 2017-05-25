@@ -166,7 +166,7 @@ public class DefaultController extends Controller {
             fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
             File ctfile = null;
-            if (fileChooser.showOpenDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
+            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 ctfile = fileChooser.getSelectedFile();
                 System.out.println("Selected file: " + ctfile.getAbsolutePath());
 
@@ -180,7 +180,7 @@ public class DefaultController extends Controller {
             fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
             fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
             File mrfile = null;
-            if (fileChooser.showOpenDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
+            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 mrfile = fileChooser.getSelectedFile();
                 System.out.println("Selected file: " + mrfile.getAbsolutePath());
 
