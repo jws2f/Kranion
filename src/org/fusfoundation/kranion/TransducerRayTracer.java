@@ -217,7 +217,7 @@ public class TransducerRayTracer extends Renderable {
     private void initShader() {
         if (refractShader == null) {
             refractShader = new ShaderProgram();
-            refractShader.addShader(GL_COMPUTE_SHADER, "shaders/TransducerRayTracer.cs.glsl");
+            refractShader.addShader(GL_COMPUTE_SHADER, "shaders/TransducerRayTracer5x5.cs.glsl");
             refractShader.compileShaderProgram();
         }
         if (sdrShader == null) {
@@ -1230,7 +1230,7 @@ public class TransducerRayTracer extends Renderable {
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
 
-        glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT);
         
             glDisable(GL_LIGHTING);
             
@@ -1297,7 +1297,7 @@ public class TransducerRayTracer extends Renderable {
             // Draw skull strike discs
             if (!clipRays) {
 
-            glPushAttrib(GL_LIGHTING_BIT);
+            Main.glPushAttrib(GL_LIGHTING_BIT);
             
                 glEnable(GL_LIGHTING);
                 FloatBuffer matSpecular = BufferUtils.createFloatBuffer(4);
@@ -1319,12 +1319,12 @@ public class TransducerRayTracer extends Renderable {
                 glEnableClientState(GL_NORMAL_ARRAY);
                 glDrawArrays(GL_TRIANGLES, 0, 1024*3*20);
                 
-            glPopAttrib();
+            Main.glPopAttrib();
             
             
             }
             else {
-                glPushAttrib(GL_COLOR_BUFFER_BIT);
+                Main.glPushAttrib(GL_COLOR_BUFFER_BIT);
                 
                     org.lwjgl.opengl.GL11.glLineWidth(1.0f);
                     
@@ -1341,11 +1341,11 @@ public class TransducerRayTracer extends Renderable {
                     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
                     glDrawArrays(GL_LINES, 0, 1024*2);
                 
-                glPopAttrib();
+                Main.glPopAttrib();
 
             }
        
-        glPopAttrib();
+        Main.glPopAttrib();
                
         glDisableClientState(GL_VERTEX_ARRAY);
         glDisableClientState(GL_COLOR_ARRAY);
@@ -1355,7 +1355,7 @@ public class TransducerRayTracer extends Renderable {
     }
     
     private void renderEnvelope() {
-            glPushAttrib(GL_POINT_BIT | GL_ENABLE_BIT);
+            Main.glPushAttrib(GL_POINT_BIT | GL_ENABLE_BIT);
         
         glPointSize(8f);
         glBindBuffer(GL_ARRAY_BUFFER, envSSBo);
@@ -1365,7 +1365,8 @@ public class TransducerRayTracer extends Renderable {
         
         if (clipRays && showEnvelope) {
             //glEnable(GL_BLEND);
-            glPushMatrix();
+            glMatrixMode(GL_MODELVIEW);
+            Main.glPushMatrix();
             
             
 //                    envFloats.put(offset.x + centerOfRotation.x);
@@ -1385,13 +1386,13 @@ public class TransducerRayTracer extends Renderable {
             
             glDrawArrays(GL_POINTS, 0, 9261);
             
-            glPopMatrix();
+            Main.glPopMatrix();
         }
-        glPopAttrib();
+        Main.glPopAttrib();
     }
     
     private void render2DEnvelope() {
-        glPushAttrib(GL_POINT_BIT | GL_ENABLE_BIT);
+        Main.glPushAttrib(GL_POINT_BIT | GL_ENABLE_BIT);
         
         glPointSize(8f);
         glBindBuffer(GL_ARRAY_BUFFER, envSSBo);
@@ -1401,7 +1402,8 @@ public class TransducerRayTracer extends Renderable {
         
         if (clipRays && showEnvelope) {
             //glEnable(GL_BLEND);
-            glPushMatrix();                      
+            glMatrixMode(GL_MODELVIEW);
+            Main.glPushMatrix();                      
             
 //                    envFloats.put(offset.x + centerOfRotation.x);
 //                    envFloats.put(offset.y - centerOfRotation.y);
@@ -1421,9 +1423,9 @@ public class TransducerRayTracer extends Renderable {
             
             glDrawArrays(GL_POINTS, 0, 9261);
             
-            glPopMatrix();
+            Main.glPopMatrix();
         }
-        glPopAttrib();    
+        Main.glPopAttrib();    
     }
     
     private void setupImageTexture(ImageVolume image, int textureUnit, Vector3f center) {
@@ -1433,7 +1435,7 @@ public class TransducerRayTracer extends Renderable {
     private void setupImageTexture(ImageVolume image, int textureUnit, Vector3f center, Vector4f offset) {
         if (image == null) return;
         
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT);
         
         glActiveTexture(GL_TEXTURE0 + textureUnit);
         glEnable(GL_TEXTURE_3D);
@@ -1567,7 +1569,7 @@ public class TransducerRayTracer extends Renderable {
             
             glMatrixMode(GL_MODELVIEW);
         
-        glPopAttrib();
+        Main.glPopAttrib();
     }
         
     @Override

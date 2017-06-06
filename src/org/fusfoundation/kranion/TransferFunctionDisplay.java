@@ -147,16 +147,16 @@ public class TransferFunctionDisplay extends GUIControl {
         
         setIsDirty(false);
         
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT);
         
         glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+        Main.glPushMatrix();
             glLoadIdentity();
 
             org.lwjgl.util.glu.GLU.gluOrtho2D(0.0f, Display.getWidth(), 0.0f, Display.getHeight());
 
             glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
+            Main.glPushMatrix();
                 glLoadIdentity();
                 
                 
@@ -231,14 +231,14 @@ public class TransferFunctionDisplay extends GUIControl {
                 }
 
             glMatrixMode(GL_MODELVIEW);
-            glPopMatrix();
+            Main.glPopMatrix();
             
         glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+        Main.glPopMatrix();
         
         glMatrixMode(GL_MODELVIEW);
         
-        glPopAttrib();
+        Main.glPopAttrib();
     }
     
     public void setHistogram(IntBuffer histogramBins) {

@@ -39,6 +39,10 @@ public abstract class Renderable {
     protected boolean isVisible = true;
     protected boolean isDirty = false;
     
+    private static Renderable keyboardFocus = null;
+    private static Renderable defaultKeyboardFocus = null;
+    private boolean acceptsKeyboardFocus = false;
+    
     public Renderable() {
         renderableMap.add(id, this);
     }
@@ -87,5 +91,50 @@ public abstract class Renderable {
             
     public void setIsDirty(boolean dirty) {
         isDirty = dirty;
+    }
+    
+    public boolean getAcceptsKeyboardFocus() { return acceptsKeyboardFocus; }
+    public void setAcceptsKeyboardFocus(Boolean acceptsKbFocus) {
+        acceptsKeyboardFocus = acceptsKbFocus;
+    }
+    
+    public static void setDefaultKeyboardFocus(Renderable defaultKbFocusHandler) {
+        Renderable.defaultKeyboardFocus = defaultKbFocusHandler;
+    }
+    
+    public static Renderable getDefaultKeyboardFocus() {
+        return Renderable.defaultKeyboardFocus;
+    }
+    
+    public boolean hasKeyboardFocus() {
+        return keyboardFocus == this;
+    }
+    
+    public boolean acquireKeyboardFocus() {
+        if (getAcceptsKeyboardFocus()) {
+            if (keyboardFocus != null) {
+                keyboardFocus.lostKeyboardFocus();
+            }
+            keyboardFocus = this;
+            setIsDirty(true);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    
+    public void lostKeyboardFocus() {
+        setIsDirty(true);
+    }
+    
+    public static void ProcessKeyboard(int keyCode, char keyChar, boolean isKeyDown) {
+        if (keyboardFocus != null) {
+            keyboardFocus.OnKeyboard(keyCode, keyChar, isKeyDown);
+        }
+    }
+    
+    public void OnKeyboard(int keyCode, char keyChar, boolean isKeyDown) {
+        
     }
 }

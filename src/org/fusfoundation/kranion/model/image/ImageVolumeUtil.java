@@ -27,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import org.fusfoundation.kranion.ImageGradientVolume;
+import org.fusfoundation.kranion.Main;
 import static org.lwjgl.opengl.GL11.GL_CLAMP;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_LINEAR;
@@ -61,6 +62,7 @@ import static org.lwjgl.opengl.GL12.glTexImage3D;
 
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector3f;
+import org.lwjgl.util.vector.Matrix3f;
 
 /**
  *
@@ -167,6 +169,7 @@ public class ImageVolumeUtil {
 
 //                needsTexture = false;
 //                glBindTexture(GL_TEXTURE_3D, 0); // TODO: Not sure this is correct
+                Main.checkForGLError();
 
             }
             
@@ -181,6 +184,7 @@ public class ImageVolumeUtil {
                 ImageGradientVolume grad = new ImageGradientVolume();
                 grad.setImage(image);
                 grad.calculate();
+                Main.checkForGLError();
             }
         }
 
@@ -209,7 +213,9 @@ public class ImageVolumeUtil {
                 texName.asIntBuffer().put(0, textureName);
                 texName.flip();
                 glDeleteTextures(texName.asIntBuffer());
-            }    
+            }
+            
+            Main.checkForGLError();
         }
     }
     
@@ -261,34 +267,23 @@ public class ImageVolumeUtil {
         imageOriginPosition.x = imagePosition[0];
         imageOriginPosition.y = imagePosition[1];
         imageOriginPosition.z = imagePosition[2];
-        
-        //
-        //
-        // Trying to align image volume with world coordinate system
-        // using a quaternion derived from the axis/angle rotation 
-        // between two Z direction vectors
-        //////////////////////////////////////////////////////////////////
-        
-        Vector3f xvec = new Vector3f(imageOrientationX.x, imageOrientationX.y, imageOrientationX.z);
-        Vector3f yvec = new Vector3f(imageOrientationY.x, imageOrientationY.y, imageOrientationY.z);
-//       
-//        Vector3f zvec = Vector3f.cross(xvec, yvec, null).normalise(null);
-//        
-//        imageOrientationZ.x = zvec.x;
-//        imageOrientationZ.y = zvec.y;
-//        imageOrientationZ.z = zvec.z;
-       
+              
         image.setAttribute("ImageOrientationZ", imageOrientationZ);
+                
+        //Try this instead:
+        // build mat4 rom xvec and yvec
+        Matrix3f imageRot = new Matrix3f();
+        imageRot.m00 = imageOrientationX.x;
+        imageRot.m01 = imageOrientationX.y;
+        imageRot.m02 = imageOrientationX.z;
+        imageRot.m10 = imageOrientationY.x;
+        imageRot.m11 = imageOrientationY.y;
+        imageRot.m12 = imageOrientationY.z;
+        imageRot.m20 = imageOrientationZ.x;
+        imageRot.m21 = imageOrientationZ.y;
+        imageRot.m22 = imageOrientationZ.z;
         
-//        Vector3f stdZvec = new Vector3f(0f, 0f, 1f);
-        
-//        zvec.set(xvec);
-//        stdZvec.set(1, 0, 0);
-        
-        Quaternion q1 = quatFromVectorAngle(xvec, new Vector3f(1, 0, 0));
-        Quaternion q2 = quatFromVectorAngle(yvec, new Vector3f(0, 1, 0));
-        
-        imageOrientationQ = Quaternion.mul(q2, q1, null);
+        Quaternion.setFromMatrix(imageRot, imageOrientationQ);
              
         if (image.getAttribute("ImageOrientationQ") == null) {
             image.setAttribute("ImageOrientationQ", imageOrientationQ);

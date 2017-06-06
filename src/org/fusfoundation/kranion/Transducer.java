@@ -575,10 +575,11 @@ public class Transducer extends Clippable {
     
     public void renderRays() {
         if (showRays) {
-            glPushMatrix();
+            glMatrixMode(GL_MODELVIEW);
+            Main.glPushMatrix();
                 glTranslatef(position.x, position.y, position.z);
 
-                glPushAttrib(GL_ENABLE_BIT);
+                Main.glPushAttrib(GL_ENABLE_BIT);
 
                     if (clipRays) {
                         glEnable(GL_CLIP_PLANE0);
@@ -598,8 +599,8 @@ public class Transducer extends Clippable {
                     glEnable(GL_LIGHTING);
                     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-                glPopAttrib();
-            glPopMatrix();
+                Main.glPopAttrib();
+            Main.glPopMatrix();
         }
     }
     
@@ -624,7 +625,8 @@ public class Transducer extends Clippable {
             return;
         }
 
-        glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        Main.glPushMatrix();
 
  //           glTranslatef(0, 0, 150);
 //            glRotatef(transducerTilt, 1, 0, 0);
@@ -646,7 +648,7 @@ public class Transducer extends Clippable {
             
             //TODO: remove, just debugging some registration code
             if (showFiducialPositions) {
-                glPushAttrib(GL_ENABLE_BIT);
+                Main.glPushAttrib(GL_ENABLE_BIT);
                 glDisable(GL_LIGHTING);
                 glDisable(GL_CLIP_PLANE0);
                 glDisable(GL_CLIP_PLANE1);
@@ -664,20 +666,21 @@ public class Transducer extends Clippable {
                     glVertex3f(-80f, 80f,  3.37f);
                     glVertex3f(-80f, -80f,  3.37f);
                 glEnd();
-                glPopAttrib();
+                Main.glPopAttrib();
             }
 
     //        renderRays();
                  
-        glPopMatrix();
+        Main.glPopMatrix();
     }
     
     public void renderFocalSpot() {
-         glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+         Main.glPushMatrix();
 
             glTranslatef(position.x, position.y, position.z);
 
-            glPushAttrib(GL_ENABLE_BIT);
+            Main.glPushAttrib(GL_ENABLE_BIT);
 
     //            glDisable(GL_DEPTH_TEST);
                 glEnable(GL_BLEND);
@@ -730,9 +733,9 @@ public class Transducer extends Clippable {
                 
 
 
-            glPopAttrib();
+            Main.glPopAttrib();
                 
-        glPopMatrix();       
+        Main.glPopMatrix();       
     }
     
 //    public void renderClipped(Vector4f color) {

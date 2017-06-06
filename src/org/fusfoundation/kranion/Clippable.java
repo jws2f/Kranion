@@ -99,7 +99,7 @@ public abstract class Clippable extends Renderable {
     
     public void renderClipped() {
             
-        glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_POLYGON_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_POLYGON_BIT);
 
             glEnable(GL_CLIP_PLANE0);
             glDisable(GL_CLIP_PLANE1);
@@ -142,7 +142,7 @@ public abstract class Clippable extends Renderable {
             glMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, c);
 
             glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
+            Main.glPushMatrix();
 
                 glLoadIdentity();
 
@@ -197,9 +197,9 @@ public abstract class Clippable extends Renderable {
 
                 glDisable(GL_STENCIL_TEST);
 
-            glPopMatrix();
+            Main.glPopMatrix();
 
-        glPopAttrib();
+        Main.glPopAttrib();
     }
     
 }

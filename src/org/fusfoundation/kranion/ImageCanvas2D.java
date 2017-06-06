@@ -467,10 +467,10 @@ public class ImageCanvas2D extends GUIControl {
 
         displayFlat();
         
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
         
         glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+        Main.glPushMatrix();
             glLoadIdentity();
 
             org.lwjgl.opengl.GL11.glOrtho(0.0f, Display.getWidth(), 0.0f, Display.getHeight(), -1000, 2000); // TODO: move this elsewhere, to overlay managment
@@ -479,7 +479,7 @@ public class ImageCanvas2D extends GUIControl {
                 glBlendFuncSeparate (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
             glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
+            Main.glPushMatrix();
                 glLoadIdentity();
                     FloatBuffer lightPosition = BufferUtils.createFloatBuffer(4);
                     lightPosition.put(Display.getWidth() / 2).put(Display.getHeight() / 2).put(10000.0f).put(1f).flip();
@@ -487,12 +487,16 @@ public class ImageCanvas2D extends GUIControl {
                     
                     glTranslatef(this.canvasX, this.canvasY, 0f);
                     renderChildren();
-             glPopMatrix();
+                    
+             glMatrixMode(GL_MODELVIEW);
+             Main.glPopMatrix();
             
         glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+        Main.glPopMatrix();
         
-        glPopAttrib();
+        glMatrixMode(GL_MODELVIEW);
+        
+        Main.glPopAttrib();
         
         setIsDirty(false);
 
@@ -644,7 +648,7 @@ public class ImageCanvas2D extends GUIControl {
             //     to revert to using the image orientation rotation.
             //     Could do this without GL matrix functions I guess.
             //////
-            glPushMatrix();
+            Main.glPushMatrix();
             
                 glLoadIdentity();
                 // Assuming canonical axial plane, normal vector is in z-direction
@@ -695,7 +699,7 @@ public class ImageCanvas2D extends GUIControl {
                     imagePlaneY = new Vector3f(Matrix4f.transform(ovlyTexMatrix, ydir, null)).normalise(null);
                 }
 
-            glPopMatrix();
+            Main.glPopMatrix();
             ////////
             //
 
@@ -703,7 +707,7 @@ public class ImageCanvas2D extends GUIControl {
             // Now we do this again to setup the transform that we need in order
             // map mouse actions on the image to dicom coordinate system.
             //////////////
-            glPushMatrix();
+            Main.glPushMatrix();
                 glLoadIdentity();
 
                 //System.out.println("mid z = " + (double)idepth/texDepth/2.0);
@@ -746,7 +750,7 @@ public class ImageCanvas2D extends GUIControl {
                     ovlyTexMatrix.load(matrixBuf);
                 }
                 
-            glPopMatrix();
+            Main.glPopMatrix();
             /////////////////////
             //
             //
@@ -1175,7 +1179,7 @@ public class ImageCanvas2D extends GUIControl {
 
         init();
         
-        glPushAttrib(GL_ENABLE_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT);
 
             if (CTimage != null)
                 ImageVolumeUtil.buildTexture(CTimage); ///HACK
@@ -1186,13 +1190,13 @@ public class ImageCanvas2D extends GUIControl {
 
         // Go into ORTHO projection, but save any 
         glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+        Main.glPushMatrix();
         glLoadIdentity();
         
         org.lwjgl.util.glu.GLU.gluOrtho2D(0.0f, Display.getWidth(), 0.0f, Display.getHeight());
 
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
         glLoadIdentity();
         
         glColor4d(0.7, 0.7, 0.9, 1.0);
@@ -1299,7 +1303,7 @@ public class ImageCanvas2D extends GUIControl {
         
 
         // Draw outline of the slice for debugging
-        glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT);
+        Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT);
         
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);
@@ -1339,18 +1343,18 @@ public class ImageCanvas2D extends GUIControl {
                 glVertex3d(canvasX,       ypos+canvasY, 0.0);
        glEnd();
         
-        glPopAttrib();
+        Main.glPopAttrib();
 
         // Restore matrices
         glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
+        Main.glPopMatrix();
         
         glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+        Main.glPopMatrix();
         
         glMatrixMode(GL_MODELVIEW);
 
-        glPopAttrib();
+        Main.glPopAttrib();
     }
 
     /**

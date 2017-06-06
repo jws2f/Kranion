@@ -100,7 +100,7 @@ public class TransformationAdapter extends Renderable {
         
         
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
         
         // Translation
             glTranslatef(translation.x, translation.y, translation.z);
@@ -113,7 +113,7 @@ public class TransformationAdapter extends Renderable {
         
             child.render();
             
-        glPopMatrix();
+        Main.glPopMatrix();
     }
 
     @Override

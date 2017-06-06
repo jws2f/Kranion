@@ -176,7 +176,7 @@ public class Slider extends GUIControl {
         
         handlePos = Math.round((current - min)/(max - min) * (troughLength - handleLength));
         
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
         
                 switch(state) {
                     case ENABLED:
@@ -216,7 +216,7 @@ public class Slider extends GUIControl {
 //                    glLight(GL_LIGHT0, GL_POSITION, lightPosition);	// sets light position
 
                     glMatrixMode(GL_MODELVIEW);
-                    glPushMatrix();
+                    Main.glPushMatrix();
 
                     DoubleBuffer eqnBuf = BufferUtils.createDoubleBuffer(4);
                     eqnBuf.put(0.0f).put(0.0f).put(-1.0f).put(0.1f);
@@ -247,16 +247,16 @@ glCullFace(GL_BACK);
                         handle_cylinder.setColor(0.1f, 0.9f, 0.1f, 0.9f);
                         drawCylinderHorz(handle_cylinder, labelWidth+handlePos, bounds.height/2f, 7, handleLength);
                         
-                    glPopMatrix();
+                    Main.glPopMatrix();
                     
 glDisable(GL_CULL_FACE);
                         
-        glPopAttrib();
+        Main.glPopAttrib();
     }
         
     private void drawCylinderHorz(Cylinder c, float x, float y, float radius, float length) {
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
             glTranslatef(bounds.x+x, bounds.y+y, 0f);
             glRotatef(90f, 0f, -1f, 0f);
             
@@ -264,7 +264,7 @@ glDisable(GL_CULL_FACE);
             
             c.render();
         glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
+        Main.glPopMatrix();
     }
     
     private void drawCylinderVert(Cylinder c, float x, float y, float radius, float length) {
@@ -280,7 +280,7 @@ glDisable(GL_CULL_FACE);
     
     private void drawHemisphereHorz(Hemisphere h, float x, float y, float radius, float rotate) {
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
             glTranslatef(bounds.x+x, bounds.y+y, 0f);
             glRotatef(rotate, 0f, 0f, 1f);
             glRotatef(90f, 0f, -1f, 0f);
@@ -288,7 +288,7 @@ glDisable(GL_CULL_FACE);
             glScalef(radius, radius, radius);
             h.render();
         glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
+        Main.glPopMatrix();
     }
     
     private void generateLabel() {
@@ -359,7 +359,7 @@ glDisable(GL_CULL_FACE);
         }
         
         if (labelImage != null) {
-            glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+            Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
 
             byte buf[] = (byte[]) labelImage.getRaster().getDataElements(0, 0, labelImage.getWidth(), labelImage.getHeight(), null);
 
@@ -386,7 +386,7 @@ glDisable(GL_CULL_FACE);
                     //   glPopMatrix();
 //                    glDisable(GL_BLEND);
 
-            glPopAttrib();
+            Main.glPopAttrib();
         }        
     }
     

@@ -59,7 +59,7 @@ public class XYChartControl extends GUIControl {
     @Override
     public void render() {
         if (image != null) {
-            glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+            Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
             renderBufferedImage(image, bounds);
 //
 //            byte buf[] = (byte[]) image.getRaster().getDataElements(0, 0, image.getWidth(), image.getHeight(), null);
@@ -90,7 +90,7 @@ public class XYChartControl extends GUIControl {
 //                    //   glPopMatrix();
 ////                    glDisable(GL_BLEND);
 //
-            glPopAttrib();
+            Main.glPopAttrib();
         }
     }
 

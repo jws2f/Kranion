@@ -72,10 +72,11 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     protected GUIControl grabbedChild = null; // child control that has grabbed the mouse
     protected float xgrab, ygrab;
     protected ArrayList<Renderable> children = new ArrayList<>();
+    protected boolean isTextEditable = false;
     
     protected Thread myThread = Thread.currentThread();
     protected UpdateEventQueue updateEventQueue = new UpdateEventQueue();
-        
+            
     public void addChild(Renderable child) {
         if (child instanceof GUIControl) {
             ((GUIControl)child).parent = this;
@@ -87,6 +88,8 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     public boolean getIsDirty() {
         
         updateEventQueue.handleEvents(this);
+
+        advanceChildren(); // all animators will set dirty as needed
         
         if (isDirty) {
 //            System.out.println("I am dirty: " + this);
@@ -127,6 +130,19 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         return this.isEnabled;
     }
         
+    // Some children who are animators may need to be checked to
+    // see if they are "dirty" before the render cycle, otherwise
+    // animation changes might not get rendered.
+    public void advanceChildren() {
+        Iterator<Renderable> i = children.iterator();
+        while (i.hasNext()) {
+            Renderable child = i.next();
+            if (child instanceof Animator) {
+                ((Animator) child).advanceFrame();
+            }
+        }
+    }
+    
     public void renderChildren() {
         Iterator<Renderable> i = children.iterator();
         while (i.hasNext()) {
@@ -134,11 +150,29 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
             if (child instanceof Animator) {
                 ((Animator) child).advanceFrame();
             }
+//            int startStackDepth = glGetInteger(GL_ATTRIB_STACK_DEPTH);
             child.render();
+//            int endStackDepth = glGetInteger(GL_ATTRIB_STACK_DEPTH);
+//            if (startStackDepth != endStackDepth) {
+//                System.out.println("ATTRIB stack leak: " + child + "[" + startStackDepth + "->" + endStackDepth + "]");
+//            }
+            
 //System.out.println(child);
-//Main.checkForGLErrorAndThrow();
+//if (Main.checkForGLError() != GL_NO_ERROR) {
+//   System.out.println(child);
+//   System.out.println("MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
+//   System.out.println("MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
+//   System.out.println("PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
+//   System.out.println("PROJECTIONVIEW max stack depth: " + glGetInteger(GL_MAX_PROJECTION_STACK_DEPTH));
+//}
         }
      }
+    
+    public void setTextEditable(boolean isEditable) {
+        this.isTextEditable = isEditable;
+    }
+    
+    public boolean getTextEditable() { return isTextEditable; }
     
     @Override
     public void release() {
@@ -263,6 +297,14 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
 //        }
         
         if (getVisible()) {
+            
+            if (currentInside && button1down || button2down) {
+                if (!this.acquireKeyboardFocus()) {
+                    if (Renderable.getDefaultKeyboardFocus() != null) {
+                        Renderable.getDefaultKeyboardFocus().acquireKeyboardFocus();
+                    }
+                }
+            }
 
             if (this.grabbedChild != null) {
                 return grabbedChild.OnMouse(x - bounds.getIntX(), y - bounds.getIntY(), button1down, button2down, dwheel);
@@ -371,6 +413,10 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     protected static Font stdfont = new Font("Helvetica", Font.PLAIN | Font.TRUETYPE_FONT, 16);
 
     public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos) {
+        renderText(str, rect, font, color, shadowed, vpos, hpos, false, -1);
+    }
+    
+    public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
         
         BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
 
@@ -384,11 +430,21 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         FontMetrics metrics = gc.getFontMetrics(font);
         
         Rectangle2D textBound = metrics.getStringBounds(str, gc);
-        
+                
         float newWidth = metrics.stringWidth(str);
         float textHeight = metrics.getHeight();
         
+        float cursorXPos = -1f;
+        
+        try {
+            cursorXPos = metrics.stringWidth(str.substring(0, cursorPos));
+        }
+        catch(StringIndexOutOfBoundsException e) {
+            cursorXPos = -1f;
+        }
+        
         float textVPos = 0f;               
+        int hScroll = 0;
         switch(vpos) {
             case VPOSITION_TOP:
                textVPos = metrics.getAscent();
@@ -403,10 +459,16 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         float textHPos = 0f;
         switch(hpos) {
             case HPOSITION_LEFT:
-                textHPos = 0;
+                textHPos = 1;
+                if (cursorXPos > -1) {
+                    hScroll = Math.max(0, Math.round(cursorXPos) - (rect.getIntWidth() - 1));
+                }
                 break;
             case HPOSITION_RIGHT:
                 textHPos = rect.width - newWidth;
+                if (cursorXPos > -1) {
+                    hScroll = Math.min(0, Math.round(cursorXPos) + (rect.getIntWidth() - 1 - (int)newWidth));
+                }
                 break;
             case HPOSITION_CENTER:
                 textHPos = rect.width/2 - newWidth/2;
@@ -420,7 +482,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         
         if (shadowed) {
             gc.setColor(new Color(0.0f, 0.0f, 0.0f, 1.0f));
-            gc.drawString(str, textHPos+1, textVPos+1);
+            gc.drawString(str, textHPos+1 - hScroll, textVPos+1);
         }
         
         if (isEnabled) {
@@ -429,7 +491,15 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         else {
             gc.setColor(new Color(0.4f, 0.4f, 0.4f, 1.0f));            
         }
-        gc.drawString(str, textHPos, textVPos);
+        gc.drawString(str, textHPos - hScroll, textVPos);
+        
+        if (isTextEditable && hasKeyboardFocus() && cursorPos > -1 && showCaret) {
+            gc.drawLine(
+                (int)textHPos + (int)cursorXPos - 1 - hScroll,
+                (int)textVPos + metrics.getDescent(),
+                (int)textHPos + (int)cursorXPos - 1 - hScroll,
+                (int)textVPos + metrics.getDescent() - (int)textHeight);
+        }
         
         renderBufferedImage(img, rect);
     }
@@ -440,7 +510,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         Rectangle imgRect = new Rectangle(rect);
         
         if (img != null) {
-            glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+            Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
 
                     float xoffset = 0;
                     float yoffset = 0;
@@ -457,7 +527,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                         
                         if (Math.round(xoffset) >= img.getWidth() ||
                             Math.round(yoffset) >= img.getHeight()) {
-                            glPopAttrib();
+                            Main.glPopAttrib();
                             return; // we are totally off screen
                         }
                                                 
@@ -501,7 +571,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
 //                        glVertex2f(imgRect.x, imgRect.y + imageToUse.getHeight());
 //                    glEnd();
 
-            glPopAttrib();
+            Main.glPopAttrib();
         }
     }
     

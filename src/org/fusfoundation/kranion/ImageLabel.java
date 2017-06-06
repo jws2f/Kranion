@@ -57,7 +57,7 @@ public class ImageLabel extends GUIControl {
         
         setIsDirty(false);
         
-        glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
         
         glEnable(GL_TEXTURE_2D);
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -93,7 +93,7 @@ public class ImageLabel extends GUIControl {
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_2D);
         
-        glPopAttrib();
+        Main.glPopAttrib();
     }
 
     @Override

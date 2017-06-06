@@ -92,19 +92,21 @@ public class RenderLayer extends GUIControl implements Resizeable {
     
     @Override
     public void render() {
+        advanceChildren();
+        
         if (getIsDirty()) {
-            glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT);
+//            glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT);
         
             if (is2D) {
                 glMatrixMode(GL_PROJECTION);
-                glPushMatrix();
-                   glLoadIdentity();
+                Main.glPushMatrix();
+                glLoadIdentity();
 
-                   org.lwjgl.util.glu.GLU.gluOrtho2D(0.0f, Display.getWidth(), 0.0f, Display.getHeight());
+                org.lwjgl.util.glu.GLU.gluOrtho2D(0.0f, Display.getWidth(), 0.0f, Display.getHeight());
 
-                   glMatrixMode(GL_MODELVIEW);
-                   glPushMatrix();
-                       glLoadIdentity();
+                glMatrixMode(GL_MODELVIEW);
+                Main.glPushMatrix();
+                glLoadIdentity();
             }
                 
                 
@@ -120,20 +122,19 @@ public class RenderLayer extends GUIControl implements Resizeable {
             glDisable(GL_CLIP_PLANE1);
         
             renderChildren();
-            
+
             frameBufferMSAA.unbind();
             frameBufferMSAA.render_MSAA(frameBuffer);
-            
+
             setIsDirty(false);
             
             if (is2D) {
                 glMatrixMode(GL_MODELVIEW);
-                glPopMatrix();
+                Main.glPopMatrix();
                 glMatrixMode(GL_PROJECTION);
-                glPopMatrix();
+                Main.glPopMatrix();
             }
-            glPopAttrib();
-//Main.checkForGLErrorAndThrow();
+//            glPopAttrib();
             
             glMatrixMode(GL_MODELVIEW);
         }

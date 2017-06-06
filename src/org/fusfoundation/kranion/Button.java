@@ -166,7 +166,7 @@ public class Button extends GUIControl {
             labelScale = scale;
         }
         
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
         
                 switch(state) {
                     case ENABLED:
@@ -217,7 +217,8 @@ public class Button extends GUIControl {
                     glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 80.0f);					// sets shininess
                     glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_FALSE);
 
-                    glPushMatrix();
+                    glMatrixMode(GL_MODELVIEW);
+                    Main.glPushMatrix();
                         glTranslatef(bounds.x+12, bounds.y+bounds.height/2f, 10f);
 
                         sphere.setDrawStyle(GLU.GLU_FILL);
@@ -242,10 +243,10 @@ public class Button extends GUIControl {
                         }
                         sphere.setOrientation(GLU.GLU_INSIDE);
                         sphere.draw(indicatorRadius-2f, 32, 16);
-                    glPopMatrix();
+                    Main.glPopMatrix();
                 }
                         
-        glPopAttrib();
+        Main.glPopAttrib();
         
         setIsDirty(false);
     }

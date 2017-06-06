@@ -103,6 +103,8 @@ public class Main implements ProgressListener {
     public static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     
     public static float OpenGLVersion = -1f;
+    
+    public static final boolean DEBUG = false;
 
     private float viewportAspect = 1f;
 
@@ -470,6 +472,7 @@ org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQue
                 nextFrame();
                 
                 Main.checkForGLError();
+                
         }
         
         view.release();
@@ -509,17 +512,20 @@ org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQue
         Display.sync(60);
         currentBuffer = (currentBuffer+1)%3; // keep track of front/back buffers        
     }
-    
-    public static void popMatrixWithCheck() {
-        glPopMatrix();
-        checkForGLErrorAndThrow();
-    }
-    
+        
     public static void checkForGLErrorAndThrow() {
         int error = checkForGLError();
         if (error != GL_NO_ERROR) {
             throw new org.lwjgl.opengl.OpenGLException(error);
         }        
+    }
+    
+    public static void printStackTrace() {
+        StackTraceElement[] traces;
+        traces = Thread.currentThread().getStackTrace();
+        for (int i=2; i<traces.length; i++) {
+            System.out.println("\t" + traces[i]);
+        }
     }
     
     public static int checkForGLError() {
@@ -537,7 +543,7 @@ org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQue
                     System.out.println("GL_INVALID_OPERATION");
                     break;
                 case org.lwjgl.opengl.GL30.GL_INVALID_FRAMEBUFFER_OPERATION:
-                    System.out.println("GL_INVALID_OPERATION");
+                    System.out.println("GL_INVALID_FRAMEBUFFER_OPERATION");
                     break;
                 case GL_OUT_OF_MEMORY:
                     System.out.println("GL_OUT_OF_MEMORY");
@@ -551,8 +557,49 @@ org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQue
                 default:
                     System.out.println("UNKNOWN GL ERROR: " + error);
             }
+            printStackTrace();
         }
         return error;
     }
+    
+    public static void glPushMatrix() {
+        org.lwjgl.opengl.GL11.glPushMatrix();
 
+        if (DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
+            System.out.println("MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
+            System.out.println("MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
+            System.out.println("PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
+            System.out.println("PROJECTIONVIEW max stack depth: " + glGetInteger(GL_MAX_PROJECTION_STACK_DEPTH));
+        }
+    }
+    
+    public static void glPopMatrix() {
+        org.lwjgl.opengl.GL11.glPopMatrix();
+
+        if (DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
+            System.out.println("MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
+            System.out.println("MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
+            System.out.println("PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
+            System.out.println("PROJECTIONVIEW max stack depth: " + glGetInteger(GL_MAX_PROJECTION_STACK_DEPTH));
+        }
+    }
+    
+    public static void glPushAttrib(int bitmask) {
+        org.lwjgl.opengl.GL11.glPushAttrib(bitmask);
+        
+        if (DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
+            System.out.println("ATTRIB stack depth: " + glGetInteger(GL_ATTRIB_STACK_DEPTH));
+            System.out.println("ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
+        }
+    }
+    
+    public static void glPopAttrib() {
+        org.lwjgl.opengl.GL11.glPopAttrib();
+
+        if (DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
+            System.out.println("ATTRIB stack depth: " + glGetInteger(GL_ATTRIB_STACK_DEPTH));
+            System.out.println("ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
+        }
+    }
+    
 }

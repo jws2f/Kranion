@@ -334,6 +334,7 @@ public class ImageGradientVolume {
         if (shader == null) {
             shader = new ShaderProgram();
             shader.addShader(GL_COMPUTE_SHADER, "shaders/ImageGradientVolume.cs.glsl");
+            //shader.addShader(GL_COMPUTE_SHADER, "shaders/ImageGradientVolume5x5.cs.glsl"); // seems overly smooth
             shader.compileShaderProgram();  // TODO: should provide check for successful shader compile
         }
     }
@@ -409,7 +410,7 @@ public class ImageGradientVolume {
            
         glBindImageTexture(gradientTextureUnit, gradientTextureName, 0, true, 0, GL_WRITE_ONLY, GL_RGBA16F);
         
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT);
         
             glActiveTexture(GL_TEXTURE0 + imageTextureUnit);
             glEnable(GL_TEXTURE_3D);
@@ -428,6 +429,6 @@ public class ImageGradientVolume {
             glLoadIdentity();
             glMatrixMode(GL_MODELVIEW);
         
-        glPopAttrib();
+        Main.glPopAttrib();
     }        
 }

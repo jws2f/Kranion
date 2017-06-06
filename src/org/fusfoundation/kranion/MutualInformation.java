@@ -127,7 +127,7 @@ public class MutualInformation {
             //     to revert to using the image orientation rotation.
             //     Could do this without GL matrix functions I guess.
             //////
-            glPushMatrix();
+            Main.glPushMatrix();
             
                 glLoadIdentity();
                 // Assuming canonical axial plane, normal vector is in z-direction
@@ -170,7 +170,7 @@ public class MutualInformation {
                     imagePlaneY = new Vector3f(Matrix4f.transform(mrTexMatrix, ydir, null)).normalise(null);
                 }
 
-            glPopMatrix();
+            Main.glPopMatrix();
             ////////
             //
 
@@ -178,7 +178,7 @@ public class MutualInformation {
             // Now we do this again to setup the transform that we need in order
             // map mouse actions on the image to dicom coordinate system.
             //////////////
-            glPushMatrix();
+            Main.glPushMatrix();
                 glLoadIdentity();
 
                 //System.out.println("mid z = " + (double)idepth/texDepth/2.0);
@@ -216,7 +216,7 @@ public class MutualInformation {
                     mrTexMatrix.load(matrixBuf);
                 }
                 
-            glPopMatrix();
+            Main.glPopMatrix();
             /////////////////////
             //
             //

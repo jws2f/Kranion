@@ -53,7 +53,8 @@ public class CrossHair extends Renderable
     @Override
     public void render() {
         
-        glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        Main.glPushMatrix();
         
         if (offset != null) {
             glTranslatef(-offset.x, -offset.y, -offset.z);
@@ -64,7 +65,7 @@ public class CrossHair extends Renderable
         }
         
         
-        glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT | GL_COLOR_BUFFER_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT | GL_COLOR_BUFFER_BIT);
         
         glEnable(GL_BLEND);
         glDisable(GL_LIGHTING);
@@ -125,9 +126,9 @@ public class CrossHair extends Renderable
             glEnd();
 
         }       
-        glPopAttrib();
+        Main.glPopAttrib();
         
-        glPopMatrix();
+        Main.glPopMatrix();
     }
 
     @Override

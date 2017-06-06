@@ -108,16 +108,16 @@ public class ProgressBar extends GUIControl {
         
         if (value < 0 || !getVisible()) return;
         
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT);
         
         glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+        Main.glPushMatrix();
             glLoadIdentity();
 
             org.lwjgl.util.glu.GLU.gluOrtho2D(0.0f, Display.getWidth(), 0.0f, Display.getHeight());
 
             glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
+            Main.glPushMatrix();
                 glLoadIdentity();
                 
                 
@@ -172,12 +172,14 @@ public class ProgressBar extends GUIControl {
                 renderLabel();
 
             glMatrixMode(GL_MODELVIEW);
-            glPopMatrix();
+            Main.glPopMatrix();
             
         glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+        Main.glPopMatrix();
         
-        glPopAttrib();
+        Main.glPopAttrib();
+        
+        glMatrixMode(GL_MODELVIEW);
         
         setIsDirty(false);
         
@@ -230,7 +232,7 @@ public class ProgressBar extends GUIControl {
         }
         
         if (labelImage != null) {
-            glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+            Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
 
             byte buf[] = (byte[]) labelImage.getRaster().getDataElements(0, 0, labelImage.getWidth(), labelImage.getHeight(), null);
 
@@ -257,7 +259,7 @@ public class ProgressBar extends GUIControl {
                     //   glPopMatrix();
                     glDisable(GL_BLEND);
 
-            glPopAttrib();
+            Main.glPopAttrib();
         }        
     }
 

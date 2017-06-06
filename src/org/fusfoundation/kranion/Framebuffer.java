@@ -269,7 +269,7 @@ public class Framebuffer extends Renderable implements Resizeable {
             shader.compileShaderProgram();
         }
         
-        glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT | GL_TRANSFORM_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT | GL_TRANSFORM_BIT);
                 
 // This is probably faster than texture approach, but can't do alpha blending
 //        glBindFramebuffer(GL_READ_FRAMEBUFFER, this.myFBOId);
@@ -303,13 +303,13 @@ public class Framebuffer extends Renderable implements Resizeable {
         
         // Go into ORTHO projection, but save any 
         glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+        Main.glPushMatrix();
         glLoadIdentity();
         
         org.lwjgl.util.glu.GLU.gluOrtho2D(0.0f, width, 0.0f, height);
 
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
         glLoadIdentity();
         
             glMatrixMode(GL_TEXTURE);
@@ -347,10 +347,10 @@ public class Framebuffer extends Renderable implements Resizeable {
         
         // Restore matrices
         glMatrixMode(GL_MODELVIEW);
-        glPopMatrix();
+        Main.glPopMatrix();
         
         glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+        Main.glPopMatrix();
         
         glMatrixMode(GL_MODELVIEW);
         
@@ -359,11 +359,11 @@ public class Framebuffer extends Renderable implements Resizeable {
         glDisable(GL_TEXTURE_2D);        
         
         // reset gl attributes
-        glPopAttrib();
+        Main.glPopAttrib();
     }
     
     public void render_MSAA(Framebuffer fb) {
-        glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_VIEWPORT_BIT);
         
         glDisable(GL_LIGHTING);
         glDisable(GL_DEPTH_TEST);      
@@ -432,7 +432,7 @@ public class Framebuffer extends Renderable implements Resizeable {
 //        glBindTexture(GL_TEXTURE_2D, 0);
         
         // reset gl attributes
-        glPopAttrib();
+        Main.glPopAttrib();
     }
 
     @Override

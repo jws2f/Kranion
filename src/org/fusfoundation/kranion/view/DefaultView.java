@@ -90,6 +90,7 @@ import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.util.Observable;
 import javax.swing.*;
+import org.fusfoundation.kranion.Renderable;
 
 import org.fusfoundation.kranion.model.*;
 import org.fusfoundation.kranion.model.image.*;
@@ -232,6 +233,10 @@ public class DefaultView extends View {
     public DefaultView() {
         selTrans = 0;
         drawingStyle = 0;
+        
+        this.setAcceptsKeyboardFocus(true);
+        Renderable.setDefaultKeyboardFocus(this);
+        this.acquireKeyboardFocus();
     }
 
     @Override
@@ -252,16 +257,19 @@ public class DefaultView extends View {
 
         TextBox textbox = (TextBox)new TextBox(225, 400, 100, 25, "", controller).setTitle("Acoustic Power").setCommand("sonicationPower");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTextEditable(true);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
         textbox = (TextBox)new TextBox(225, 370, 100, 25, "", controller).setTitle("Duration").setCommand("sonicationDuration");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTextEditable(true);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
         textbox = (TextBox)new TextBox(225, 330, 100, 25, "", controller).setTitle("Frequency").setCommand("sonicationFrequency");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTextEditable(true);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
@@ -376,7 +384,7 @@ public class DefaultView extends View {
         slider1.setMinMax(1482, 3500);
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.0f m/s");
-        slider1.setCurrentValue(2652);
+        slider1.setCurrentValue(2900);
         flyout2.addChild(slider1);
         model.addObserver(slider1);
         
@@ -1185,7 +1193,7 @@ public class DefaultView extends View {
             canvas.setShowThermometry(bShow);
             
             if (old != bShow) {
-                this.setDoTransition(true);;
+                this.setDoTransition(true);
             }
         }
         catch(NullPointerException e) {
@@ -1415,11 +1423,16 @@ public class DefaultView extends View {
 
     private static boolean mouseButton1Drag = false;
     private boolean OnMouse(int x, int y, boolean button1down, boolean button2down, int dwheel) {
+                
         if (dwheel != 0) {
             scene.setIsDirty(true);
             dolly.incrementValue(-dwheel/5f); // zoom with mouse wheel
         }
         if (!scene.OnMouse(x, y, button1down, button2down, dwheel)) {
+            
+            if (button1down) {
+                this.acquireKeyboardFocus();
+            }
             
             // Mouse dragged
             if (mouseButton1Drag == true && Mouse.isButtonDown(0)) {
@@ -1720,11 +1733,11 @@ public class DefaultView extends View {
                 case "doMRI":
                 case "doClip":
                 case "showRayTracer":
-                    setDoTransition(true);;
+                    setDoTransition(true);
                     return;
                 case "currentMRSeries":
                     this.setDisplayMRimage(model.getMrImage( ((Integer)model.getAttribute("currentMRSeries")).intValue()));
-                    setDoTransition(true);;
+                    setDoTransition(true);
                     break;
                 case "currentSonication":
                     int sonicationIndex = (Integer)model.getAttribute("currentSonication");
@@ -1741,7 +1754,7 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationSLoc", String.format("%4.1f", t.z));
                         updateThermometryDisplay(sonicationIndex, true);
                         updateTransducerModel(sonicationIndex);
-                        setDoTransition(true);;
+                        setDoTransition(true);
                     }
                     break;
                 case "transducerXTilt":
@@ -1759,7 +1772,7 @@ public class DefaultView extends View {
                     ctHistogram.calculate();
                     transFuncDisplay.setHistogram(ctHistogram.getData());
                     ctHistogram.release();
-                    setDoTransition(true);;
+                    setDoTransition(true);
                     return;
                 case "Model.MrImage[0]":
                     setDisplayMRimage(model.getMrImage(0));
@@ -1846,6 +1859,7 @@ public class DefaultView extends View {
     }
     
     private void updateThermometryDisplay(int sonicationIndex, boolean setToMax) {
+        System.out.println("DefaultView::updateThermometryDisplay");
         ImageVolume thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
         float data[] = (float[])thermometry.getData();
         
@@ -1943,6 +1957,13 @@ public class DefaultView extends View {
     public void processInput() {
         while (Mouse.next()) {
             OnMouse(Mouse.getEventX(), Mouse.getEventY(), Mouse.isButtonDown(0), Mouse.isButtonDown(1), Mouse.getEventDWheel());
+        }
+        
+        if (!hasKeyboardFocus()) {
+            while (Keyboard.next()) {
+                ProcessKeyboard(Keyboard.getEventKey(), Keyboard.getEventCharacter(), Keyboard.getEventKeyState());
+            }
+            return;
         }
         
         if (Keyboard.isKeyDown(Keyboard.KEY_LEFT)) {
@@ -2120,6 +2141,7 @@ public class DefaultView extends View {
         }
 
         while (Keyboard.next()) {
+            
             if (Keyboard.getEventKeyState()) {
                 if (Keyboard.getEventKey() == Keyboard.KEY_D) {
                     transducerModel.setShowSteeringVolume(!this.transducerModel.getShowSteeringVolume());
@@ -2159,7 +2181,7 @@ public class DefaultView extends View {
                     selTrans = ++selTrans % Transducer.getTransducerDefCount();
 
                     transRayTracer.release();
-                    setDoTransition(true);;
+                    setDoTransition(true);
 //                    if (selTrans == 0) {
 //                        transRayTracer.init(transducer220);
 //                    } else {
@@ -2175,7 +2197,7 @@ public class DefaultView extends View {
                     //System.out.println("1 Key Pressed");
 //                    needsRendering = true;
                     canvas.setShowMR(!canvas.getShowMR());
-                    setDoTransition(true);;
+                    setDoTransition(true);
                 }
             }
             if (Keyboard.getEventKeyState()) {
@@ -2193,7 +2215,7 @@ public class DefaultView extends View {
                     ctHistogram.calculate();
                     transFuncDisplay.setHistogram(ctHistogram.getData());
                     ctHistogram.release();
-                    setDoTransition(true);;
+                    setDoTransition(true);
                 }
             }
             if (Keyboard.getEventKeyState()) {
@@ -2259,7 +2281,7 @@ public class DefaultView extends View {
 //                    needsRendering = true;
                     showScanner = !showScanner;
                     scene.setIsDirty(true);
-                    setDoTransition(true);;
+                    setDoTransition(true);
                 }
             }
             if (Keyboard.getEventKeyState()) {
@@ -2328,13 +2350,13 @@ public class DefaultView extends View {
                         canvas.setShowThermometry(false);
                         updateTargetAndSteering();
                         updatePressureCalc();
-                        setDoTransition(true);;
+                        setDoTransition(true);
                     }
                     else {
                         transRayTracer.setShowEnvelope(false);
                         canvas.setShowPressure(false);
                         canvas.setShowThermometry(false);
-                        setDoTransition(true);;
+                        setDoTransition(true);
                     }
                 }
             }

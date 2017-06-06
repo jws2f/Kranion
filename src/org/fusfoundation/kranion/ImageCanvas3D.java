@@ -465,8 +465,7 @@ public class ImageCanvas3D extends GUIControl {
             if (OverlayImage != null);
                 ImageVolumeUtil.buildTexture(OverlayImage, false, currentOverlayFrame);
 
-        display();
-
+            display();
     }
 
     @Override
@@ -972,19 +971,28 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
 
         init();
         
+        
         //glPushAttrib(0xffffffff);//GL_ENABLE_BIT);
-        glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT);
+//**************************************************************
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_COLOR_BUFFER_BIT);
 
-        if (CTimage == null) return; //HACK
+        if (CTimage == null) {
+            Main.glPopAttrib();
+            return;
+        } //HACK
         
         Integer tn = (Integer) CTimage.getAttribute("textureName");
         if (tn == null) {
+            Main.glPopAttrib();
             return;
         }
         
         int textureName = tn.intValue();
         
-        if (textureName <= 0) return;
+        if (textureName <= 0) {
+            Main.glPopAttrib();
+            return;
+        }
 
         glColor3d(0.7, 0.7, 0.9);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -1002,8 +1010,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         }
         
         buildLutTexture();
-        setupLutTexture(2);
-        
+        setupLutTexture(2);                
 
         double texsize = 0.5;
         double canvasSize = 1.0;
@@ -1012,7 +1019,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         double aspect = 1.0f;
 */
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
         
         if (CTimage != null) {
 
@@ -1164,40 +1171,6 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             glClientActiveTexture(GL_TEXTURE0);
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
             
-//            for (int s=-startSlice; s<=endSlice; s++) {
-//                // tell the shader which slice we are on
-//                if (shaderToUse != null) {
-//                    glUniform1i(sliceUniform, s);
-//                    glUniform1i(lastSliceUniform, endSlice); // so shader knows to treat clipped slice differently
-//                }
-//                
-//                glBegin(GL_QUADS);
-//
-//                glNormal3d(0.0, 0.0, 1.0);
-//
-//
-//                    float zTextureOffset = -s/1200.0f;
-//                    float zSliceOffset = -s/1200.0f*(float)canvasSize;
-//
-//                    // TODO: would probably be nice to issue texture coordinates in world mm space
-//                    //          rather then normalized 0-1 texture space coordinates. Could handle this
-//                    //          in the texture matrix setup
-//                    
-//                    glMultiTexCoord3d(GL_TEXTURE0, -0.5, 0.5, zTextureOffset); // 0.75 factor to expand the rendering area to fill the transducer volume approx
-//                glVertex3d(-canvasSize / 2d, canvasSize / 2d, zSliceOffset); // 1.5 factor to expand the rendering area to fill the transducer volume approx
-//
-//                    glMultiTexCoord3d(GL_TEXTURE0, 0.5, 0.5, zTextureOffset);
-//                glVertex3d(canvasSize / 2d, canvasSize / 2d, zSliceOffset);
-//
-//                    glMultiTexCoord3d(GL_TEXTURE0, 0.5, -0.5, zTextureOffset);
-//                glVertex3d(canvasSize / 2d, -canvasSize / 2d, zSliceOffset);
-//
-//                    glMultiTexCoord3d(GL_TEXTURE0, -0.5, -0.5, zTextureOffset);
-//                glVertex3d(-canvasSize / 2d, -canvasSize / 2d, zSliceOffset);
-//
-//                glEnd();           
-//
-//            }
             glDisable(GL_BLEND);
 
             glUseProgram(0);
@@ -1216,10 +1189,11 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         glDisable(GL_TEXTURE_3D);
         glActiveTexture(GL_TEXTURE0 + 0);
         glDisable(GL_TEXTURE_3D);
-
-        // Draw outline of the slice for debugging
-        glPushAttrib(GL_POLYGON_BIT | GL_ENABLE_BIT);
         
+        // Draw outline of the slice for debugging
+//**********************************************************
+        Main.glPushAttrib(GL_POLYGON_BIT | GL_ENABLE_BIT);
+                
             glDisable(GL_LIGHTING);
             glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
             glEnable(GL_COLOR_MATERIAL);    // enables opengl to use glColor3f to define material color               
@@ -1241,12 +1215,12 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
 
 
             // Draw a frame around the canvas/////////
-            glMatrixMode(GL_PROJECTION);
-            glPushMatrix();
-            glLoadIdentity();
+//            glMatrixMode(GL_PROJECTION);
+//            glPushMatrix();
+//            glLoadIdentity();
 
             glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
+            Main.glPushMatrix();
             glLoadIdentity();
 
             glColor4d(0.1, 0.1, 0.3, 1.0);
@@ -1268,31 +1242,29 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             glEnd();
 
             glMatrixMode(GL_MODELVIEW);
-            glPopMatrix();
+            Main.glPopMatrix();
 
-            glMatrixMode(GL_PROJECTION);
-            glPopMatrix();
+//            glMatrixMode(GL_PROJECTION);
+//            glPopMatrix();
             ////////////////////////////////////////////
         
-        glPopAttrib();
-        
+        Main.glPopAttrib();        
         
         glMatrixMode(GL_MODELVIEW);
 //        if (trackball != null) {
-                glPopMatrix();
+                Main.glPopMatrix();
 //        }
         
-        glPushMatrix();
+        Main.glPushMatrix();
 //        glTranslatef(-centerOfRotation.x , -centerOfRotation.y , -centerOfRotation.z );
 
         // draw image volume cube proxy
         this.drawVolumeProxyCube(CTimage);
         this.drawVolumeProxyCube(MRimage);
         
-        glPopMatrix();
-        
-        glPopAttrib();
-
+        Main.glPopMatrix();
+                
+        Main.glPopAttrib();
     }
     
     private void drawVolumeProxyCube(ImageVolume image) {
@@ -1331,7 +1303,8 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
 //            zdir.y *= zSize;
 //            zdir.z *= zSize;
             
-            glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT );
+            Main.glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT );
+//*************************************************************
             glDisable(GL_LIGHTING);
             glEnable(GL_BLEND);
             //glBlendFuncSeparate (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -1414,7 +1387,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
                             -centerOfRotation.y -imageTranslation.y - ImageOrientationX.y*xSize/2f + ImageOrientationY.y*ySize/2f + ImageOrientationZ.y*zSize/2f,
                             -centerOfRotation.z -imageTranslation.z - ImageOrientationX.z*xSize/2f + ImageOrientationY.z*ySize/2f + ImageOrientationZ.z*zSize/2f);
             glEnd();
-            glPopAttrib();
+            Main.glPopAttrib();
         }        
     }
 
@@ -1422,16 +1395,17 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
     public void renderDemographics() {
         // Overlay demographics
         if (overlay != null) {
-            glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT);
+            Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT);
+//****************************************************************************
             
             byte buf[] = (byte[]) overlay.getRaster().getDataElements(0, 0, overlay.getWidth(), overlay.getHeight(), null);
 
             glMatrixMode(GL_PROJECTION);
-            glPushMatrix();
+            Main.glPushMatrix();
             glLoadIdentity();
 
             glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
+            Main.glPushMatrix();
             glLoadIdentity();
 
 //            glEnable(GL_BLEND);
@@ -1458,11 +1432,13 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             glDisable(GL_BLEND);
             
             glMatrixMode(GL_MODELVIEW);
-            glPopMatrix();
+            Main.glPopMatrix();
             glMatrixMode(GL_PROJECTION);
-            glPopMatrix();
+            Main.glPopMatrix();
                  
-            glPopAttrib();
+            Main.glPopAttrib();
+            
+            glMatrixMode(GL_MODELVIEW);
         }        
     }
 

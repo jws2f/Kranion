@@ -85,7 +85,7 @@ public class Transformation extends Renderable {
         setIsDirty(false);
         if (!this.getVisible()) return;
         
-        glPushAttrib(GL_TRANSFORM_BIT);
+        Main.glPushAttrib(GL_TRANSFORM_BIT);
         
             glMatrixMode(GL_MODELVIEW);
 
@@ -97,7 +97,7 @@ public class Transformation extends Renderable {
                 rotationBuffer.flip();
                 glMultMatrix(rotationBuffer);
             
-         glPopAttrib();
+         Main.glPopAttrib();
         
                     
     }

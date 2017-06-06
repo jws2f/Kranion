@@ -165,10 +165,10 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
     public void render() {
         setIsDirty(false);
                 
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
         
         glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+        Main.glPushMatrix();
             glLoadIdentity();
 
             //org.lwjgl.util.glu.GLU.gluOrtho2D(0.0f, Display.getWidth(), 0.0f, Display.getHeight());
@@ -176,7 +176,7 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
 
 
             glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
+            Main.glPushMatrix();
                 glLoadIdentity();
 
                 float nx = bounds.x + (dx)*flyScale - dx;
@@ -230,11 +230,13 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
                 
                 
             glMatrixMode(GL_MODELVIEW);
-           glPopMatrix();
+           Main.glPopMatrix();
         glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+        Main.glPopMatrix();
+                
+        Main.glPopAttrib();
         
-        glPopAttrib();
+        glMatrixMode(GL_MODELVIEW);
     }
 
     @Override

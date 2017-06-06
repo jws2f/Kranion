@@ -145,10 +145,10 @@ public class Cylinder extends Renderable {
         setIsDirty(false);
         if (!getVisible()) return;
         
-        glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT);
                      
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
         
         glTranslatef(0, 0, -zoffset);
         glScalef(radius, radius, length);
@@ -188,9 +188,9 @@ public class Cylinder extends Renderable {
         // clean up
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
-        glPopMatrix();
+        Main.glPopMatrix();
         
-        glPopAttrib();
+        Main.glPopAttrib();
 
     }
     

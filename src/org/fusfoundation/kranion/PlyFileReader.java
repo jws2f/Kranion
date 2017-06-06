@@ -428,7 +428,8 @@ System.out.println("ply vert count = " + vertcount);
             return;
         }
         
-    	glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+    	Main.glPushMatrix();
     	
     	glColor4f(color.x, color.y, color.z, color.w);
         
@@ -489,7 +490,7 @@ System.out.println("ply vert count = " + vertcount);
 //            shader.stop();
 //        }
 
-    	glPopMatrix();
+    	Main.glPopMatrix();
    }	
     public void release() {
         glDeleteBuffers(vertsID);

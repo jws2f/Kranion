@@ -169,7 +169,7 @@ public class Hemisphere extends Renderable {
             if (!getVisible()) return;
             
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
             glScalef(radius, radius, radius);
 
 	    glEnable(GL_NORMALIZE);
@@ -214,7 +214,7 @@ public class Hemisphere extends Renderable {
 	    // clean up
 	    glBindBuffer(GL_ARRAY_BUFFER, 0);
             
-        glPopMatrix();
+        Main.glPopMatrix();
         //Main.popMatrixWithCheck();
 }	
         

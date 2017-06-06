@@ -94,13 +94,13 @@ public class CoordinateWidget extends GUIControl{
         // Draw coordinate axis widget thing
         ////////////////////////////////////////
         glMatrixMode(GL_PROJECTION);
-        glPushMatrix();
+        Main.glPushMatrix();
         glLoadIdentity();
         //gluPerspective(25.0f, 1f, 100.0f, 3000.0f);
         gluPerspective(25.0f, 1f, 100.0f, 100000.0f);
         
         glMatrixMode(GL_MODELVIEW);
-        glPushMatrix();
+        Main.glPushMatrix();
             glViewport(0, 0, 150, 150);
             glLoadIdentity();
 
@@ -111,14 +111,14 @@ public class CoordinateWidget extends GUIControl{
             glTranslatef(0.0f, 0.0f, -400);
             intTrackball.render();
 
-            glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT);
+            Main.glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT);
                 glDisable(GL_LIGHTING);
         //        glDisable(GL_BLEND);
         //        glDisable(GL_DEPTH_TEST);
                 glDisable(GL_CLIP_PLANE0);
                 glDisable(GL_CLIP_PLANE1);
 
-                glPushMatrix();
+                Main.glPushMatrix();
                     glTranslatef(0f, 20f, 0f);
                     glLineWidth(2.5f);
             //            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -137,25 +137,27 @@ public class CoordinateWidget extends GUIControl{
                     glEnd();
 
 
-                glPopMatrix();
+                Main.glPopMatrix();
 
                 glEnable(GL_LIGHTING);
-                glPushMatrix();
+                Main.glPushMatrix();
                     glRotatef(90, 1f, 0f, 0f);
                     glTranslatef(0f, -100f, 0f);
                     body.setColor(0.6f, 0.6f, 0.8f, 1f);
                     body.render();
-                glPopMatrix();
+                Main.glPopMatrix();
+                
+              Main.glPopMatrix();
 
-            glPopAttrib();
+            Main.glPopAttrib();
 
 
             glViewport(0, 0, Display.getWidth(), Display.getHeight());
-            
-        glPopMatrix();
-        
+                    
         glMatrixMode(GL_PROJECTION);
-        glPopMatrix();
+        Main.glPopMatrix();
+        
+        glMatrixMode(GL_MODELVIEW);
     }
     
     @Override

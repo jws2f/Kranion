@@ -126,7 +126,7 @@ public class PullDownSelection extends GUIControl implements Animator {
         
         dy = items.size() * itemHeight * labelScale;
         
-        glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_COLOR_BUFFER_BIT);
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_COLOR_BUFFER_BIT);
         
                 if (getIsEnabled()) {
                     glColor4f(color.x, color.y, color.z, color.w);
@@ -220,7 +220,7 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
                 
                 renderText(getTitle(), bounds, null, new Color(1.0f, 1.0f, 1.0f, 1.0f), true, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_CENTER);
                         
-        glPopAttrib();
+        Main.glPopAttrib();
         
         setIsDirty(false);
     }

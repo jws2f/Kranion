@@ -62,7 +62,7 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
         else {
 //            System.out.println("Transition " + animator.getCurrent());
             
-            glPushAttrib(GL_ENABLE_BIT);
+            Main.glPushAttrib(GL_ENABLE_BIT);
             
 //            glEnable(GL_BLEND);
 //            glDisable(GL_DEPTH_TEST);
@@ -73,7 +73,7 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
             
             fb.render(1f - animator.getCurrent());
             
-            glPopAttrib();
+            Main.glPopAttrib();
         }
     }
 
