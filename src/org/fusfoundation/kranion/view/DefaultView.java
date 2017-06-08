@@ -359,6 +359,8 @@ public class DefaultView extends View {
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 250, 200, 25, controller).setTitle("Load CT...").setCommand("loadCT"));
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 215, 200, 25, controller).setTitle("Load MR...").setCommand("loadMR"));
+
+//        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 215, 150, 25, this).setTitle("Register").setCommand("registerMRCT"));
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 150, 200, 25, this).setTitle("Exit").setCommand("exit"));
                 
@@ -1840,6 +1842,9 @@ public class DefaultView extends View {
     private void updateTransducerModel(int sonicationIndex) {
         try {
             String txdrGeomFileName = (String) model.getSonication(sonicationIndex).getAttribute("txdrGeomFileName");
+            
+            if (txdrGeomFileName == null) return; // TODO: do some error handling and notify user that something is missing
+            
             Vector3f tdXdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltXdir");
             Vector3f tdYdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltYdir");
             Vector3f tdZdir = Vector3f.cross(tdXdir, tdYdir, null);
@@ -2759,6 +2764,23 @@ public class DefaultView extends View {
                 break;
             case "translateFrame":
                 this.currentMouseMode = mouseMode.FRAME_TRANSLATE;
+                break;
+            case "registerMRCT":
+                org.fusfoundation.kranion.MRCTRegister register = new org.fusfoundation.kranion.MRCTRegister();
+                register.register(this.getModel().getCtImage(), this.getModel().getMrImage(0), scene);
+                 
+                
+//                float[] orientation2 = new float[6];
+//                orientation2[0] = 1f;
+//                orientation2[4] = 1f;
+//                
+//                this.getModel().getMrImage(0).setAttribute("ImageOrientation", orientation2);
+//                this.getModel().getMrImage(0).setAttribute("ImageOrientationQ", new Quaternion().setIdentity());
+//                this.getModel().getMrImage(0).setAttribute("ImagePosition", new float[3]);
+//                this.getModel().getMrImage(0).setAttribute("ImageTranslation", new Vector3f());
+//                
+//                this.setDisplayMRimage(this.getModel().getMrImage(0));
+                
                 break;
             case "exit":
                 this.release();
