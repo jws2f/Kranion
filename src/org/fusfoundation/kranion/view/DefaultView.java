@@ -360,7 +360,7 @@ public class DefaultView extends View {
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 250, 200, 25, controller).setTitle("Load CT...").setCommand("loadCT"));
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 215, 200, 25, controller).setTitle("Load MR...").setCommand("loadMR"));
 
-//        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 215, 150, 25, this).setTitle("Register").setCommand("registerMRCT"));
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 215, 100, 25, this).setTitle("Register").setCommand("registerMRCT"));
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 150, 200, 25, this).setTitle("Exit").setCommand("exit"));
                 
@@ -852,6 +852,11 @@ public class DefaultView extends View {
               e.printStackTrace();
         }
         
+        Float mrThreshold = (Float)model.getAttribute("MRthresh");
+        if (mrThreshold == null) {
+            mrThreshold = new Float(125f);
+        }
+        
         //            float rescaleSlope = (Float)mrImage.getAttribute("RescaleSlope");
         //            float rescaleIntercept = (Float)mrImage.getAttribute("RescaleIntercept");
         this.mr_center = (int) windowCenter;
@@ -860,28 +865,29 @@ public class DefaultView extends View {
         if (model != null) {
             model.setAttribute("MRwindow", (float)mr_window);
             model.setAttribute("MRcenter", (float)mr_center);
-            model.setAttribute("MRthresh", 125f);
+//            model.setAttribute("MRthresh", 125f);
         }
+        
 
         canvas.setMRImage(image);
         canvas.setMRCenterWindow((int) windowCenter, (int) windowWidth);
         canvas.setOrientation(0);
-        canvas.setMRThreshold(450f);
+        canvas.setMRThreshold(mrThreshold);
 
         canvas1.setMRImage(image);
         canvas1.setMRCenterWindow((int) windowCenter, (int) windowWidth);
         canvas1.setOrientation(0);
-        canvas1.setMRThreshold(450f);
+        canvas1.setMRThreshold(mrThreshold);
 
         canvas2.setMRImage(image);
         canvas2.setMRCenterWindow((int) windowCenter, (int) windowWidth);
         canvas2.setOrientation(1);
-        canvas2.setMRThreshold(450f);
+        canvas2.setMRThreshold(mrThreshold);
 
         canvas3.setMRImage(image);
         canvas3.setMRCenterWindow((int) windowCenter, (int) windowWidth);
         canvas3.setOrientation(2);
-        canvas3.setMRThreshold(450f);
+        canvas3.setMRThreshold(mrThreshold);
     }
 
     private void saveScene() {
@@ -1064,23 +1070,11 @@ public class DefaultView extends View {
         System.out.println("Image position = " + imageLoc[0] + ", " + imageLoc[1] + ", " + imageLoc[2]);
                 
         
-//TODO: need to understand this better. The image position reported by loader doesn't seem to land the center
-//      on the spot position for some reason, even though that is what should happen. So setting the image center
-//      to the origin and translating to the spot location for now. Looks right but doesn't feel right.
-//        image.setAttribute("ImagePosition", new float[3]);
-//        image.setAttribute("ImageTranslation", new Vector3f(-spotPosition.x, -spotPosition.y, -spotPosition.z));
         canvas.setCurrentOverlayFrame(currentFrame);
         ImageVolumeUtil.releaseTexture(image);
         canvas.setOverlayImage(image);
         
-//        try {
-//            image.setAttribute("ImageTranslation", new Vector3f((Vector3f)model.getMrImage(0).getAttribute("ImageTranslation")));
-//        }
-//        catch(NullPointerException e) {
-//
-//            image.setAttribute("ImageTranslation", new Vector3f());
-//        }
-                model.setAttribute("currentSceneOrienation", (Quaternion)image.getAttribute("ImageOrientationQ"));
+        model.setAttribute("currentSceneOrienation", (Quaternion)image.getAttribute("ImageOrientationQ"));
 
     }
     
@@ -1581,15 +1575,17 @@ public class DefaultView extends View {
                 }
                 
                 for (int i = 0; i < model.getMrImageCount(); i++) {
-                    try {
-                        Vector3f startMrImageTranslate = (Vector3f) model.getMrImage(i).getAttribute("ImageTranslation"); //TEMP CHANGE
-                        if (startMrImageTranslate == null) {
-                            startMrImageTranslate = new Vector3f();
+                    if (model.getMrImage(i) != null) {
+                        try {
+                            Vector3f startMrImageTranslate = (Vector3f) model.getMrImage(i).getAttribute("ImageTranslation"); //TEMP CHANGE
+                            if (startMrImageTranslate == null) {
+                                startMrImageTranslate = new Vector3f();
+                            }
+                            model.getMrImage(i).setAttribute("startMrImageTranslate", new Vector3f(startMrImageTranslate));
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                            model.getMrImage(i).setAttribute("startMrImageTranslate", new Vector3f());
                         }
-                        model.getMrImage(i).setAttribute("startMrImageTranslate", new Vector3f(startMrImageTranslate));
-                    } catch (NullPointerException e) {
-                        e.printStackTrace();
-                        model.getMrImage(i).setAttribute("startMrImageTranslate", new Vector3f());
                     }
                 }
                 
@@ -1641,12 +1637,14 @@ public class DefaultView extends View {
 
                 //for each MR image in the model
                 for (int i = 0; i < model.getMrImageCount(); i++) {
-                    Trackball registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
-                    if (registerBall == null) {
-                        registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
-                        model.getMrImage(i).setAttribute("registerBall", registerBall);
+                    if (model.getMrImage(i) != null) {
+                        Trackball registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
+                        if (registerBall == null) {
+                            registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
+                            model.getMrImage(i).setAttribute("registerBall", registerBall);
+                        }
+                        registerBall.mouseReleased(x, y);
                     }
-                    registerBall.mouseReleased(x, y);
                 }
                 
                 return true;

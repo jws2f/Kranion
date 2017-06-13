@@ -261,6 +261,7 @@ public class MRCTRegister {
                 
                 if (renderableToUpdate != null) {
                     moving_image.setAttribute("ImageOrientationQ", result);
+                    moving_image.setAttribute("ImageTranslation", new Vector3f(translation[0], translation[1], translation[2]));
                     renderableToUpdate.setIsDirty(true);
                 }
             }

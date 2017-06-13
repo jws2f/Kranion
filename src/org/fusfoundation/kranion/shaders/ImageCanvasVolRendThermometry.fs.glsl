@@ -102,8 +102,11 @@ void main(void)
         if (ovlyTexVal <= 43.0) {
             ovlyColor = mix(vec4(0.0, 0.0, 0.0, 0.0), vec4(0.1, 0.1, 0.7, 0.6), clamp((ovlyTexVal-37.0)/6.0f, 0, 1));
         }
-        else {
+        else if (ovlyTexVal <= 55.0) {
             ovlyColor = mix(vec4(0.1, 0.1, 0.7, 0.65), vec4(1, 0.3, 0.3, 1), clamp((ovlyTexVal-43)/12.0, 0, 1));
+        }
+        else {
+            ovlyColor = mix(vec4(1, 0.3, 0.3, 1), vec4(1, 0.8, 0.8, 1), clamp((ovlyTexVal-55)/5.0, 0, 1));
         }
 
         if (slice==last_slice) {

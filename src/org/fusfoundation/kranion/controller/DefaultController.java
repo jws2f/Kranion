@@ -132,7 +132,12 @@ public class DefaultController extends Controller {
             try {
                 org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
                 model.setAttribute("MRwindow", slider.getCurrentValue());
-                model.getMrImage(0).setAttribute("MRwindow", slider.getCurrentValue());
+                int currentMRindex = 0;
+                try {
+                    currentMRindex = ((Integer)model.getAttribute("currentMRSeries")).intValue();
+                }
+                catch(Exception e1) {}
+                model.getMrImage(currentMRindex).setAttribute("WindowWidth", slider.getCurrentValue());
             }
             catch(NullPointerException npe) {
                 npe.printStackTrace();
@@ -142,7 +147,12 @@ public class DefaultController extends Controller {
             try {
                 org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
                 model.setAttribute("MRcenter", slider.getCurrentValue());
-                model.getMrImage(0).setAttribute("MRcenter", slider.getCurrentValue());
+                int currentMRindex = 0;
+                try {
+                    currentMRindex = ((Integer)model.getAttribute("currentMRSeries")).intValue();
+                }
+                catch(Exception e1) {}
+                model.getMrImage(currentMRindex).setAttribute("WindowCenter", slider.getCurrentValue());
             }
             catch(NullPointerException npe) {
                 npe.printStackTrace();
