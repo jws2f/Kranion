@@ -300,6 +300,8 @@ public class ImageCanvas3D extends GUIControl {
         System.out.println("ImageCanvasGL::setOverlayImage()");
         OverlayImage = image;
         
+        if (OverlayImage == null) return;
+        
 //        theImage.setAttribute("textureName", null); ///////HACK
         Integer tn = (Integer) OverlayImage.getAttribute("textureName");
         System.out.println("texname = " + tn);
@@ -747,7 +749,7 @@ public class ImageCanvas3D extends GUIControl {
             ///////////////////////////////////////////////////////////
             glTranslated(0.5, 0.5, (double) idepth / texDepth / 2.0);
 
-            float zscaleFactor = ((float) texWidth * xres) / ((float) texDepth * zres);
+//            float zscaleFactor = ((float) texWidth * xres) / ((float) texDepth * zres);
             
             float canvasSize = 300f;
             
@@ -780,6 +782,7 @@ public class ImageCanvas3D extends GUIControl {
             }
             
             float[] imagePosition = (float[])image.getAttribute("ImagePosition");
+            
             if (imagePosition == null) {
                 imagePosition = new float[3];
             }
@@ -1046,7 +1049,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             ShaderProgram shaderToUse = null;
             
             if (doVolumeRender) {
-                if (showThermometry) {
+                if (showThermometry && (this.OverlayImage != null)) {
                     shaderToUse = thermometryShader;
                 }
                 else if (showPressure) {

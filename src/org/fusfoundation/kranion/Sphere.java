@@ -38,7 +38,7 @@ import org.lwjgl.BufferUtils;
 
 import java.nio.*;
 
-public class Hemisphere extends Renderable {
+public class Sphere extends Renderable {
 	
 
 	private static int vertsID, normsID;
@@ -46,21 +46,23 @@ public class Hemisphere extends Renderable {
 	
 	
 	// Hemispheric  variables
-	private float radius, normdir;
+	private float radius;
 	private float sphereTesselation = 180;
 	private float incrAngle = 360.0f/sphereTesselation;
 	private int longAngleStepCount = (int)(360.0f/incrAngle);
-	private int latAngleStepCount = (int)(90.0f/incrAngle);
+	private int latAngleStepCount = (int)(180.0f/incrAngle);
 	
-	private Vector4f color = new Vector4f(0.5f, 0.5f, 0.5f, 1f);
+        private Vector3f location = new Vector3f();
+	private Vector4f color = new Vector4f(0.3f, 0.3f, 0.85f, 1f);
 
         private StandardShader shader = new StandardShader();
 	  
-	public Hemisphere(float r, float dir)  {
+	public Sphere(float r)  {
 				
 		// housing data
 		radius = Math.abs(r);
-                normdir = Math.signum(dir);
+                
+                setColor(color.x, color.y, color.z, color.w);
                 
             if (refCount == 0) {
                 float radSign = Math.signum(r);
@@ -72,7 +74,7 @@ public class Hemisphere extends Renderable {
                 vertsBuffer.rewind();
                 normsBuffer.rewind();
 
-                for (int lat = 0; lat <= latAngleStepCount; lat++) {
+                for (int lat = -latAngleStepCount/2; lat <= latAngleStepCount/2; lat++) {
                     for (int i = 0; i <= longAngleStepCount; i++) {
                         float dx = (float) Math.cos((double) i / longAngleStepCount * 2.0 * Math.PI);
                         float dy = (float) Math.sin((double) i / longAngleStepCount * 2.0 * Math.PI);
@@ -83,8 +85,8 @@ public class Hemisphere extends Renderable {
 
                         float rdx = dx * (float) Math.cos(lat * phi);
                         float rdy = dy * (float) Math.cos(lat * phi);
-                        float dz1 = -r * (float) Math.sin(lat * phi);
-                        float dz2 = -r * (float) Math.sin((lat + 1) * phi);
+                        float dz1 = (float) Math.sin(lat * phi);
+                        float dz2 = (float) Math.sin((lat + 1) * phi);
 
                         Vector3f v1 = new Vector3f(rdx, rdy, dz1);
                         Vector3f v2 = new Vector3f(dx * (float) Math.cos((lat + 1) * phi), dy * (float) Math.cos((lat + 1) * phi), dz2);
@@ -93,13 +95,6 @@ public class Hemisphere extends Renderable {
                         n1.normalise();
                         Vector3f n2 = new Vector3f(v2.x, v2.y, (dz2));
                         n2.normalise();
-
-                        n1.x *= radSign;
-                        n1.y *= radSign;
-                        n1.z *= radSign;
-                        n2.x *= radSign;
-                        n2.y *= radSign;
-                        n2.z *= radSign;
 
                         // Add vertex
                         vertsBuffer.put(v1.x);
@@ -146,17 +141,26 @@ public class Hemisphere extends Renderable {
                 refCount++;
         }
         
-        public void setColor(float red, float green, float blue) {
+        public Sphere setColor(float red, float green, float blue) {
             setColor(red, green, blue, 1f);
+            
+            return this;
         }
 
-        public void setColor(float red, float green, float blue, float alpha) {
+        public Sphere setColor(float red, float green, float blue, float alpha) {
             setIsDirty(true);
             color.set(red, green, blue, alpha);
             shader.setAmbientColor(color.x/20f, color.y/20f, color.z/20f, 1f);
             shader.setDiffusetColor(color.x, color.y, color.z, color.w);
             shader.setSpecularColor(0.3f, 0.3f, 0.3f, 1f);
             shader.setSpecularCoefficient(50f);
+            
+            return this;
+        }
+        
+        public Sphere setLocation(float x, float y, float z) {
+            location.set(x, y, z);
+            return this;
         }
 	
         public void invertNormals(boolean invert) {
@@ -170,6 +174,10 @@ public class Hemisphere extends Renderable {
             
         glMatrixMode(GL_MODELVIEW);
         Main.glPushMatrix();
+//            glLoadIdentity();
+
+            glTranslatef(location.x, location.y, location.z);
+            
             glScalef(radius, radius, radius);
 
 	    glEnable(GL_NORMALIZE);
@@ -188,10 +196,6 @@ public class Hemisphere extends Renderable {
 //            glEnable(GL_CULL_FACE);
 //            glCullFace(GL_FRONT);
         // Flip faces if we are an "inside" surface
-            if (normdir < 0) {
-                shader.setFlipNormals(true);
-                glFrontFace(GL_CW);
-            }
             
             shader.start();
 	    for (int r=0; r<latAngleStepCount; r++) {
@@ -199,12 +203,7 @@ public class Hemisphere extends Renderable {
 	    }
             shader.stop();
 //            glDisable(GL_CULL_FACE);
-        // Flip faces if we are an "inside" surface
-            if (normdir < 0) {
-                shader.setFlipNormals(false);
-                glFrontFace(GL_CCW);
-            }
-    
+        // Flip faces if we are an "inside" surface    
 	    
 	    // turn off client state flags
 //	    glDisableClientState(GL_COLOR_ARRAY);

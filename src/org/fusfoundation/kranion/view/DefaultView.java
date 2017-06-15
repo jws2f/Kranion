@@ -360,7 +360,7 @@ public class DefaultView extends View {
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 250, 200, 25, controller).setTitle("Load CT...").setCommand("loadCT"));
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 215, 200, 25, controller).setTitle("Load MR...").setCommand("loadMR"));
 
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 215, 100, 25, this).setTitle("Register").setCommand("registerMRCT"));
+//        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 215, 100, 25, this).setTitle("Register").setCommand("registerMRCT"));
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 150, 200, 25, this).setTitle("Exit").setCommand("exit"));
                 
@@ -669,6 +669,13 @@ public class DefaultView extends View {
         steeringTransformGroup.add(transducerModel);
         steeringTransformGroup.add(mrBoreTransform);
         
+//        // testing fiducial marker display
+//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(50f, 50f, 0f).setColor(1f, 0f, 0f));
+//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(-50f, 50f, 0f).setColor(1f, 0f, 0f));
+//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(-50f, -50f, 0f).setColor(0.3f, 0.3f, 1f));
+//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(50f, -50f, 0f).setColor(0.3f, 0.3f, 1f));
+
+        
         globalTransformList.add(transRayTracer);
         
         background.setClearColor(0.22f, 0.25f, 0.30f, 1f);
@@ -688,6 +695,7 @@ public class DefaultView extends View {
         mainLayer.addChild(transFuncDisplayProxy); // this will trigger updates to mainLayer when the overlay widget is dirty
         mainLayer.addChild(new RenderableAdapter(transducerModel, "renderFocalSpot"));
         mainLayer.addChild(new CrossHair(this.trackball));
+        
         
         CrossHair steeringCrossHair = new CrossHair(this.trackball);
         steeringCrossHair.setOffset(this.currentSteering.getLocation());
@@ -1041,6 +1049,13 @@ public class DefaultView extends View {
     }
 
     private void showThermometry(int sonicationIndex) {
+        
+        if (sonicationIndex == -1) {
+            canvas.setShowThermometry(false);
+            canvas.setOverlayImage(null);
+            return;
+        }
+        
         Vector3f steering = this.currentSteering.getLocation();//(Vector3f)model.getAttribute("currentTargetSteering");
         if (steering == null) {
             steering = new Vector3f(0, 0, 0);
@@ -1864,63 +1879,71 @@ public class DefaultView extends View {
     private void updateThermometryDisplay(int sonicationIndex, boolean setToMax) {
         System.out.println("DefaultView::updateThermometryDisplay");
         ImageVolume thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
-        float data[] = (float[])thermometry.getData();
         
-        int cols = thermometry.getDimension(0).getSize();
-        int rows = thermometry.getDimension(1).getSize();
-        int timepoints = thermometry.getDimension(3).getSize();
-        
-        float phaseTime = thermometry.getDimension(3).getSampleSpacing();
-        
-        double maxVals[] = new double[timepoints];
-        double avgVals[] = new double[timepoints];
-        double times[] = new double[timepoints];
-        double overallMax = 0.0;
-        int maxTimePoint = 0;
-        for (int i=0; i<timepoints; i++) {
-            maxVals[i] = data[thermometry.getVoxelOffset(cols/2, rows/2, i)];
-            
-            double maxVal = 0;
-            double valueSum = 0;
-            int counter = 0;
-            for (int x=-1; x<=2; x++) {
-                for (int y=-1; y<=2; y++) {
-                    counter++;
-                    double val = data[thermometry.getVoxelOffset(cols/2+x, rows/2+y, i)];
-                    valueSum += val;
-                    if (x==0 || x==1 || y==0 || y==1) {
-                        counter++;
-                        valueSum += val;        
-                    }
-                    if (val > maxVal) {
-                        maxVal = val;
-                    }      
-                }
-            }
-            
-            maxVals[i] = maxVal;
-            avgVals[i] = valueSum/(float)counter;
-            times[i] = i*phaseTime;
-            
-            if (maxVal > overallMax) {
-                overallMax = maxVal;
-                maxTimePoint = i;
-            }
-            
-            System.out.println("Thermometry " + times[i] + " s, " + maxVals[i] + ", " + avgVals[i]);
-        }
-        
-        model.getSonication(sonicationIndex).setAttribute("maxFrame", maxTimePoint);
-        if (setToMax) {
-            model.getSonication(sonicationIndex).setAttribute("currentFrame", maxTimePoint);
-        }
+        if (thermometry != null) {
+            float data[] = (float[])thermometry.getData();
 
-        thermometryChart.newChart();
-        thermometryChart.addSeries("Max", times, maxVals, new Vector4f(0.8f, 0.2f, 0.2f, 1f));
-        thermometryChart.addSeries("Avg", times, avgVals, new Vector4f(0.2f, 0.8f, 0.2f, 1f));
-        thermometryChart.generateChart();
-        
-        showThermometry(sonicationIndex);
+            int cols = thermometry.getDimension(0).getSize();
+            int rows = thermometry.getDimension(1).getSize();
+            int timepoints = thermometry.getDimension(3).getSize();
+
+            float phaseTime = thermometry.getDimension(3).getSampleSpacing();
+
+            double maxVals[] = new double[timepoints];
+            double avgVals[] = new double[timepoints];
+            double times[] = new double[timepoints];
+            double overallMax = 0.0;
+            int maxTimePoint = 0;
+            for (int i=0; i<timepoints; i++) {
+                maxVals[i] = data[thermometry.getVoxelOffset(cols/2, rows/2, i)];
+
+                double maxVal = 0;
+                double valueSum = 0;
+                int counter = 0;
+                for (int x=-1; x<=2; x++) {
+                    for (int y=-1; y<=2; y++) {
+                        counter++;
+                        double val = data[thermometry.getVoxelOffset(cols/2+x, rows/2+y, i)];
+                        valueSum += val;
+                        if (x==0 || x==1 || y==0 || y==1) {
+                            counter++;
+                            valueSum += val;        
+                        }
+                        if (val > maxVal) {
+                            maxVal = val;
+                        }      
+                    }
+                }
+
+                maxVals[i] = maxVal;
+                avgVals[i] = valueSum/(float)counter;
+                times[i] = i*phaseTime;
+
+                if (maxVal > overallMax) {
+                    overallMax = maxVal;
+                    maxTimePoint = i;
+                }
+
+                System.out.println("Thermometry " + times[i] + " s, " + maxVals[i] + ", " + avgVals[i]);
+            }
+
+            model.getSonication(sonicationIndex).setAttribute("maxFrame", maxTimePoint);
+            if (setToMax) {
+                model.getSonication(sonicationIndex).setAttribute("currentFrame", maxTimePoint);
+            }
+
+            thermometryChart.newChart();
+            thermometryChart.addSeries("Max", times, maxVals, new Vector4f(0.8f, 0.2f, 0.2f, 1f));
+            thermometryChart.addSeries("Avg", times, avgVals, new Vector4f(0.2f, 0.8f, 0.2f, 1f));
+            thermometryChart.generateChart();
+
+            showThermometry(sonicationIndex);
+        }
+        else {
+            thermometryChart.newChart();
+            thermometryChart.generateChart();
+            showThermometry(-1);
+        }
     }
     
     private void updateMRlist() {

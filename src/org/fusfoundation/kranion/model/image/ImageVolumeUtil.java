@@ -289,10 +289,10 @@ public class ImageVolumeUtil {
             image.setAttribute("ImageOrientationQ", imageOrientationQ);
         }
         
-        Vector3f imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
-        if (imageTranslation == null) {
+//        Vector3f imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
+//        if (imageTranslation == null) {
 //            image.setAttribute("ImageTranslation", imageOriginPosition);//new Vector3f(0f,0f,0f));
-        }
+//        }
              
         System.out.println("Image orient quat: " + imageOrientationQ);       
         System.out.println("Image position = " + imageOriginPosition);

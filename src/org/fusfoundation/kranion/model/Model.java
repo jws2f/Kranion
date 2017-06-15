@@ -80,6 +80,8 @@ public class Model extends Observable implements Serializable, Observer {
             this.setMrImage(count++, null);
         }
         
+        mr_images.clear();
+        
         selectedMR = -1;
         
         Iterator<Sonication> s = sonications.iterator();

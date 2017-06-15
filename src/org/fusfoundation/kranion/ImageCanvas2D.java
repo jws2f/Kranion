@@ -599,7 +599,7 @@ public class ImageCanvas2D extends GUIControl {
             ///////////////////////////////////////////////////////////
             glTranslated(0.5, 0.5, (double) idepth / texDepth / 2.0);
 
-            float zscaleFactor = ((float) texWidth * xres) / ((float) texDepth * zres);
+//            float zscaleFactor = ((float) texWidth * xres) / ((float) texDepth * zres);
             
             //canvasSize = 200f;
             
