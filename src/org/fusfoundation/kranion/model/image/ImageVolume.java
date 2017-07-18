@@ -57,7 +57,7 @@ public interface ImageVolume {
     public static final int RGBA_VOXEL = 16;
         
     public ImageVolume createMatchingVolume(int voxtype);
-    public void addChannel(int voxtype);
+    public int addChannel(int voxtype);
 
     public int getDimensionality();
     public ImageDimension getDimension(int dimension);

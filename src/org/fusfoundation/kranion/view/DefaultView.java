@@ -90,6 +90,7 @@ import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.util.Observable;
 import javax.swing.*;
+import org.fusfoundation.kranion.RegionGrow;
 import org.fusfoundation.kranion.Renderable;
 
 import org.fusfoundation.kranion.model.*;
@@ -369,7 +370,7 @@ public class DefaultView extends View {
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 180, 220, 25, this).setTitle("Save ACT file").setCommand("saveACTfile"));
         
         Slider slider1 = new Slider(800, 75, 410, 25, controller);
-        slider1.setTitle("Bone speed");
+        slider1.setTitle("Average bone speed");
         slider1.setCommand("boneSOS"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         slider1.setMinMax(1482, 3500);
@@ -380,7 +381,7 @@ public class DefaultView extends View {
         model.addObserver(slider1);
         
         slider1 = new Slider(800, 25, 410, 25, controller);
-        slider1.setTitle("Bone refraction speed");
+        slider1.setTitle("Cortical bone speed");
         slider1.setCommand("boneRefractionSOS"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         slider1.setMinMax(1482, 3500);
@@ -780,7 +781,8 @@ public class DefaultView extends View {
         scene.addChild(mainLayer);
         scene.addChild(overlay);
         scene.addChild(transition); // must be last to work properly
-
+        
+        this.transition.doFadeFromBlack(0.75f);
     }
         
     // sets flag to do an animated blend transition at next frame update
@@ -1689,7 +1691,6 @@ public class DefaultView extends View {
         this.statusBar.setBounds(Display.getWidth() / 2 - 300, Display.getHeight() / 2 - 15, 600, 30);
 
         scene.doLayout();
-        
     }
 
     @Override
@@ -1781,6 +1782,13 @@ public class DefaultView extends View {
             switch(event.getPropertyName()) {
                 case "Model.CtImage":
                     setDisplayCTimage(model.getCtImage());
+                    
+            ImageVolume4D image = (ImageVolume4D)model.getCtImage();
+            if (image != null) {
+                RegionGrow rg = new RegionGrow(image);
+                rg.grow(image.getDimension(0).getSize()/2, image.getDimension(1).getSize()/2, image.getDimension(2).getSize()/2);
+            }
+            
                     model.setAttribute("doMRI", true);
                     canvas.setVolumeRender(true);
                     canvas.setIsDirty(true);
@@ -1815,7 +1823,7 @@ public class DefaultView extends View {
                         barColor.w = 1f;
 
                         sdrChart.newChart();
-                        sdrChart.addSeries("Frequency", transRayTracer.getSDRs(), barColor, 22, 0.0f, 1f);
+                        sdrChart.addSeries("Frequency", transRayTracer.getSDR2s(), barColor, 22, 0.0f, 1f);
                     }
                     return;
             }

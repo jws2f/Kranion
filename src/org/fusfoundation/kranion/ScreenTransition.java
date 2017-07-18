@@ -38,6 +38,8 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
 
     private Framebuffer fb = new Framebuffer();
     private AnimatorUtil animator = new AnimatorUtil();
+    private boolean isBlending = false;
+    private boolean isFading = false;
     
     public ScreenTransition() {
         doLayout();
@@ -52,11 +54,29 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
         glBlitFramebuffer(0, 0, fb.getWidth()-1, fb.getHeight()-1, 0, 0, fb.getWidth()-1, fb.getHeight()-1,  GL_COLOR_BUFFER_BIT, GL_NEAREST); 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);       
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        
+        isBlending = true;
     }
+    
+    public void doFadeFromBlack(float duration) {
+        animator.set(0f, 1f, duration);
+        
+        fb.bind();
+        glClearColor(0f, 0f, 0f, 1.0f);
+        glClearStencil(0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        fb.unbind();
+        
+        isFading = true;
+    }
+    
+    public boolean getIsFading() { return isFading; }
+    public boolean getIsBlending() { return isBlending; }
     
     @Override
     public void render() {
         if (animator.isAnimationDone()) {
+            isBlending = isFading = false;
             return;
         }
         else {
@@ -106,6 +126,9 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     public void doLayout() {
         try {
             fb.build(Display.getWidth(), Display.getHeight());
+            if (isFading) {
+                doFadeFromBlack(this.animator.getTimeRemainingMillis() / 1000f);
+            }
         }
         catch(LWJGLException e) {
             e.printStackTrace();

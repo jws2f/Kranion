@@ -51,6 +51,8 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
     private static float guiScale = 2f;
     private Button pinButton;
     
+    private long flyinDelay = -1;
+    
 
     public static void setGuiScale(float scale) {
         guiScale = Math.max(1f, scale);
@@ -153,12 +155,12 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
             
     private void flyout() {
 //        System.out.println("flyout" + flyScale);
-        anim.set(flyScale, 1f, 0.7f);
+        anim.set(flyScale, 1f, (1f - flyScale) * 0.7f);
     }
     
     private void flyin() {
 //        System.out.println("flyin" + flyScale);
-        anim.set(flyScale, 0f, 0.7f);
+        anim.set(flyScale, 0f,  flyScale * 0.7f);
     }
 
     @Override
@@ -251,17 +253,24 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
 
     @Override
     public void advanceFrame() {
-        if (isAnimationDone()) return;
+        if (isAnimationDone() && flyinDelay == -1) return;
         
         anim.advanceFrame();
         flyScale = anim.getCurrent();
+                
+        if (flyinDelay != -1 && (System.currentTimeMillis() > flyinDelay)) {
+            flyinDelay = -1;
+            flyin();
+        }
     }
     
     @Override
     public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
-        if (!anim.isAnimationDone()) return false;
+//        if (!anim.isAnimationDone()) return false;
         
         if (MouseIsInside(x, y, true)) {
+            
+            flyinDelay = -1;
             
             if (flyScale == 0f) {
                 flyout();
@@ -275,8 +284,9 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
             }
         }
         else if (!MouseIsInside(x, y, true) && grabbedChild == null) {
-            if (flyScale == 1f && !pinButton.getIndicator()) {
-                flyin();
+            if (flyScale == 1f && !pinButton.getIndicator() && flyinDelay == -1) {
+                //flyin();
+                flyinDelay = System.currentTimeMillis() + 500; // half second delay
             }
         }
         

@@ -36,6 +36,7 @@ struct elemDistance {
                 float sdr;
                 float incidentAngle;
                 float skullThickness;
+                float sdr2;
 };
 
 struct sdrRecord {
@@ -99,9 +100,11 @@ void main()
     }
 
     d[gid].sdr = -1; // init to failure
+    d[gid].sdr2 = -1; // init to failure
         sdr[gid].maxVal1 = -1;
         sdr[gid].maxVal2 = -1;
         sdr[gid].minVal = -1;
+
     if (finalRaySegmentDistance != -1.0) {
         int leftStartIndex = 0;
         int rightStartIndex = 59;
@@ -145,7 +148,7 @@ void main()
         int minValueIndex = -1;
         for (int i=leftPeakIndex; i<=rightPeakIndex; i++) {
             if (sdr[gid].huSamples[i] < minValue) {
-                minValue = sdr[gid].huSamples[i];
+                minValue = max(0, sdr[gid].huSamples[i]);
                 minValueIndex = i;
             }
         }
@@ -155,5 +158,6 @@ void main()
         sdr[gid].minVal = minValueIndex;
 
         d[gid].sdr = minValue/((sdr[gid].huSamples[leftPeakIndex] + sdr[gid].huSamples[rightPeakIndex])/2.0);
+        d[gid].sdr2 = minValue/sdr[gid].huSamples[leftPeakIndex];
     }
 }

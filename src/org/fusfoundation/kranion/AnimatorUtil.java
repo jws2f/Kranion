@@ -55,6 +55,8 @@ public class AnimatorUtil implements Animator {
     public float getStart() { return Start; }
     public float getEnd() { return End; }
     
+    public long getTimeRemainingMillis() { return Math.max(0, endTime - System.currentTimeMillis()); }
+    
     @Override
     public void cancelAnimation() { endTime = startTime; }
     

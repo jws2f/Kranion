@@ -222,7 +222,7 @@ public class TransducerRayTracer extends Renderable {
         }
         if (sdrShader == null) {
             sdrShader = new ShaderProgram();
-            sdrShader.addShader(GL_COMPUTE_SHADER, "shaders/sdrShader.cs.glsl");
+            sdrShader.addShader(GL_COMPUTE_SHADER, "shaders/sdrAreaShader.cs.glsl");
             sdrShader.compileShaderProgram();
         }
         if (pressureShader == null) {
@@ -408,7 +408,7 @@ public class TransducerRayTracer extends Renderable {
         
         distSSBo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, distSSBo);
-        FloatBuffer distBuffer = ByteBuffer.allocateDirect(1024*4 *4).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        FloatBuffer distBuffer = ByteBuffer.allocateDirect(1024*4 *5).order(ByteOrder.nativeOrder()).asFloatBuffer();
         for (int i=0; i<1024; i++) {
             //distance from focus
             distBuffer.put(0f);
@@ -417,6 +417,8 @@ public class TransducerRayTracer extends Renderable {
             // Incident angle value
             distBuffer.put(0f);
             // Skull thickness value
+            distBuffer.put(0f);
+            // SDR 2 value
             distBuffer.put(0f);
         }
         distBuffer.flip();
@@ -699,17 +701,19 @@ public class TransducerRayTracer extends Renderable {
                 writer.write("NumberOfChannels = 1024");
                 writer.newLine();
                 writer.newLine();
-                writer.write("channel\tsdr\tincidentAngle\tskull thickness");
+                writer.write("channel\tsdr\tsdr2\tincidentAngle\tskull thickness");
                 writer.newLine();
                 while (floatPhases.hasRemaining()) {
                     float dist = floatPhases.get();
                     float sdr = floatPhases.get();
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
 
                     writer.write(count + "\t");
                     count++;
                     writer.write(String.format("%1.3f", sdr) + "\t");
+                    writer.write(String.format("%1.3f", sdr2) + "\t");
                     writer.write(String.format("%3.3f", incidentAngle) + "\t");
                     writer.write(String.format("%3.3f", skullThickness) + "\t");
                     writer.newLine();
@@ -791,6 +795,7 @@ public class TransducerRayTracer extends Renderable {
                     float sdr = floatPhases.get();
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
                     
                     if (incidentAngle >= 0f) {
                         result.add((double)incidentAngle);
@@ -816,9 +821,36 @@ public class TransducerRayTracer extends Renderable {
                     float sdr = floatPhases.get();
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)sdr);
+                    }
+                }
+                
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+        
+        return result;
+    }
+    public List<Double> getSDR2s() {
+
+        List<Double> result = new ArrayList<>();
+        
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = dists.asFloatBuffer();
+            int count = 0;
+
+                while (floatPhases.hasRemaining()) {
+                    float dist = floatPhases.get();
+                    float sdr = floatPhases.get();
+                    float incidentAngle = floatPhases.get();
+                    float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
+                    
+                    if (dist >= 0f) {
+                        result.add((double)sdr2);
                     }
                 }
                 
@@ -1060,6 +1092,7 @@ public class TransducerRayTracer extends Renderable {
             float sdrval = floatDistances.get(); // TODO
             floatDistances.get(); // incidence angle
             floatDistances.get(); // skull thickness
+            float sdrval2 = floatDistances.get(); // TODO
             if (value > 0) {
                 numberOn++;
 //                sdrSum += sdr;
@@ -1136,8 +1169,8 @@ public class TransducerRayTracer extends Renderable {
 //        
 //        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 //        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-        
-        
+//        
+//        
 //        System.out.println("///////////SDR data");
 //        for (int i=0; i<60; i++) {
 //            System.out.print(i);
@@ -1163,6 +1196,14 @@ public class TransducerRayTracer extends Renderable {
 //            }
 //            System.out.println();
 //        }
+//        System.out.print("CH, ");
+//        for (int i=0; i<1024; i++) {
+//            System.out.print(i);
+//            if (i<1023) {
+//                System.out.print(", ");
+//            }
+//        }
+//        System.out.println();
 //
 //        System.out.println("/////////////");
         
@@ -1180,6 +1221,7 @@ public class TransducerRayTracer extends Renderable {
                 float sdr = floatDistances.get();
                 floatDistances.get(); // skip incidence angle
                 floatDistances.get(); // skip skull thickness
+                float sdr2 = floatDistances.get();
         	if (value > 0)
         	{
                     distanceNum++;
@@ -1198,10 +1240,11 @@ public class TransducerRayTracer extends Renderable {
                 float sdr = floatDistances.get();
                 floatDistances.get();
                 floatDistances.get();
+                float sdr2 = floatDistances.get();
         	if (value > 0)
         	{
         		diffSqSum += (float) Math.pow(value-mean,2);
-                        sdrSum += sdr;
+                        sdrSum += sdr2;
         	}
         }
         activeElementCount = numberOn;

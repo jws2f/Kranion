@@ -56,6 +56,7 @@ struct elemDistance {
                 float sdr;
                 float incidentAngle;
                 float skullThickness;
+                float sdr2;
 };
 
 layout(std430, binding=0) buffer elements{
@@ -372,8 +373,6 @@ float remap( float minval, float maxval, float curval )
     return clamp (( curval - minval ) / ( maxval - minval ), 0, 1);
 }
  
-layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
-
 vec3 GetClosestPoint(vec3 A, vec3 B, vec3 P)
 {
     vec3 AP = P - A;
@@ -387,6 +386,8 @@ vec3 GetClosestPoint(vec3 A, vec3 B, vec3 P)
     vec3 Closest = A + AB * t;
     return Closest;
 }
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 void main()
 {

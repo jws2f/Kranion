@@ -54,7 +54,7 @@ public class PullDownSelection extends GUIControl implements Animator {
     private float dx = 300f, dy = 10 * itemHeight;
     private int hoverItem = -1;
     private int selectedItem = -1;
-                
+    private long flyinDelay = -1;                
 
     private ArrayList<String> items = new ArrayList<String>();
     
@@ -275,6 +275,8 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
         
         if (MouseIsInside(x, y)) {
             
+            flyinDelay = -1;
+            
             if (flyScale == 0f) {
                 flyout();
             }
@@ -307,7 +309,8 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
         }
         else if (!MouseIsInside(x, y) && !hasGrabbed() && grabbedChild == null) {
             if (flyScale == 1f) {
-                flyin();
+                //flyin();
+                flyinDelay = System.currentTimeMillis() + 400;
             }
         }
         
@@ -334,10 +337,15 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
     @Override
     public void advanceFrame() {
-        if (isAnimationDone()) return;
+        if (isAnimationDone() && flyinDelay == -1) return;
         
         anim.advanceFrame();
         flyScale = anim.getCurrent();
+        
+        if (flyinDelay != -1 && (System.currentTimeMillis() > flyinDelay)) {
+            flyinDelay = -1;
+            flyin();
+        }
     }
     
     @Override

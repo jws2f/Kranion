@@ -1277,9 +1277,16 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             int idepth = image.getDimension(2).getSize();
             
             Quaternion imageOrientationQ = (Quaternion)image.getAttribute("ImageOrientationQ");
+            float[]    imagePosition = (float[])image.getAttribute("ImagePosition");
             Vector3f    imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
             if (imageTranslation == null) {
                 imageTranslation = new Vector3f();
+            }
+            
+            if (imagePosition != null) {
+                imageTranslation.x += imagePosition[0];
+                imageTranslation.y += imagePosition[1];
+                imageTranslation.z += imagePosition[2];
             }
             
             Matrix4f imageOrientationM = Trackball.toMatrix4f(imageOrientationQ.negate(null));

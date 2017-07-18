@@ -285,9 +285,9 @@ public class ImageVolumeUtil {
         
         Quaternion.setFromMatrix(imageRot, imageOrientationQ);
              
-        if (image.getAttribute("ImageOrientationQ") == null) {
+//        if (image.getAttribute("ImageOrientationQ") == null) {
             image.setAttribute("ImageOrientationQ", imageOrientationQ);
-        }
+//        }
         
 //        Vector3f imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
 //        if (imageTranslation == null) {

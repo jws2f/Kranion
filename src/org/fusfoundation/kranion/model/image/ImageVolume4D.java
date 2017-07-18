@@ -78,11 +78,12 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         return image;
     }
     
-    public void addChannel(int voxtype) {
+    public int addChannel(int voxtype) {
         int channelNum = voxelData.size();
         voxelData.setSize(channelNum+1);
         alloc(channelNum, voxtype);
         System.out.println("added channel " + channelNum);
+        return channelNum;
     }
     
     public void setPixelSize(float width, float height) {

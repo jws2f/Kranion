@@ -40,6 +40,7 @@ import java.nio.FloatBuffer;
 import java.nio.DoubleBuffer;
 import java.util.Observable;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
 
 /**
@@ -59,7 +60,7 @@ public class Slider extends GUIControl {
     private String format = new String("%4.0f");
     private float labelScale = 1f;
         
-    private float min=0f, max=100f, current=0f;
+    private float min=0f, max=100f, current=0f, grabbedCurrent=0f;
     
     private org.fusfoundation.kranion.Cylinder trough_cylinder = new org.fusfoundation.kranion.Cylinder(1f, 1f, 0f, 1f);
     private org.fusfoundation.kranion.Hemisphere trough_hemisphere = new org.fusfoundation.kranion.Hemisphere(1f, 1f);
@@ -120,7 +121,7 @@ public class Slider extends GUIControl {
     private boolean mouseInHandle(float x, float y) {
         x = x - bounds.x;
         y = y - bounds.y;
-        if (x >= labelWidth+handlePos && x < labelWidth+handlePos+handleLength &&
+        if (x >= labelWidth+handlePos-4.5f && x < labelWidth+handlePos+handleLength+4.5f &&
                 y>=2 && y<bounds.height-2f) {
             return true;
         }
@@ -139,6 +140,7 @@ public class Slider extends GUIControl {
                 
                 if (!hasGrabbed() && mouseInHandle(x, y) && button1down) {
                     grabMouse(x, y);
+                    grabbedCurrent = current;
                 }
                 
                 if (hasGrabbed() && !button1down) {
@@ -147,8 +149,20 @@ public class Slider extends GUIControl {
                 
                 if (hasGrabbed()) {
                     float old = current;
-                    current = (float)(x - xgrab + handlePos)/(float)(troughLength - handleLength) * (max - min) + min;
+                    
+                    // Vernier control with shift key
+                    float scale = 1f;
+                    if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) ||
+                        Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
+                        
+                        scale = 10f;
+                    }
+                    
+                    current = grabbedCurrent + (float)((x - xgrab)/scale)/(float)(troughLength - handleLength) * (max - min);
+                                        
                     xgrab = x;
+                    grabbedCurrent = current;
+                    
                     System.out.println("Slider val: " + x + " " + xgrab + " " + current);
                     setCurrentValue(current);
                     

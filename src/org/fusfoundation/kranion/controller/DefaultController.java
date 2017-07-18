@@ -46,6 +46,7 @@ import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.fusfoundation.kranion.model.image.ImageVolume4D;
 import org.fusfoundation.kranion.model.image.io.Loader;
 import org.fusfoundation.kranion.view.DefaultView;
+import org.fusfoundation.kranion.RegionGrow;
 import org.lwjgl.opengl.Display;
 
 /**
@@ -118,11 +119,11 @@ public class DefaultController extends Controller {
         }
         else if (e.getActionCommand().equals("boneSOS")) {
             org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-            model.setAttribute("boneSOS", slider.getCurrentValue());
+            model.setAttribute("boneSOS", (float)Math.round(slider.getCurrentValue()));
         }
         else if (e.getActionCommand().equals("boneRefractionSOS")) {
             org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-            model.setAttribute("boneRefractionSOS", slider.getCurrentValue());
+            model.setAttribute("boneRefractionSOS", (float)Math.round(slider.getCurrentValue()));
         }
         else if (e.getActionCommand().equals("foregroundVolumeSlices")) {
             org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();

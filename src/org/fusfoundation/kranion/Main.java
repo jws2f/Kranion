@@ -58,6 +58,7 @@ import org.lwjgl.opencl.CLPlatform;
 import org.lwjgl.opencl.CLContext;
 
 import static org.lwjgl.opencl.CL10.*;
+import static org.lwjgl.opencl.CL10GL.*;
 
 import java.lang.reflect.Constructor;
 
@@ -88,6 +89,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import javax.imageio.ImageIO;
+import org.lwjgl.opencl.CL10GL;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 
@@ -281,7 +283,8 @@ public class Main implements ProgressListener {
         }
         
         resizeGL();
-        resizeGL();
+//        resizeGL();
+
     }
     
     private ByteBuffer convertToByteBuffer(BufferedImage image) {
@@ -323,6 +326,7 @@ public class Main implements ProgressListener {
             // long context = clCreateContext(platform, devices, null, null, null);
             //CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, Thread.currentThread().getId(), null, Display.getDrawable(), errcode_ret);
             CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, CL_DEVICE_TYPE_GPU, null, Display.getDrawable(), errcode_ret);
+            
                          
               System.out.println("Device: " + devices.get(0).getInfoString(CL_DEVICE_NAME));
               System.out.println("Device CL extensions: " + devices.get(0).getInfoString(CL_DEVICE_EXTENSIONS));
