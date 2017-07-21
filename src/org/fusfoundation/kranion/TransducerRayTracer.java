@@ -1234,6 +1234,7 @@ public class TransducerRayTracer extends Renderable {
         floatDistances.rewind();
         float diffSqSum = 0.0f;
         float sdrSum = 0.0f;
+        float sdrCount = 0.0f;
         while (floatDistances.hasRemaining())
         {
         	float value = floatDistances.get();
@@ -1245,11 +1246,12 @@ public class TransducerRayTracer extends Renderable {
         	{
         		diffSqSum += (float) Math.pow(value-mean,2);
                         sdrSum += sdr2;
+                        sdrCount += 1.0f;
         	}
         }
         activeElementCount = numberOn;
         
-        this.sdr = sdrSum/distanceNum;
+        this.sdr = sdrSum/sdrCount; //distanceNum;
         float stDev = (float)Math.sqrt(diffSqSum/distanceNum);
 //        System.out.println("Average: "+mean);
 //        System.out.println("Std Dev: "+stDev);

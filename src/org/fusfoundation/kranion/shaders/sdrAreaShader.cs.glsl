@@ -103,7 +103,7 @@ void main()
     for (int x=-2; x<=2; x++) {
         for (int y=-2; y<=2; y++) {
 
-            vec3 pp = pos1 - v*10.0 + 2.5*x*xvec + 2.5*y*yvec;
+            vec3 pp = pos1 - v*10.0 + 2.25*x*xvec + 2.25*y*yvec;
 
             for (int i=0; i<60; i++) {
                 vec3 tcoord = (ct_tex_matrix * vec4 (pp, 1)).xyz;

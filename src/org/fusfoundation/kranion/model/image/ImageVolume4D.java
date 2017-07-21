@@ -41,19 +41,20 @@ import java.util.Observable;
 public class ImageVolume4D extends Observable implements ImageVolume, Serializable {
     
     private ImageDimension[] dims = new ImageDimension[4];
-    private int voxelType, voxelCount;
+    private int voxelCount;
     private Vector voxelData = new Vector();
+    private Vector<Integer> voxelType = new Vector();
     private HashMap attributes = new HashMap();
     
     /** Creates a new instance of ImageVolume4D */
     public ImageVolume4D(int voxelType, int x, int y, int z, int t) {
-        this.voxelType = voxelType;
         dims[0] = new ImageDimension(x);
         dims[1] = new ImageDimension(y);
         dims[2] = new ImageDimension(z);
         dims[3] = new ImageDimension(t);
         
         voxelData.setSize(1);
+        
         alloc(0, voxelType);
     }
     
@@ -119,6 +120,13 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
                 break;
         };
         
+        try {
+            voxelType.set(channel, type);
+        }
+        catch(ArrayIndexOutOfBoundsException e) {
+            voxelType.add(channel, type);
+        }
+        
         System.out.println("alloc: channel " + channel);
     }
     
@@ -126,7 +134,7 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     private int getDataSize() { return getDataSize(0); }
     
     private int getDataSize(int channel) {
-        switch(voxelType) {
+        switch(voxelType.get(channel)) {
             case ImageVolume.FLOAT_VOXEL:
             case ImageVolume.RGBA_VOXEL:
             case ImageVolume.INT_VOXEL:
@@ -150,7 +158,7 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         ByteBuffer buf = ByteBuffer.allocateDirect(datasize);
         buf.order(ByteOrder.nativeOrder());
         
-        switch(voxelType) {
+        switch(voxelType.get(channel)) {
             case ImageVolume.FLOAT_VOXEL:
                 FloatBuffer fb = buf.asFloatBuffer();
                 fb.put((float[])voxelData.get(channel));
@@ -194,11 +202,13 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         int height = dims[1].getSize();
         int sliceSize = width * height;
         
-        if (this.voxelType == ImageVolume.USHORT_VOXEL) {
+        int voxType = voxelType.get(0);
+        
+        if (voxType == ImageVolume.USHORT_VOXEL) {
             short[] pixelData = (short[])this.getData();
             db = new DataBufferUShort(pixelData, sliceSize, slice * sliceSize);
         }
-        else if (this.voxelType == ImageVolume.UBYTE_VOXEL) {
+        else if (voxType == ImageVolume.UBYTE_VOXEL) {
             byte[] pixelData = (byte[])this.getData();
             db = new DataBufferByte(pixelData, sliceSize, slice * sliceSize);
         }
@@ -214,10 +224,10 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         
         ComponentColorModel cm;
         
-        if (this.voxelType == ImageVolume.USHORT_VOXEL) {
+        if (voxType == ImageVolume.USHORT_VOXEL) {
             cm = new ComponentColorModel(cs, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_USHORT);
         }
-        else if (this.voxelType == ImageVolume.UBYTE_VOXEL) {
+        else if (voxType == ImageVolume.UBYTE_VOXEL) {
             cm = new ComponentColorModel(cs, false, false, ComponentColorModel.OPAQUE, DataBuffer.TYPE_BYTE);
         }
         else {
@@ -253,7 +263,8 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         notifyObservers(new PropertyChangeEvent(this, "Attribute["+name+"]", null, value));
     }
     
-    public int getVoxelType() { return voxelType; }
+    public int getVoxelType() { return voxelType.get(0); }
+    public int getVoxelType(int channel) { return voxelType.get(channel); }
     
     public Iterator getAttributeKeys() {
         return attributes.keySet().iterator();

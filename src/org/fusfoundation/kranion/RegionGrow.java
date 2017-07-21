@@ -7,6 +7,7 @@ package org.fusfoundation.kranion;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.nio.ShortBuffer;
 import org.fusfoundation.kranion.model.image.*;
 import java.util.*;
 import org.lwjgl.BufferUtils;
@@ -194,9 +195,13 @@ public class RegionGrow {
                 voxels[i] = 0;
             }
         }
+                
+        ImageVolumeUtil.releaseTexture(src);
+
         
         System.out.println("RegionGrow: done");
     }
+    
     private void initShader() {
         if (shader == null) {
             shader = new ShaderProgram();
@@ -214,6 +219,7 @@ public class RegionGrow {
             shader3.compileShaderProgram();  // TODO: should provide check for successful shader compile
         }
     }
+    
     public void gpu_calculate() {
         if (src == null) return;
         
@@ -231,6 +237,9 @@ public class RegionGrow {
         }
         
         if (tn == null) return; //TODO: should prob throw exception
+        
+        // build mask texture
+        this.buildTexture(src);
         
         if (Main.OpenGLVersion < 4f) return;
                 
@@ -254,34 +263,159 @@ public class RegionGrow {
         Float slope = (Float)src.getAttribute("RescaleSlope");
         if (slope == null) { slope = 1f; }
         
-        shader.start();
-                        
-        int uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_intercept");
-        glUniform1f(uloc, intercept);
-        uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_slope");
-        glUniform1f(uloc, slope);
+//        shader.start();
+//                        
+//        int uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_intercept");
+//        glUniform1f(uloc, intercept);
+//        uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_slope");
+//        glUniform1f(uloc, slope);
+//
+//        // run compute shader
+//        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+//        org.lwjgl.opengl.GL43.glDispatchCompute((iWidth+7)/8, (iHeight+7)/8, (iDepth+7)/8);
+//        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+//                
+//        // Clean up
+//        shader.stop();
 
-        // run compute shader
-        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
-        org.lwjgl.opengl.GL43.glDispatchCompute((iWidth+7)/8, (iHeight+7)/8, (iDepth+7)/8);
-        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
-                
-        // Clean up
-        shader.stop();
+        int changeCount = 0;
+        do {
+            
+            // reset mask change counter
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuf);
+            glBufferData(GL_SHADER_STORAGE_BUFFER, counterBuffer, GL_DYNAMIC_DRAW);
+
+//            shader2.start();
+//
+//            // run compute shader
+//            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+//            org.lwjgl.opengl.GL43.glDispatchCompute((iWidth+7)/8, (iHeight+7)/8, (iDepth+7)/8);
+//            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+//
+//            // Clean up
+//            shader2.stop();
+
+            shader.start();
+
+            int uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_intercept");
+            glUniform1f(uloc, intercept);
+            uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_slope");
+            glUniform1f(uloc, slope);
+
+            // run compute shader
+            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+            org.lwjgl.opengl.GL43.glDispatchCompute((iWidth+7)/8, (iHeight+7)/8, (iDepth+7)/8);
+            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+
+            // Clean up
+            shader.stop();
+
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuf);
+            ByteBuffer bbuf = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY, null);
+            IntBuffer maskChangeCount = bbuf.asIntBuffer();
+
+            changeCount = maskChangeCount.get(0);
+            System.out.println("Mask change count = " + changeCount);
+
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         
+        } while (changeCount > 0);
+        
+            shader3.start();
+
+            // run compute shader
+            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+            org.lwjgl.opengl.GL43.glDispatchCompute((iWidth+7)/8, (iHeight+7)/8, (iDepth+7)/8);
+            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+
+            // Clean up
+            shader3.stop();
+    
         glActiveTexture(GL_TEXTURE0 + 0);
         glBindTexture(GL_TEXTURE_3D, 0);
         glDisable(GL_TEXTURE_3D);
         
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, counterBuf);
-        ByteBuffer bbuf = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_ONLY, null);
-        IntBuffer maskChangeCount = bbuf.asIntBuffer();
+        updateTexture2Image();
+        updateTexture2Mask();
         
-        System.out.println("Mask change count = " + maskChangeCount.get(0));
+        // release channel 0 so it will get rebuilt
+        ImageVolumeUtil.releaseTexture(src);
         
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        // release channel 1 so it will get rebuilt
+        this.releaseTexture();
+
+    }
     
+    private void updateMask2Texture() {
+        if (this.src == null) return;
+        
+        buildTexture(src);
+        
+        int width = src.getDimension(0).getSize();
+        int height = src.getDimension(1).getSize();
+        int depth = src.getDimension(2).getSize();
+    
+        Integer tn = (Integer) src.getAttribute("maskTexName");
+        glBindTexture(GL_TEXTURE_3D, tn);
+        ByteBuffer voxelData = src.getByteBuffer(1); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
+        glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, width, height, depth, 0, GL_RED, GL_UNSIGNED_BYTE, voxelData);
+        glBindTexture(GL_TEXTURE_3D, tn);
+
+    }
+    
+    private void updateTexture2Image() {
+        if (this.src == null) return;
+        
+        Integer tn = (Integer) src.getAttribute("textureName");
+        
+        if (tn == null) return;
+        
+        int width = src.getDimension(0).getSize();
+        int height = src.getDimension(1).getSize();
+        int depth = src.getDimension(2).getSize();
+           
+        glBindTexture(GL_TEXTURE_3D, tn);
+        
+        ShortBuffer voxelData = src.getByteBuffer(0).asShortBuffer(); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
+        
+        glGetTexImage(GL_TEXTURE_3D, 0, GL_RED, GL_SHORT, voxelData);
+        
+        short[] imgData = (short[])src.getData(0);
+        
+        for (int i=0; i<imgData.length; i++) {
+            imgData[i] = (short)(voxelData.get() & 0xffff);
+        }
+
+        glBindTexture(GL_TEXTURE_3D, 0);
+
+    }
+ 
+    private void updateTexture2Mask() {
+        if (this.src == null) return;
+        
+        Integer tn = (Integer) src.getAttribute("maskTexName");
+        
+        if (tn == null) return;
+        
+        int width = src.getDimension(0).getSize();
+        int height = src.getDimension(1).getSize();
+        int depth = src.getDimension(2).getSize();
+           
+        glBindTexture(GL_TEXTURE_3D, tn);
+        
+        ByteBuffer voxelData = src.getByteBuffer(1); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
+        
+        glGetTexImage(GL_TEXTURE_3D, 0, GL_RED, GL_UNSIGNED_BYTE, voxelData);
+        
+        byte[] imgData = (byte[])src.getData(1);
+        
+        for (int i=0; i<imgData.length; i++) {
+            imgData[i] = voxelData.get();
+        }
+
+        glBindTexture(GL_TEXTURE_3D, 0);
+
     }
     
     private void buildTexture(ImageVolume image) {
@@ -325,7 +459,7 @@ public class RegionGrow {
 
                 //ShortBuffer pixelBuf = (tmp.asShortBuffer());
                 //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
-                glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, width, height, depth, 0, GL_R, GL_BYTE, (ByteBuffer)null);
+                glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, width, height, depth, 0, GL_RED, GL_UNSIGNED_BYTE, (ByteBuffer)null);
                 
                 //glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, width, height, depth);
             }

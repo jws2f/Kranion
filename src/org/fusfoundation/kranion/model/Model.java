@@ -113,7 +113,8 @@ public class Model extends Observable implements Serializable, Observer {
 
     public void setSelectedSonication(int index) {
         if (index >= sonications.size() || index < -1) {
-            throw new IndexOutOfBoundsException();
+            //throw new IndexOutOfBoundsException();
+            index = 0; // TODO: fix this properly
         }
         selectedSonication = index;
 
@@ -191,7 +192,12 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public Sonication getSonication(int index) {
-        return sonications.get(index);
+        try {
+            return sonications.get(index);
+        }
+        catch(IndexOutOfBoundsException e) {
+            return null;
+        }
     }
     
     public void setSonication(int index, Sonication sonication) {

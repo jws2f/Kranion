@@ -53,20 +53,17 @@ void main() {
                          gl_GlobalInvocationID.z);
 
     // Retrieve the voxel value for this thread (one thread per voxel)
-    float value = imageLoad(myImage3D, imgCoord).r * 32767.0 * ct_rescale_slope - ct_rescale_intercept;
+    float value = imageLoad(myImage3D, imgCoord).r * 32767.0 * ct_rescale_slope + ct_rescale_intercept;
 
     int v = int(value);
 
     int m = int(imageLoad(myMask3D, imgCoord).r * 255.0);
 
-    // Add this threads voxel value vote to histogram
-    // atomic add keeps other threads from clobbering each other
-//    atomicAdd(h[v], 1);
+    bool seed = (imgCoord.x == size.x/2 && imgCoord.y == size.y/2 && imgCoord.z == size.z/2);
 
-    bool seed = (imgCoord.x == size.x/2 && imgCoord.y == size.y/2 && imgCoord.y == size.y/2);
-
-    if ((v>-250.0 && ((m & 0x01) == 0)) || seed) {
-        if (    (int(imageLoad(myMask3D, ivec3(imgCoord.x+1, imgCoord.y, imgCoord.z)).r * 255.0) & 0x01) != 0 ||
+    if ((v>-250.0 && ((m & 0x01) == 0))) {
+        if (    seed ||
+                (int(imageLoad(myMask3D, ivec3(imgCoord.x+1, imgCoord.y, imgCoord.z)).r * 255.0) & 0x01) != 0 ||
                 (int(imageLoad(myMask3D, ivec3(imgCoord.x-1, imgCoord.y, imgCoord.z)).r * 255.0) & 0x01) != 0 ||
                 (int(imageLoad(myMask3D, ivec3(imgCoord.x, imgCoord.y+1, imgCoord.z)).r * 255.0) & 0x01) != 0 ||
                 (int(imageLoad(myMask3D, ivec3(imgCoord.x, imgCoord.y-1, imgCoord.z)).r * 255.0) & 0x01) != 0 ||
@@ -74,9 +71,22 @@ void main() {
                 (int(imageLoad(myMask3D, ivec3(imgCoord.x, imgCoord.y, imgCoord.z-1)).r * 255.0) & 0x01) != 0 
             )
         {
-            float newValue = (m | 0x02) / 255.0;
+            float newValue = (m | 0x02) / 256.0;
             imageStore(myMask3D, imgCoord, vec4(newValue));
             atomicCounterIncrement( growCount );
         }
     }
+
+    memoryBarrierShared();
+    barrier();
+
+    // Retrieve the voxel value for this thread (one thread per voxel)
+    m = int(imageLoad(myMask3D, imgCoord).r * 255.0);
+
+
+    if (m!=0) {        
+            const float newValue = 1.0 / 255.0;
+            imageStore(myMask3D, imgCoord, vec4(newValue));
+    }
+
 }

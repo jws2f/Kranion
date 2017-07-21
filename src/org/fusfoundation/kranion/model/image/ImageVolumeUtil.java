@@ -189,7 +189,7 @@ public class ImageVolumeUtil {
         }
 
     }
-    
+        
     public static void releaseTexture(ImageVolume image) {
         releaseTexture(image, "textureName");
     }

@@ -359,6 +359,8 @@ public class DefaultView extends View {
       
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 250, 200, 25, controller).setTitle("Load CT...").setCommand("loadCT"));
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 220, 250, 75, 25, this).setTitle("Filter").setCommand("filterCT"));
+        
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 215, 200, 25, controller).setTitle("Load MR...").setCommand("loadMR"));
 
 //        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 215, 100, 25, this).setTitle("Register").setCommand("registerMRCT"));
@@ -1782,13 +1784,7 @@ public class DefaultView extends View {
             switch(event.getPropertyName()) {
                 case "Model.CtImage":
                     setDisplayCTimage(model.getCtImage());
-                    
-            ImageVolume4D image = (ImageVolume4D)model.getCtImage();
-            if (image != null) {
-                RegionGrow rg = new RegionGrow(image);
-                rg.grow(image.getDimension(0).getSize()/2, image.getDimension(1).getSize()/2, image.getDimension(2).getSize()/2);
-            }
-            
+                                
                     model.setAttribute("doMRI", true);
                     canvas.setVolumeRender(true);
                     canvas.setIsDirty(true);
@@ -2814,6 +2810,16 @@ public class DefaultView extends View {
             case "exit":
                 this.release();
                 System.exit(0);
+                break;
+            case "filterCT":
+                ImageVolume4D image = (ImageVolume4D)model.getCtImage();
+                if (image != null) {
+                    RegionGrow rg = new RegionGrow(image);
+                    rg.grow(image.getDimension(0).getSize()/2, image.getDimension(1).getSize()/2, image.getDimension(2).getSize()/2);
+                    this.setDisplayCTimage(image);
+                    this.mainLayer.setIsDirty(true);
+                    this.setDoTransition(true);
+                }
                 break;
         }
     }
