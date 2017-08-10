@@ -90,6 +90,8 @@ import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import javax.imageio.ImageIO;
 import org.lwjgl.opencl.CL10GL;
+import org.lwjgl.opencl.CLCapabilities;
+import org.lwjgl.opencl.CLDeviceCapabilities;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 
@@ -105,6 +107,7 @@ public class Main implements ProgressListener {
     public static final Logger LOGGER = Logger.getLogger(Main.class.getName());
     
     public static float OpenGLVersion = -1f;
+    public static CLContext CLcontext = null;
     
     public static final boolean DEBUG = false;
 
@@ -311,37 +314,55 @@ public class Main implements ProgressListener {
             System.out.println("CL created");
 
             CLPlatform platform = CLPlatform.getPlatforms().get(0);
-            System.out.println("Platform created: " + platform.getInfoString(CL_PLATFORM_NAME) + " version: " + platform.getInfoString(CL_PLATFORM_VERSION));
+                System.out.println("Platform created: " + platform.getInfoString(CL_PLATFORM_NAME) + " version: " + platform.getInfoString(CL_PLATFORM_VERSION));
 
-            PointerBuffer ctxProps = BufferUtils.createPointerBuffer(3);
-            ctxProps.put(CL_CONTEXT_PLATFORM).put(platform).put(0).flip();
-            System.out.println("CTX created");
+//                PointerBuffer ctxProps = BufferUtils.createPointerBuffer(3);
+//                ctxProps.put(CL_CONTEXT_PLATFORM).put(platform).put(0).flip();
 
             IntBuffer errcode_ret = BufferUtils.createIntBuffer(1);
-            
+
             List<CLDevice> devices = platform.getDevices(CL_DEVICE_TYPE_GPU);
-            
-            System.out.println(devices.size() + " GPU devices found.");
-            
+                 System.out.println(devices.size() + " GPU devices found.");
+                 
             // long context = clCreateContext(platform, devices, null, null, null);
             //CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, Thread.currentThread().getId(), null, Display.getDrawable(), errcode_ret);
-            CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, CL_DEVICE_TYPE_GPU, null, Display.getDrawable(), errcode_ret);
-            
-                         
-              System.out.println("Device: " + devices.get(0).getInfoString(CL_DEVICE_NAME));
-              System.out.println("Device CL extensions: " + devices.get(0).getInfoString(CL_DEVICE_EXTENSIONS));
-            System.out.println("CONTEXT created. error code = " + errcode_ret.get(0));
-            
-            
-            errcode_ret.clear();
-org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQueue(context, devices.get(0), org.lwjgl.opencl.CL10.CL_QUEUE_PROFILING_ENABLE, errcode_ret);
-   // checkCLError throw a CLExcepetion if the error code does not equal CL_SUCCESS. This exception should be caught and all currently created resources released. See later. 
-   org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
+            CLcontext = org.lwjgl.opencl.CLContext.createFromType(platform, CL_DEVICE_TYPE_GPU, null, Display.getDrawable(), errcode_ret);
+            System.out.println("CL context created");
+           
+            for (int d = 0; d < devices.size(); d++) {
+
+                System.out.println("Device " + d + ": " + devices.get(d).getInfoString(CL_DEVICE_NAME));
+                System.out.println("Device CL extensions: " + devices.get(d).getInfoString(CL_DEVICE_EXTENSIONS));
+
+                try {
+
+                    CLDeviceCapabilities abilities = CLCapabilities.getDeviceCapabilities(devices.get(d));
+                    System.out.println("3d_image_writes: " + abilities.CL_KHR_3d_image_writes);
+                    System.out.println("gl_sharing: " + abilities.CL_KHR_gl_sharing);
+                    System.out.println("CONTEXT created. error code = " + errcode_ret.get(0));
+
+                    errcode_ret.clear();
+
+                    org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQueue(CLcontext, devices.get(d), org.lwjgl.opencl.CL10.CL_QUEUE_PROFILING_ENABLE, errcode_ret);
+                    // checkCLError throw a CLExcepetion if the error code does not equal CL_SUCCESS. This exception should be caught and all currently created resources released. See later. 
+                    org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
+
+                    org.lwjgl.opencl.CL10.clReleaseCommandQueue(queue);
+                    
+                } catch (Exception e) {
+                    org.lwjgl.opencl.CL10.clReleaseContext(CLcontext);    
+                    System.out.println("Failed to create a sharable CL context and/or command queue with this device.");
+                }
+
+                if (errcode_ret.get(0) == 0) {
+                    break;
+                }
+
+            }
    
-            org.lwjgl.opencl.CL10.clReleaseCommandQueue(queue);
-            org.lwjgl.opencl.CL10.clReleaseContext(context);    
-            org.lwjgl.opencl.CL.destroy();
-            System.out.println("CL context released, CL shutdown");
+//            org.lwjgl.opencl.CL10.clReleaseContext(CLcontext);    
+//            org.lwjgl.opencl.CL.destroy();
+//            System.out.println("CL context released, CL shutdown");
             System.out.println("****************\n");
             
         } catch (Exception e) {
@@ -480,6 +501,11 @@ org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQue
         }
         
         view.release();
+        
+        if (CLcontext != null) {
+            org.lwjgl.opencl.CL10.clReleaseContext(CLcontext);
+        }
+        org.lwjgl.opencl.CL.destroy();
 
     }
     
