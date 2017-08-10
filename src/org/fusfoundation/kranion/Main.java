@@ -322,6 +322,7 @@ public class Main implements ProgressListener {
             // long context = clCreateContext(platform, devices, null, null, null);
             //CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, Thread.currentThread().getId(), null, Display.getDrawable(), errcode_ret);
             CLcontext = org.lwjgl.opencl.CLContext.createFromType(platform, CL_DEVICE_TYPE_GPU, null, Display.getDrawable(), errcode_ret);
+            org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
             System.out.println("CL context created");
            
             for (int d = 0; d < devices.size(); d++) {
@@ -345,7 +346,6 @@ public class Main implements ProgressListener {
                     org.lwjgl.opencl.CL10.clReleaseCommandQueue(queue);
                     
                 } catch (Exception e) {
-                    org.lwjgl.opencl.CL10.clReleaseContext(CLcontext);    
                     System.out.println("Failed to create a sharable CL context and/or command queue with this device.");
                 }
 

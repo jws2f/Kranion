@@ -94,33 +94,34 @@ public class CLGLObj {
 
     public CLGLObj() {
         try {
-            CL.create();
+//            CL.create();
+//
+//            this.drawable = Display.getDrawable();
+//
+//            this.platform = CLPlatform.getPlatforms().get(0);
+//
+//            this.glSharingFilter = (final CLDevice device) -> {
+//                CLDeviceCapabilities abilities = CLCapabilities.getDeviceCapabilities(device);
+//                System.out.println("APPLE_gl_sharing: " + abilities.CL_APPLE_gl_sharing + "  KHR_gl_sharing" + abilities.CL_KHR_gl_sharing);
+//                if (abilities.CL_APPLE_gl_sharing) {
+//                    return abilities.CL_APPLE_gl_sharing;
+//                } else if (abilities.CL_KHR_gl_sharing) {
+//                    return abilities.CL_KHR_gl_sharing;
+//                } else {
+//                    return false;
+//                }
+//            };
+//            this.write3DImgFilter = (final CLDevice device) -> {
+//                CLDeviceCapabilities abilities = CLCapabilities.getDeviceCapabilities(device);
+//                System.out.println("3d_image_writes: " + abilities.CL_KHR_3d_image_writes);
+//                return abilities.CL_KHR_gl_sharing;
+//            };
+//
+//            this.devices = platform.getDevices(CL10.CL_DEVICE_TYPE_GPU, glSharingFilter);
+//            checkDevices(devices);
 
-            this.drawable = Display.getDrawable();
-
-            this.platform = CLPlatform.getPlatforms().get(0);
-
-            this.glSharingFilter = (final CLDevice device) -> {
-                CLDeviceCapabilities abilities = CLCapabilities.getDeviceCapabilities(device);
-                System.out.println("APPLE_gl_sharing: " + abilities.CL_APPLE_gl_sharing + "  KHR_gl_sharing" + abilities.CL_KHR_gl_sharing);
-                if (abilities.CL_APPLE_gl_sharing) {
-                    return abilities.CL_APPLE_gl_sharing;
-                } else if (abilities.CL_KHR_gl_sharing) {
-                    return abilities.CL_KHR_gl_sharing;
-                } else {
-                    return false;
-                }
-            };
-            this.write3DImgFilter = (final CLDevice device) -> {
-                CLDeviceCapabilities abilities = CLCapabilities.getDeviceCapabilities(device);
-                System.out.println("3d_image_writes: " + abilities.CL_KHR_3d_image_writes);
-                return abilities.CL_KHR_gl_sharing;
-            };
-
-            this.devices = platform.getDevices(CL10.CL_DEVICE_TYPE_GPU, glSharingFilter);
-            checkDevices(devices);
-
-            this.context = CLContext.create(platform, devices, null, drawable, null);
+//            this.context = CLContext.create(platform, devices, null, drawable, null);
+            this.context = Main.CLcontext;
 
             this.queue = CL10.clCreateCommandQueue(context, context.getInfoDevices().get(0), CL_QUEUE_PROFILING_ENABLE, null);
             queue.checkValid();
@@ -128,7 +129,7 @@ public class CLGLObj {
             buildProgram(context);
 
             this.kernel = CL10.clCreateKernel(this.program, "imgTest2", null);
-        } catch (RuntimeException | LWJGLException e) {
+        } catch (Exception e) {
             System.out.println("*** Problem creating CL context");
             e.printStackTrace();
         }
