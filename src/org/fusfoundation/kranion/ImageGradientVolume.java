@@ -75,7 +75,7 @@ public class ImageGradientVolume {
     }
 
     // 3x3x3 Sobel mask offsets and weights
-    private static Vector3f offsets[] = {
+    private static final Vector3f offsets[] = {
         new Vector3f(-1, -1, -1), new Vector3f(-1, 0, -1), new Vector3f(-1, 1, -1),
         new Vector3f(-1, -1, 0), new Vector3f(-1, 0, 0), new Vector3f(-1, 1, 0),
         new Vector3f(-1, -1, 1), new Vector3f(-1, 0, 1), new Vector3f(-1, 1, 1),
@@ -87,10 +87,10 @@ public class ImageGradientVolume {
         new Vector3f(1, -1, 1), new Vector3f(1, 0, 1), new Vector3f(1, 1, 1)
     };
 
-    private static float sqr3 = (float) Math.sqrt(3.0) / 3;
-    private static float sqr2 = (float) Math.sqrt(2.0) / 2;
+    private static final float sqr3 = (float) Math.sqrt(3.0) / 3;
+    private static final float sqr2 = (float) Math.sqrt(2.0) / 2;
 
-    private static float xGradZH[] = {
+    private static final float xGradZH[] = {
         -sqr3, -sqr2, -sqr3,
         -sqr2, -1, -sqr2,
         -sqr3, -sqr2, -sqr3,
@@ -103,7 +103,7 @@ public class ImageGradientVolume {
     };
 
 // 3x3x3 Zucker-Hummel weights
-    private static float yGradZH[] = {
+    private static final float yGradZH[] = {
         -sqr3, 0, sqr3,
         -sqr2, 0, sqr2,
         -sqr3, 0, sqr3,
@@ -115,7 +115,7 @@ public class ImageGradientVolume {
         -sqr3, 0, sqr3
     };
 
-    private static float zGradZH[] = {
+    private static final float zGradZH[] = {
         -sqr3, -sqr2, -sqr3,
         0, 0, 0,
         sqr3, sqr2, sqr3,
