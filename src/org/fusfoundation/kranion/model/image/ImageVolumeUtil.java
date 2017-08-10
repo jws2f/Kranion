@@ -26,6 +26,8 @@ package org.fusfoundation.kranion.model.image;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.kranion.ImageGradientVolume;
 import org.fusfoundation.kranion.Main;
 import static org.lwjgl.opengl.GL11.GL_CLAMP;
@@ -69,24 +71,24 @@ import org.lwjgl.util.vector.Matrix3f;
  * @author john
  */
 public class ImageVolumeUtil {
+
     public static void buildTexture(ImageVolume image) {
         buildTexture(image, true);
     }
-    
+
     public static void buildTexture(ImageVolume image, boolean doGradientVolume) {
         buildTexture(image, doGradientVolume, 0);
     }
-    
+
     public static void buildTexture(ImageVolume image, boolean doGradientVolume, int frame) {
 
-        
-        if (image != null) {            
+        if (image != null) {
             //System.out.println("ImageCanvas3D::build texture..");
 
             Integer tn = (Integer) image.getAttribute("textureName");
 //            System.out.println("   textureName = " + tn);
 
-            if (tn != null && tn != -1) {              
+            if (tn != null && tn != -1) {
                 //System.out.println("Got previously built texture = " + tn);
             } else {
 
@@ -95,7 +97,6 @@ public class ImageVolumeUtil {
                 IntBuffer texName = buf.asIntBuffer();
 
 //                release();
-
                 glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
                 glGenTextures(texName);
                 int textureName = texName.get(0);
@@ -115,8 +116,8 @@ public class ImageVolumeUtil {
                 int height = image.getDimension(1).getSize();
                 int depth = image.getDimension(2).getSize();
                 int frames = image.getDimension(3).getSize();
-                
-                int selectedFrame = Math.max(0, Math.min(frames-1, frame));
+
+                int selectedFrame = Math.max(0, Math.min(frames - 1, frame));
 
                 //System.out.println("size: " + width + " x " + height);
                 int iWidth = width;
@@ -137,8 +138,8 @@ public class ImageVolumeUtil {
                     pixelBuf.order(ByteOrder.LITTLE_ENDIAN);
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY8, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, pixelBuf);
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_ALPHA8, texWidth, texHeight, texDepth, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixelBuf);
-                     glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, texWidth, texHeight, texDepth, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuf);
-               } else if (pixelType == ImageVolume.USHORT_VOXEL){
+                    glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, texWidth, texHeight, texDepth, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuf);
+                } else if (pixelType == ImageVolume.USHORT_VOXEL) {
                     System.out.println("  building 16bit texture");
 
                     ByteBuffer tmp = image.getByteBuffer();
@@ -147,12 +148,12 @@ public class ImageVolumeUtil {
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_ALPHA16, texWidth, texHeight, texDepth, 0, GL_ALPHA, GL_SHORT, pixelBuf);
                     glTexImage3D(GL_TEXTURE_3D, 0, GL_R16, texWidth, texHeight, texDepth, 0, GL_RED, GL_SHORT, tmp);
-               } else if (pixelType == ImageVolume.FLOAT_VOXEL){
+                } else if (pixelType == ImageVolume.FLOAT_VOXEL) {
                     System.out.println("  building float32 texture");
 
                     ByteBuffer tmp = image.getByteBuffer();
 
-                    tmp.position(selectedFrame*width*height*depth*4);
+                    tmp.position(selectedFrame * width * height * depth * 4);
                     tmp.order(ByteOrder.LITTLE_ENDIAN);
                     //ShortBuffer pixelBuf = (tmp.asShortBuffer());
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
@@ -172,9 +173,9 @@ public class ImageVolumeUtil {
                 Main.checkForGLError();
 
             }
-            
+
         }
-        
+
         // Creates a precalculated image gradient 3D texture
         // and leaves the GL texture name as an image attribute
         // "gradientTexName"
@@ -183,54 +184,61 @@ public class ImageVolumeUtil {
             if (tn == null || tn.intValue() == 0) {
                 ImageGradientVolume grad = new ImageGradientVolume();
                 grad.setImage(image);
-                grad.calculate();
+                //grad.calculate();
+                try {
+                    grad.calculateCL();
+                } catch (Exception ex) {
+                    Logger.getLogger(ImageVolumeUtil.class.getName()).log(Level.SEVERE, null, ex);
+                }
                 Main.checkForGLError();
             }
         }
 
     }
-        
+
     public static void releaseTexture(ImageVolume image) {
         releaseTexture(image, "textureName");
     }
-    
+
     public static void releaseTextures(ImageVolume image) {
         releaseTexture(image, "textureName");
         releaseTexture(image, "gradientTexName");
     }
-    
+
     public static void releaseTexture(ImageVolume image, String texAttribName) {
         if (image != null) {
             Integer tn = (Integer) image.getAttribute(texAttribName);
-            if (tn == null) return;
-            
+            if (tn == null) {
+                return;
+            }
+
             int textureName = tn.intValue();
-            
+
             image.removeAttribute(texAttribName);
-            
+
             if (glIsTexture(textureName)) {
                 ByteBuffer texName = ByteBuffer.allocateDirect(4);
                 texName.asIntBuffer().put(0, textureName);
                 texName.flip();
                 glDeleteTextures(texName.asIntBuffer());
             }
-            
+
             Main.checkForGLError();
         }
     }
-    
+
     public static void setupImageOrientationInfo(ImageVolume image) {
-        float[] imageOrientationV = (float[])image.getAttribute("ImageOrientation");
+        float[] imageOrientationV = (float[]) image.getAttribute("ImageOrientation");
         if (imageOrientationV == null) {
             return;
         }
-        
+
         Vector3f imageOrientationX = new Vector3f();
         Vector3f imageOrientationY = new Vector3f();
         Vector3f imageOrientationZ = new Vector3f();
         Vector3f imageOriginPosition = new Vector3f();
         Quaternion imageOrientationQ = new Quaternion();
-        
+
         int xsize = image.getDimension(0).getSize();
         int ysize = image.getDimension(1).getSize();
         int zsize = image.getDimension(2).getSize();
@@ -238,38 +246,38 @@ public class ImageVolumeUtil {
         float xres = image.getDimension(0).getSampleWidth(0);
         float yres = image.getDimension(1).getSampleWidth(1);
         float zres = image.getDimension(2).getSampleWidth(2);
-        
+
         imageOrientationX.x = imageOrientationV[0];
         imageOrientationX.y = imageOrientationV[1];
         imageOrientationX.z = imageOrientationV[2];
-        
+
         imageOrientationY.x = imageOrientationV[3];
         imageOrientationY.y = imageOrientationV[4];
         imageOrientationY.z = imageOrientationV[5];
-        
+
         Vector3f.cross(imageOrientationX, imageOrientationY, imageOrientationZ);
-        
+
         image.setAttribute("ImageOrientationX", imageOrientationX);
         image.setAttribute("ImageOrientationY", imageOrientationY);
-        
+
         System.out.println("Image X vector = " + imageOrientationX);
         System.out.println("Image Y vector = " + imageOrientationY);
-        
-        float[] imagePosition = (float[])image.getAttribute("ImagePosition");
-        
+
+        float[] imagePosition = (float[]) image.getAttribute("ImagePosition");
+
         if (imagePosition == null) {
             return;
         }
-        
+
 //        imageOriginPosition.x = imagePosition[0] + ((imageOrientationX.x * xsize * xres)/2f + (imageOrientationX.y * ysize * yres)/2f + (imageOrientationX.z * zsize * zres)/2f);
 //        imageOriginPosition.y = imagePosition[1] + ((imageOrientationY.x * xsize * xres)/2f + (imageOrientationY.y * ysize * yres)/2f + (imageOrientationY.z * zsize * zres)/2f);
 //        imageOriginPosition.z = imagePosition[2] + ((imageOrientationZ.x * xsize * xres)/2f + (imageOrientationZ.y * ysize * yres)/2f + (imageOrientationZ.z * zsize * zres)/2f);
         imageOriginPosition.x = imagePosition[0];
         imageOriginPosition.y = imagePosition[1];
         imageOriginPosition.z = imagePosition[2];
-              
+
         image.setAttribute("ImageOrientationZ", imageOrientationZ);
-                
+
         //Try this instead:
         // build mat4 rom xvec and yvec
         Matrix3f imageRot = new Matrix3f();
@@ -282,30 +290,28 @@ public class ImageVolumeUtil {
         imageRot.m20 = imageOrientationZ.x;
         imageRot.m21 = imageOrientationZ.y;
         imageRot.m22 = imageOrientationZ.z;
-        
+
         Quaternion.setFromMatrix(imageRot, imageOrientationQ);
-             
+
 //        if (image.getAttribute("ImageOrientationQ") == null) {
-            image.setAttribute("ImageOrientationQ", imageOrientationQ);
+        image.setAttribute("ImageOrientationQ", imageOrientationQ);
 //        }
-        
+
 //        Vector3f imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
 //        if (imageTranslation == null) {
 //            image.setAttribute("ImageTranslation", imageOriginPosition);//new Vector3f(0f,0f,0f));
 //        }
-             
-        System.out.println("Image orient quat: " + imageOrientationQ);       
+        System.out.println("Image orient quat: " + imageOrientationQ);
         System.out.println("Image position = " + imageOriginPosition);
     }
-    
-    private static Quaternion quatFromVectorAngle(Vector3f v1, Vector3f v2)
-    {
+
+    private static Quaternion quatFromVectorAngle(Vector3f v1, Vector3f v2) {
         Quaternion result = new Quaternion();
-        
-        float angle = (float)Math.acos(Vector3f.dot(v1, v2)/(v1.length() * v2.length()));
+
+        float angle = (float) Math.acos(Vector3f.dot(v1, v2) / (v1.length() * v2.length()));
         if (angle != 0f) {
             Vector3f axis = (Vector3f.cross(v1, v2, null).normalise(null));
-            float s = (float)Math.sin(angle/2);
+            float s = (float) Math.sin(angle / 2);
 
             System.out.println("angle = " + angle);
             System.out.println("axis = " + axis);
@@ -315,13 +321,12 @@ public class ImageVolumeUtil {
             System.out.println("cross product = " + correctZ);
             System.out.println("dot product = " + Vector3f.dot(v1, v2));
 
-            result.set(axis.x * s, axis.y *s, axis.z * s, (float)Math.cos(angle/2.0));
+            result.set(axis.x * s, axis.y * s, axis.z * s, (float) Math.cos(angle / 2.0));
             result.normalise(null);
-        }
-        else {
+        } else {
             result.set(0f, 0f, 0f, 1f); // Identity
-        }   
-        
+        }
+
         return result;
     }
 }
