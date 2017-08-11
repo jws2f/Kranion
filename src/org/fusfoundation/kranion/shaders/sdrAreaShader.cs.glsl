@@ -46,7 +46,7 @@ struct sdrRecord {
 };
 
 layout(std430, binding=0) buffer inputGeometry{
-          elemEnd input[];
+          elemEnd inputv[];
 };
 
 layout(std430, binding=1) buffer resultDistance{
@@ -77,9 +77,9 @@ float remap( float minval, float maxval, float curval )
 void main()
 {
     uint gid = gl_GlobalInvocationID.x;
-    vec3 pos1 = input[gid].pos[2].xyz; // point on the outside of the skull
-    vec3 pos2 = input[gid].pos[3].xyz; // point on the inside of the skull w/ refraction
-//    vec3 v = normalize(input[gid].pos[0].xyz - input[gid].pos[1].xyz); // no refraction
+    vec3 pos1 = inputv[gid].pos[2].xyz; // point on the outside of the skull
+    vec3 pos2 = inputv[gid].pos[3].xyz; // point on the inside of the skull w/ refraction
+//    vec3 v = normalize(inputv[gid].pos[0].xyz - inputv[gid].pos[1].xyz); // no refraction
     vec3 v = normalize(pos2 - pos1); // with refraction
     float skullThickness = length(pos2 - pos1);
     float finalRaySegmentDistance = d[gid].dist; // -1 indicates ineffective element
