@@ -19,8 +19,11 @@ import org.lwjgl.PointerBuffer;
 import org.lwjgl.Sys;
 import org.lwjgl.opencl.CL;
 import org.lwjgl.opencl.CL10;
+import static org.lwjgl.opencl.CL10.CL_DEVICE_NAME;
 import static org.lwjgl.opencl.CL10.CL_PROGRAM_BUILD_LOG;
+import static org.lwjgl.opencl.CL10.CL_PROGRAM_BUILD_STATUS;
 import static org.lwjgl.opencl.CL10.CL_QUEUE_PROFILING_ENABLE;
+import static org.lwjgl.opencl.CL10.CL_SUCCESS;
 import static org.lwjgl.opencl.CL10.clEnqueueNDRangeKernel;
 import static org.lwjgl.opencl.CL10.clEnqueueWaitForEvents;
 import static org.lwjgl.opencl.CL10.clFinish;
@@ -85,7 +88,7 @@ public class CLGLObj {
     private boolean syncCLtoGL = false; // true if we can make CL wait on sync objects generated from GL.
     private boolean syncGLtoCL = false; // true if we can make GL wait on events generated from CL queues.
     private final boolean doublePrecision = false;  //doubles used instead of floats
-    private final boolean useTextures = true;  //for something...
+    private final boolean useTextures = false;  //for something...
     private static boolean buffersInitialized;  //buffers for something initialized
     private boolean drawSeparator;  //no idea what this is
     private boolean rebuild;  //boolean for rerendering
@@ -123,8 +126,8 @@ public class CLGLObj {
 //            this.context = CLContext.create(platform, devices, null, drawable, null);
             this.context = Main.CLcontext;
 
-            this.queue = CL10.clCreateCommandQueue(context, context.getInfoDevices().get(0), CL_QUEUE_PROFILING_ENABLE, null);
-            queue.checkValid();
+            this.queue = Main.CLqueue; //CL10.clCreateCommandQueue(context, context.getInfoDevices().get(0), 0/*CL_QUEUE_PROFILING_ENABLE*/, null);
+            this.queue.checkValid();
 
             buildProgram(context);
 
@@ -151,7 +154,7 @@ public class CLGLObj {
             CL10.clReleaseProgram(this.program);
         }
 
-        String kernel_3DImage = getKernelSource("write3dImage.txt");
+        String kernel_3DImage = getKernelSource("shaders/ImageGradientVolume.kernel.txt");
         
         System.out.println(kernel_3DImage);
 
@@ -172,12 +175,16 @@ public class CLGLObj {
                 options.append("\n");
             }
         }
+        System.out.println("Compiling kernel for: " + device.getInfoString(CL_DEVICE_NAME));
         System.out.println("OpenCL COMPILER OPTIONS: " + options);
         
         try {
-            CL10.clBuildProgram(this.program, device, options, null);
+            int error = CL10.clBuildProgram(this.program, device, options, null);
+            if (error != CL_SUCCESS) {
+                System.out.println("clBuildProgram failed: " + error);
+            }
         } finally {
-            System.out.println("BUILD LOG: " + this.program.getBuildInfoString(device, CL_PROGRAM_BUILD_LOG));
+            System.out.println("BUILD LOG: " + this.program.getBuildInfoString(device, CL_PROGRAM_BUILD_STATUS) + "\n" + this.program.getBuildInfoString(device, CL_PROGRAM_BUILD_LOG));
         }
     }
 
@@ -227,9 +234,12 @@ public class CLGLObj {
         }
     }
 
-    public void setKernelParams(CLMem glBuffers, CLMem glBuffersOut) {
+    public void setKernelParams(CLMem glBuffers, CLMem glBuffersOut, float xres, float yres, float zres) {
         kernel.setArg(0, glBuffers)
-                .setArg(1, glBuffersOut);
+                .setArg(1, glBuffersOut)
+                .setArg(2, xres)
+                .setArg(3, yres)
+                .setArg(4, zres);
     }
 
     public static void initCLTexture(CLContext context, int textureName, String textureType, ImageVolume image) {
@@ -271,7 +281,7 @@ public class CLGLObj {
     }
 
     //DISPLAYS THE RESULTS
-    public void display(CLContext context, int textureName, String textureType, ImageVolume image){
+    public void display(int textureName, String textureType, ImageVolume image){
         //CHECKS TO MAKE SURE ALL GL EVENTS HAVE COMPLETED
         if (syncCLtoGL && glEvent != null) {
             clEnqueueWaitForEvents(queue, glEvent);
@@ -282,13 +292,13 @@ public class CLGLObj {
         //IF THE GL TEXTURE BUFFERS HAVE NOT BEEN INITIALIZED
         if (!buffersInitialized) {
             initCLTexture(context, textureName, textureType, image);
-            setKernelParams(glBuffers[0], glBuffersOut[0]);
+            setKernelParams(glBuffers[0], glBuffersOut[0], image.getDimension(0).getSampleWidth(0), image.getDimension(1).getSampleWidth(0), image.getDimension(2).getSampleWidth(0));
         }
 
         //IF CHANGES OCCURED, AND NEEDS TO REBUILD PROGRAM & KERNEL
         if (rebuild) {
             buildProgram(context);
-            setKernelParams(glBuffers[0], glBuffersOut[0]);
+            setKernelParams(glBuffers[0], glBuffersOut[0], image.getDimension(0).getSampleWidth(0), image.getDimension(1).getSampleWidth(0), image.getDimension(2).getSampleWidth(0));
         }
 
         int iWidth = image.getDimension(0).getSize();

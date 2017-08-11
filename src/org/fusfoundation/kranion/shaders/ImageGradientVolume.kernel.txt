@@ -1,6 +1,6 @@
-kernel void imgTest2(__read_only image3d_t inTexture, __write_only image3d_t outTexture){
+kernel void imgTest2(__read_only image3d_t inTexture, __write_only image3d_t outTexture, float xres, float yres, float zres){
     #pragma OPENCL EXTENSION cl_khr_3d_image_writes : enable
- //   #pragma OPENCL EXTENSION cl_khr_fp64 : enable
+    #pragma OPENCL EXTENSION cl_khr_fp64 : enable
     const sampler_t smp =  CLK_NORMALIZED_COORDS_TRUE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
     int4 offsets[27] = 
         {(int4)(-1,-1,-1,0), (int4)(-1,0,-1,0), (int4)(-1,1,-1,0),
@@ -33,6 +33,10 @@ kernel void imgTest2(__read_only image3d_t inTexture, __write_only image3d_t out
         diff.y += value*weightsY[i];
         diff.z += value*weightsZ[i];
     }
+
+    diff.x /= xres;
+    diff.y /= yres;
+    diff.z /= zres;
 
     float4 pixel = (float4)(-normalize(diff), length(diff));
 

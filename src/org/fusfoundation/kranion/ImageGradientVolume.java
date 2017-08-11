@@ -364,9 +364,9 @@ public class ImageGradientVolume {
         glFinish();
 
         //set the kernel parameters
-        CLObj.setKernelParams(CLObj.getGLBuffers()[0], CLObj.getGLBuffersOut()[0]);
+        CLObj.setKernelParams(CLObj.getGLBuffers()[0], CLObj.getGLBuffersOut()[0], image.getDimension(0).getSampleWidth(0), image.getDimension(1).getSampleWidth(0), image.getDimension(2).getSampleWidth(0));
         //display loop
-        CLObj.display(CLObj.getContext(), imageTextureName, "input", image);
+        CLObj.display(imageTextureName, "input", image);
     }
 
     

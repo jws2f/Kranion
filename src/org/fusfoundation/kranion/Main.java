@@ -84,9 +84,11 @@ import java.awt.Font;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
+import java.util.ArrayList;
 import javax.imageio.ImageIO;
 import org.lwjgl.opencl.CL10GL;
 import org.lwjgl.opencl.CLCapabilities;
+import org.lwjgl.opencl.CLCommandQueue;
 import org.lwjgl.opencl.CLDeviceCapabilities;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
@@ -104,8 +106,9 @@ public class Main implements ProgressListener {
     public static float OpenGLVersion = -1f;
 
     public static CLContext CLcontext = null;
+    public static CLCommandQueue CLqueue = null;
     
-    public static final boolean DEBUG = false;
+    public static final boolean GL_DEBUG = false;
 
     private float viewportAspect = 1f;
 
@@ -307,53 +310,74 @@ public class Main implements ProgressListener {
             System.out.println("\n****************");
             System.out.println("CL created");
 
-            CLPlatform platform = CLPlatform.getPlatforms().get(0);
-                System.out.println("Platform created: " + platform.getInfoString(CL_PLATFORM_NAME) + " version: " + platform.getInfoString(CL_PLATFORM_VERSION));
+            System.out.println(CLPlatform.getPlatforms().size() + " platforms found.");
+            CLPlatform platform = null;
+            List<CLDevice> devices = null;
+            CLDevice selectedDevice = null;
+            IntBuffer errcode_ret = BufferUtils.createIntBuffer(1);
+                        
+            boolean success = false;
+            for (int p = 0; p < CLPlatform.getPlatforms().size(); p++) {
+                platform = CLPlatform.getPlatforms().get(p);
+                System.out.println("Platform : " + platform.getInfoString(CL_PLATFORM_NAME) + " version: " + platform.getInfoString(CL_PLATFORM_VERSION));
 
 //                PointerBuffer ctxProps = BufferUtils.createPointerBuffer(3);
 //                ctxProps.put(CL_CONTEXT_PLATFORM).put(platform).put(0).flip();
 
-            IntBuffer errcode_ret = BufferUtils.createIntBuffer(1);
+                devices = platform.getDevices(CL_DEVICE_TYPE_GPU);
+                
+                for (int d = 0; d < devices.size(); d++) {
 
-            List<CLDevice> devices = platform.getDevices(CL_DEVICE_TYPE_GPU);
+                    System.out.println(devices.size() + " GPU devices found.");
 
-                 System.out.println(devices.size() + " GPU devices found.");
-                 
-            // long context = clCreateContext(platform, devices, null, null, null);
-            //CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, Thread.currentThread().getId(), null, Display.getDrawable(), errcode_ret);
-            CLcontext = org.lwjgl.opencl.CLContext.createFromType(platform, CL_DEVICE_TYPE_GPU, null, Display.getDrawable(), errcode_ret);
-            org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
-            System.out.println("CL context created");
-           
-            for (int d = 0; d < devices.size(); d++) {
+                    // long context = clCreateContext(platform, devices, null, null, null);
+                    //CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, Thread.currentThread().getId(), null, Display.getDrawable(), errcode_ret);
+                    try {
+                        List<CLDevice> deviceCandidate = new ArrayList<CLDevice>();
+                        deviceCandidate.add(devices.get(d));
 
-                System.out.println("Device " + d + ": " + devices.get(d).getInfoString(CL_DEVICE_NAME));
-                System.out.println("Device CL extensions: " + devices.get(d).getInfoString(CL_DEVICE_EXTENSIONS));
-
-                try {
-
-                    CLDeviceCapabilities abilities = CLCapabilities.getDeviceCapabilities(devices.get(d));
-                    System.out.println("3d_image_writes: " + abilities.CL_KHR_3d_image_writes);
-                    System.out.println("gl_sharing: " + abilities.CL_KHR_gl_sharing);
-                    System.out.println("CONTEXT created. error code = " + errcode_ret.get(0));
-
-                    errcode_ret.clear();
-
-                    org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQueue(CLcontext, devices.get(d), org.lwjgl.opencl.CL10.CL_QUEUE_PROFILING_ENABLE, errcode_ret);
-                    // checkCLError throw a CLExcepetion if the error code does not equal CL_SUCCESS. This exception should be caught and all currently created resources released. See later. 
-                    org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
-
-                    org.lwjgl.opencl.CL10.clReleaseCommandQueue(queue);
+                        CLcontext = org.lwjgl.opencl.CLContext.create(platform, deviceCandidate, null, Display.getDrawable(), errcode_ret);
+                        org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
+                    } catch (Exception e) {
+                        System.out.println("Couldn't create shareable OpenCL context.");
+                    }
+                    if (errcode_ret.get(0) == CL_SUCCESS) {
+                        System.out.println("CL context created");
+                        selectedDevice = devices.get(d);
+                        success = true;
+                    }
                     
-                } catch (Exception e) {
-                    System.out.println("Failed to create a sharable CL context and/or command queue with this device.");
+                    if (success && selectedDevice != null) {
+                        System.out.println("Device : " + selectedDevice.getInfoString(CL_DEVICE_NAME));
+                        System.out.println("Device CL extensions: " + selectedDevice.getInfoString(CL_DEVICE_EXTENSIONS));
+
+                        try {
+                            CLDeviceCapabilities abilities = CLCapabilities.getDeviceCapabilities(selectedDevice);
+                            System.out.println("3d_image_writes: " + abilities.CL_KHR_3d_image_writes);
+                            System.out.println("gl_sharing: " + abilities.CL_KHR_gl_sharing);
+
+                            errcode_ret.clear();
+
+                            org.lwjgl.opencl.CLCommandQueue queue = org.lwjgl.opencl.CL10.clCreateCommandQueue(CLcontext, selectedDevice, 0 /*org.lwjgl.opencl.CL10.CL_QUEUE_PROFILING_ENABLE*/, errcode_ret);
+                            // checkCLError throw a CLExcepetion if the error code does not equal CL_SUCCESS. This exception should be caught and all currently created resources released. See later. 
+                            org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
+                            CLqueue = queue;
+
+                        } catch (Exception e) {
+                            System.out.println("Failed to create a sharable CL ccommand queue with this device.");
+                            success = false;
+                        }
+                    }
                 }
 
-                if (errcode_ret.get(0) == 0) {
+                if (success) {
                     break;
                 }
-
             }
+           
+
+
+ 
    
 //            org.lwjgl.opencl.CL10.clReleaseContext(CLcontext);    
 //            org.lwjgl.opencl.CL.destroy();
@@ -588,7 +612,7 @@ public class Main implements ProgressListener {
     public static void glPushMatrix() {
         org.lwjgl.opengl.GL11.glPushMatrix();
 
-        if (DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
+        if (GL_DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
             System.out.println("MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
             System.out.println("MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
             System.out.println("PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
@@ -599,7 +623,7 @@ public class Main implements ProgressListener {
     public static void glPopMatrix() {
         org.lwjgl.opengl.GL11.glPopMatrix();
 
-        if (DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
+        if (GL_DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
             System.out.println("MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
             System.out.println("MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
             System.out.println("PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
@@ -610,7 +634,7 @@ public class Main implements ProgressListener {
     public static void glPushAttrib(int bitmask) {
         org.lwjgl.opengl.GL11.glPushAttrib(bitmask);
 
-        if (DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
+        if (GL_DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
             System.out.println("ATTRIB stack depth: " + glGetInteger(GL_ATTRIB_STACK_DEPTH));
             System.out.println("ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
         }
@@ -619,7 +643,7 @@ public class Main implements ProgressListener {
     public static void glPopAttrib() {
         org.lwjgl.opengl.GL11.glPopAttrib();
 
-        if (DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
+        if (GL_DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
             System.out.println("ATTRIB stack depth: " + glGetInteger(GL_ATTRIB_STACK_DEPTH));
             System.out.println("ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
         }
