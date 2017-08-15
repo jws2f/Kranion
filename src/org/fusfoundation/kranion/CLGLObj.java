@@ -70,27 +70,27 @@ import org.lwjgl.opengl.GLSync;
  * @author labramson
  */
 public class CLGLObj {
-    private Drawable drawable;
-    private CLPlatform platform;
-    private Filter<CLDevice> glSharingFilter, write3DImgFilter;
-    private List<CLDevice> devices;
-    private static int deviceType = CL10.CL_DEVICE_TYPE_GPU;
-    private CLContext context;
-    private CLCommandQueue queue;
-    private CLKernel kernel;
-    private CLProgram program;
+    private Drawable drawable; //drawable for the CL context
+    private CLPlatform platform; //platform for the CL context
+    private Filter<CLDevice> glSharingFilter, write3DImgFilter;  //filters for the devices used in the GPU
+    private List<CLDevice> devices; //list of all the devices available
+    private static int deviceType = CL10.CL_DEVICE_TYPE_GPU; //default device type
+    private CLContext context; //CL context
+    private CLCommandQueue queue; //command queue needed for the context
+    private CLKernel kernel; //kernel used to run the source code that does the shading
+    private CLProgram program; //program used to run the kernel
     private static CLMem[] glBuffers;  //array of clm for input texture
     private static CLMem[] glBuffersOut;  //array of clm for output texture
-    private CLEvent glEvent;  //cl event 
-    private CLEvent[] clEvents; //array of cl events for 
+    private CLEvent glEvent;  //gl event 
+    private CLEvent[] clEvents; //array of cl events for tracking
     private GLSync glSync; //glsync so that cl & gl dont cause race condition
     private GLSync[] clSyncs; //array of gl sync objects for 
     private boolean syncCLtoGL = false; // true if we can make CL wait on sync objects generated from GL.
     private boolean syncGLtoCL = false; // true if we can make GL wait on events generated from CL queues.
     private final boolean doublePrecision = false;  //doubles used instead of floats
-    private final boolean useTextures = false;  //for something...
-    private static boolean buffersInitialized;  //buffers for something initialized
-    private boolean drawSeparator;  //no idea what this is
+    private final boolean useTextures = false;  //indication of if textures or bufferes are used for the texture
+    private static boolean buffersInitialized;  //buffers for the textrue initialized
+    private boolean drawSeparator;  //DID NOT USE, NOT NECESSARY
     private boolean rebuild;  //boolean for rerendering
     private final PointerBuffer kernel2DGlobalWorkSize = BufferUtils.createPointerBuffer(3);  //the global work size of the kernel
     private final PointerBuffer syncBuffer = BufferUtils.createPointerBuffer(1);  //buffer for dealing with gl cl sync
