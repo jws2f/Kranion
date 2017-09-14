@@ -72,7 +72,9 @@ public class TransferFunctionDisplay extends GUIControl {
 
             //setAlphaValue(i, (mouseY-(y+1f))/(height-2f) * (sigmoid(t, scale) - low) * 1f/(high - low));
             setAlphaValue(i, (sigmoid(t, scale) - low) * 1f/(high - low));
-        }        
+        }
+
+        setAlphaValue(0, 0f); // Not useful to render air
     }
     
     public int getMaterialThreshold() { return materialThreshold; }

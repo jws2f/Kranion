@@ -85,6 +85,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import javax.imageio.ImageIO;
 import org.lwjgl.opencl.CL10GL;
 import org.lwjgl.opencl.CLCapabilities;
@@ -111,6 +112,41 @@ public class Main implements ProgressListener {
     public static final boolean GL_DEBUG = false;
 
     private float viewportAspect = 1f;
+    
+    private static List<BackgroundWorker> workers = new ArrayList<>();
+    public static void addBackgroundWorker(BackgroundWorker w) {
+        workers.add(w);
+    }
+    public static void removeBackgroundWorker(BackgroundWorker w) {
+        workers.remove(w);
+    }
+    public static void startBackgroundWorker(String name) {
+        Iterator<BackgroundWorker> i = workers.iterator();
+        while(i.hasNext()) {
+            BackgroundWorker w = i.next();
+            if (w.getName().compareTo(name) == 0) {
+                w.start();
+            }
+        }
+    }
+    
+    public static void stopBackgroundWorkder(String name) {
+        Iterator<BackgroundWorker> i = workers.iterator();
+        while(i.hasNext()) {
+            BackgroundWorker w = i.next();
+            if (w.getName().compareTo(name) == 0) {
+                w.stop();
+            }
+        }
+    }
+    
+    private void doBackgroundWorkers() {
+        Iterator<BackgroundWorker> i = workers.iterator();
+        while (i.hasNext()) {
+            BackgroundWorker w = i.next();
+            w.doWorkStep();
+        }
+    }
 
 //<<<<<<< Upstream, based on origin/master
     private Model model;
@@ -551,13 +587,21 @@ public class Main implements ProgressListener {
                 // Render the scene
                 view.render();
             }
+            else {
+                doBackgroundWorkers();                
+            }
 
         }
+        
 
         Display.processMessages();
         Display.update();
         Display.sync(60);
         currentBuffer = (currentBuffer + 1) % 3; // keep track of front/back buffers        
+    }
+    
+    public static View getView() {
+        return Main.main.view;
     }
 
     public static void checkForGLErrorAndThrow() {

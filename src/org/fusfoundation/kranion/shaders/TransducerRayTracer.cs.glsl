@@ -228,7 +228,7 @@ vec3 findEdge(vec3 start, vec3 direction, bool inWater)
         ctMin = 32768.0;
         ctMax = 0.0;
 
-        float stepSize = 0.1f; // mm
+        float stepSize = 0.1; // mm
 
 	bool strike = false;
 	vec3 pp = start+stepSize*direction;
@@ -441,7 +441,7 @@ void main()
             //finalPoint = secondCollision.xyz+exitVector*15;//exitLength;
             
             // check to see if ray is refracted back out of skull
-            if (distance(finalPoint, secondCollision.xyz) == 0f) {
+            if (distance(finalPoint, secondCollision.xyz) == 0) {
                 d[gid].distance = -1;
                 exitLength = 0;
                 outColor = vec4(1,0,0,1);

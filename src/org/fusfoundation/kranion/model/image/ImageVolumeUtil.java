@@ -60,7 +60,9 @@ import static org.lwjgl.opengl.GL30.GL_R32F;
 import static org.lwjgl.opengl.GL30.GL_R8;
 import static org.lwjgl.opengl.GL11.glDeleteTextures;
 import static org.lwjgl.opengl.GL11.glGenTextures;
+import static org.lwjgl.opengl.GL12.GL_TEXTURE_MAX_LEVEL;
 import static org.lwjgl.opengl.GL12.glTexImage3D;
+import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector3f;
@@ -110,6 +112,8 @@ public class ImageVolumeUtil {
                 glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
                 glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
                 glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                
+                glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAX_LEVEL, 3);
 
                 int pixelType = image.getVoxelType();
                 int width = image.getDimension(0).getSize();
@@ -148,6 +152,7 @@ public class ImageVolumeUtil {
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_ALPHA16, texWidth, texHeight, texDepth, 0, GL_ALPHA, GL_SHORT, pixelBuf);
                     glTexImage3D(GL_TEXTURE_3D, 0, GL_R16, texWidth, texHeight, texDepth, 0, GL_RED, GL_SHORT, tmp);
+//                    glGenerateMipmap(GL_TEXTURE_3D);
                 } else if (pixelType == ImageVolume.FLOAT_VOXEL) {
                     System.out.println("  building float32 texture");
 
@@ -186,7 +191,8 @@ public class ImageVolumeUtil {
                 grad.setImage(image);
                 //grad.calculate();
                 try {
-                    grad.calculateCL();
+                    //grad.calculateCL();
+                    grad.calculate();
                 } catch (Exception ex) {
                     Logger.getLogger(ImageVolumeUtil.class.getName()).log(Level.SEVERE, null, ex);
                 }
@@ -259,6 +265,7 @@ public class ImageVolumeUtil {
 
         image.setAttribute("ImageOrientationX", imageOrientationX);
         image.setAttribute("ImageOrientationY", imageOrientationY);
+        image.setAttribute("ImageOrientationZ", imageOrientationZ);
 
         System.out.println("Image X vector = " + imageOrientationX);
         System.out.println("Image Y vector = " + imageOrientationY);
@@ -266,7 +273,8 @@ public class ImageVolumeUtil {
         float[] imagePosition = (float[]) image.getAttribute("ImagePosition");
 
         if (imagePosition == null) {
-            return;
+            imagePosition = new float[3];
+            //return;
         }
 
 //        imageOriginPosition.x = imagePosition[0] + ((imageOrientationX.x * xsize * xres)/2f + (imageOrientationX.y * ysize * yres)/2f + (imageOrientationX.z * zsize * zres)/2f);
@@ -276,7 +284,6 @@ public class ImageVolumeUtil {
         imageOriginPosition.y = imagePosition[1];
         imageOriginPosition.z = imagePosition[2];
 
-        image.setAttribute("ImageOrientationZ", imageOrientationZ);
 
         //Try this instead:
         // build mat4 rom xvec and yvec
@@ -299,8 +306,9 @@ public class ImageVolumeUtil {
 
 //        Vector3f imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
 //        if (imageTranslation == null) {
-//            image.setAttribute("ImageTranslation", imageOriginPosition);//new Vector3f(0f,0f,0f));
+//            image.setAttribute("ImageTranslation", new Vector3f(0f,0f,0f));
 //        }
+        
         System.out.println("Image orient quat: " + imageOrientationQ);
         System.out.println("Image position = " + imageOriginPosition);
     }

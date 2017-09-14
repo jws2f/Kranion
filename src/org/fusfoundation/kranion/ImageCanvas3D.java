@@ -786,9 +786,9 @@ public class ImageCanvas3D extends GUIControl {
             if (imagePosition == null) {
                 imagePosition = new float[3];
             }
-            glTranslatef((centerOfRotation.x + imageTranslation.x + imagePosition[0])/ (canvasSize),
-                    (centerOfRotation.y + imageTranslation.y + imagePosition[1]) / (canvasSize),
-                    (centerOfRotation.z + imageTranslation.z + imagePosition[2]) / (canvasSize));
+            glTranslatef((centerOfRotation.x + imageTranslation.x /* + imagePosition[0] */)/ (canvasSize),
+                    (centerOfRotation.y + imageTranslation.y /* + imagePosition[1] */) / (canvasSize),
+                    (centerOfRotation.z + imageTranslation.z /* + imagePosition[2] */) / (canvasSize));
 
             // Rotation for camera view
             if (trackball != null) {
@@ -1284,9 +1284,9 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             }
             
             if (imagePosition != null) {
-                imageTranslation.x += imagePosition[0];
-                imageTranslation.y += imagePosition[1];
-                imageTranslation.z += imagePosition[2];
+//                imageTranslation.x += imagePosition[0];
+//                imageTranslation.y += imagePosition[1];
+//                imageTranslation.z += imagePosition[2];
             }
             
             Matrix4f imageOrientationM = Trackball.toMatrix4f(imageOrientationQ.negate(null));

@@ -90,6 +90,7 @@ import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.util.Observable;
 import javax.swing.*;
+import org.fusfoundation.kranion.MRCTRegister;
 import org.fusfoundation.kranion.RegionGrow;
 import org.fusfoundation.kranion.Renderable;
 
@@ -135,6 +136,7 @@ public class DefaultView extends View {
     private float cameraZ = -600f;
     private Trackball trackball = new Trackball(DISPLAY_HEIGHT / 2, DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2f);
     private Trackball registerBallCT = new Trackball(DISPLAY_HEIGHT / 2, DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2f);
+    
     private Quaternion ctQstart, mrQstart;
     private Vector3f startCtImageTranslate = new Vector3f();
 //    private Vector3f startMrImageTranslate = new Vector3f();
@@ -174,7 +176,7 @@ public class DefaultView extends View {
     private ImageCanvas2D canvas1 = new ImageCanvas2D();
     private ImageCanvas2D canvas2 = new ImageCanvas2D();
     private ImageCanvas2D canvas3 = new ImageCanvas2D();
-    
+        
     private Canvas2DLayoutManager mprLayout = new Canvas2DLayoutManager(canvas1, canvas2, canvas3);
         
     private TransducerRayTracer transRayTracer = new TransducerRayTracer();
@@ -212,6 +214,8 @@ public class DefaultView extends View {
     private boolean doTransition = false;
     private float transitionTime = 0.5f;
     
+    private MRCTRegister imageregistration;
+    
     private enum mouseMode {
         SCENE_ROTATE,
         HEAD_ROTATE,
@@ -238,12 +242,15 @@ public class DefaultView extends View {
         this.setAcceptsKeyboardFocus(true);
         Renderable.setDefaultKeyboardFocus(this);
         this.acquireKeyboardFocus();
+        
     }
 
     @Override
     public void create() throws LWJGLException {
         
         initController();
+        
+        this.imageregistration = new MRCTRegister(model);
         
         mprLayout.setTag("mprLayout");
         
@@ -359,11 +366,11 @@ public class DefaultView extends View {
       
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 250, 200, 25, controller).setTitle("Load CT...").setCommand("loadCT"));
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 220, 250, 75, 25, this).setTitle("Filter").setCommand("filterCT"));
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 220, 250, 100, 25, this).setTitle("Filter CT").setCommand("filterCT"));
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 215, 200, 25, controller).setTitle("Load MR...").setCommand("loadMR"));
 
-//        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 215, 100, 25, this).setTitle("Register").setCommand("registerMRCT"));
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 220, 215, 100, 25, controller).setTitle("Register").setCommand("registerMRCT"));
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 150, 200, 25, this).setTitle("Exit").setCommand("exit"));
                 
@@ -495,15 +502,15 @@ public class DefaultView extends View {
                 radio1.setTitle("Rotate Skull");
                 radio1.setCommand("rotateSkull");
                 
-//                Button radio2 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 60, 150, 25, this);
-//                radio2.setTitle("Rotate Head");
-//                radio2.setCommand("rotateHead");
+                Button radio2 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 60, 150, 25, this);
+                radio2.setTitle("Rotate Head");
+                radio2.setCommand("rotateHead");
                 
 //                Button radio3 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 95, 150, 25, this);
 //                radio3.setTitle("Rotate Frame");
 //                radio3.setCommand("rotateFrame");
                 
-                Button radio4 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 60/*130*/, 150, 25, this);
+                Button radio4 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 95/*130*/, 150, 25, this);
                 radio4.setTitle("Rotate Scene");
                 radio4.setCommand("rotateScene");
                 radio4.setIndicator(true);
@@ -524,7 +531,7 @@ public class DefaultView extends View {
 
 
                 radio1.setDrawBackground(false);
-//                radio2.setDrawBackground(false);
+                radio2.setDrawBackground(false);
 //                radio3.setDrawBackground(false);
                 radio4.setDrawBackground(false);
                 radio5.setDrawBackground(false);
@@ -532,7 +539,7 @@ public class DefaultView extends View {
 //                radio7.setDrawBackground(false);
                 
                 buttonGrp1.addChild(radio1);
-//                buttonGrp1.addChild(radio2);
+                buttonGrp1.addChild(radio2);
 //                buttonGrp1.addChild(radio3);
                 buttonGrp1.addChild(radio4);
                 buttonGrp1.addChild(radio5);
@@ -732,6 +739,7 @@ public class DefaultView extends View {
         
         overlay.addChild(incidentAngleChart);
         overlay.addChild(sdrChart);
+        
         
         currentTarget.setCommand("currentTargetPoint");
         currentTarget.setPropertyPrefix("Model.Attribute");
@@ -1433,7 +1441,6 @@ public class DefaultView extends View {
         }
 
         scene.render();
-
     }
 
     private static boolean mouseButton1Drag = false;
@@ -1465,13 +1472,19 @@ public class DefaultView extends View {
                     
                     if (model.getCtImage() == null) return false;
                     
+                    // Rotate the CT volume
                     registerBallCT.mouseDragged(x, y);
+                    
                     Quaternion mrQnow = new Quaternion(registerBallCT.getCurrent());
                     Quaternion.mul(trackball.getCurrent().negate(null), mrQnow, mrQnow);
                     model.getCtImage().setAttribute("ImageOrientationQ", mrQnow.negate(null));
                     this.setIsDirty(true);
 
                     if (currentMouseMode == mouseMode.HEAD_ROTATE) {
+                        // Rotating the CT origin about the MR origin
+                        ///////////////////////////////////////////////
+                        
+                        // Rotate each MR volume
                         try {
                             mrQnow = new Quaternion().setIdentity();
 
@@ -1487,48 +1500,57 @@ public class DefaultView extends View {
                                 model.getMrImage(i).setAttribute("ImageOrientationQ", mrQnow.negate(null));
 
                             }
+                            
 
-                            // Need to fix the translation of the MR images since these rotations are about the image volume centers
+                            
+                            // Need to fix the translation of the CT image since these rotations are about the MR volume center
                             Vector3f mrtrans = (Vector3f) model.getMrImage(0).getAttribute("startMrImageTranslate");
                             if (mrtrans == null) {
                                 mrtrans = new Vector3f();
                             }
                             Vector4f mrtrans4f = new Vector4f(mrtrans.x, mrtrans.y, mrtrans.z, 1f);
                             
-                            float[] mrImagePos = (float[]) model.getMrImage(0).getAttribute("ImagePosition");
-                            Vector4f mrPos4f = new Vector4f(mrImagePos[0], mrImagePos[1], mrImagePos[2], 1f);
-
+                            
                             Vector3f cttrans = startCtImageTranslate;
                             if (cttrans == null) {
                                 cttrans = new Vector3f();
                             }
                             Vector4f cttrans4f = new Vector4f(cttrans.x, cttrans.y, cttrans.z, 1f);
+                            
 
-                            float[] ctImagePos = (float[]) model.getCtImage().getAttribute("ImagePosition");
-                            Vector4f ctPos4f = new Vector4f(ctImagePos[0], ctImagePos[1], ctImagePos[2], 1f);
-
-                            Vector4f ctRotVec = Vector4f.sub(Vector4f.add(cttrans4f, ctPos4f, null), Vector4f.add(mrtrans4f, mrPos4f, null), null);
-                            //    Vector4f ctRotVec = Vector4f.sub(cttrans4f, mrtrans4f, null);
-                            //Vector4f ctRotVec = Vector4f.add(cttrans4f, ctPos4f, null);
+                            // compute offset vector between MR and CT translated origins
+                            Vector4f ctRotVec = Vector4f.sub(cttrans4f, mrtrans4f, null);
                             ctRotVec.w = 1f;
+                            
+                            // World to MR-local transform
+                            Matrix4f worldToMRlocal = Trackball.toMatrix4f(this.mrQstart);
+                            Matrix4f.transform(worldToMRlocal, ctRotVec, ctRotVec);
+                           
+                            
+                            Quaternion mrQNow = new Quaternion((Quaternion)model.getMrImage(0).getAttribute("ImageOrientationQ")); //////////////////
+//                            Quaternion.mul(ctQstart.negate(null), mrQNow, mrQNow); // effectively the rotational difference between start and drag Qs
+//                            Quaternion.mul(trackball.getCurrent().negate(null), mrQNow, mrQNow);
 
-                            Quaternion ctQnow = new Quaternion(this.registerBallCT.getCurrent());
-                            Quaternion.mul(trackball.getCurrent().negate(null), ctQnow, ctQnow);
+                            Quaternion mrQdiff = Quaternion.mul(mrQstart, mrQNow.negate(null), null); // effectively the rotational difference between start and drag Qs
+                            Matrix4f translateMat4 = Trackball.toMatrix4f(mrQdiff);
+//                           System.out.println("mrQstart = " + mrQstart);
+//                           System.out.println("mrQNow = " + mrQNow);
+//                           System.out.println("Q diff = " + Quaternion.mul(mrQstart, mrQNow.negate(null), null));
+                            
+                            // MR-local rotate the offset vector
+                            Matrix4f.transform(translateMat4, ctRotVec, ctRotVec);
+                            
+                            // MR-local to World transform
+                            Matrix4f mrToWorld = Trackball.toMatrix4f(this.mrQstart.negate(null));
+                            Matrix4f.transform(mrToWorld, ctRotVec, ctRotVec);
+                            
 
-                            Matrix4f mat4 = Trackball.toMatrix4f(ctQnow);
-                            Matrix4f.transform(mat4, ctRotVec, ctRotVec);
+                            // add MR orgin back
+                            Vector4f.add(ctRotVec, mrtrans4f, ctRotVec);
 
-                            //    Vector4f ctCoordFrame = Vector4f.add(ctRotVec, mrPos4f, null);
-                            Vector4f ctCoordFrame = ctRotVec;
-                            Vector4f.add(ctCoordFrame, mrtrans4f, ctCoordFrame);
-                            Vector4f.add(ctCoordFrame, mrPos4f, ctCoordFrame);
-                            Vector4f.sub(ctCoordFrame, ctPos4f, ctCoordFrame);
+                            Vector3f translate = new Vector3f(ctRotVec.x, ctRotVec.y, ctRotVec.z);
 
-                            //        ctCoordFrame = Vector4f.sub(ctCoordFrame, ctPos4f, null);
-                            ctCoordFrame.w = 1f;
-
-                            Vector3f translate = new Vector3f(ctCoordFrame);
-
+                            // update CT translation
                             model.getCtImage().setAttribute("ImageTranslation", translate);
 
                             this.setIsDirty(true);
@@ -1590,6 +1612,7 @@ public class DefaultView extends View {
                     }
                 }
                 catch(NullPointerException e) {
+                    e.printStackTrace();
                     startCtImageTranslate = new Vector3f(0, 0, 0);
                 }
                 
@@ -1618,7 +1641,7 @@ public class DefaultView extends View {
                     
                     
                     if (model.getCtImage() == null) return false;
-
+                                        
                     ctQstart = new Quaternion((Quaternion) model.getCtImage().getAttribute("ImageOrientationQ")).negate(null);
                     Quaternion.mul(trackball.getCurrent(), ctQstart, ctQstart);
                     registerBallCT.setCurrent(ctQstart);
@@ -1626,7 +1649,7 @@ public class DefaultView extends View {
 
                     if (this.currentMouseMode == mouseMode.HEAD_ROTATE) {
                         for (int i = 0; i < model.getMrImageCount(); i++) {
-                            Quaternion mrQstart = ((Quaternion) model.getMrImage(i).getAttribute("ImageOrientationQ")).negate(null);
+                            Quaternion mrQstartTmp = ((Quaternion) model.getMrImage(i).getAttribute("ImageOrientationQ")).negate(null);
 
                             Trackball registerBall = null;
                             try {
@@ -1639,9 +1662,11 @@ public class DefaultView extends View {
                                 e.printStackTrace();
                             }
 
-                            Quaternion.mul(trackball.getCurrent(), mrQstart, mrQstart);
-                            registerBall.setCurrent(new Quaternion(mrQstart));
+                            Quaternion.mul(trackball.getCurrent(), mrQstartTmp, mrQstartTmp);
+                            registerBall.setCurrent(new Quaternion(mrQstartTmp));
                             registerBall.mousePressed(x, y);
+                            
+                            if (i==0) mrQstart = (Quaternion) model.getMrImage(i).getAttribute("ImageOrientationQ");
                         }
                     }
                 }
@@ -1677,6 +1702,7 @@ public class DefaultView extends View {
     public void doLayout() {
         trackball.set(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
         registerBallCT.set(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
+        
         try {
             for (int i=0; i<model.getMrImageCount(); i++) {
                 Trackball registerBall = (Trackball)model.getMrImage(i).getAttribute("registerBall"); //TEMP CHANGE
@@ -2791,9 +2817,192 @@ public class DefaultView extends View {
                 this.currentMouseMode = mouseMode.FRAME_TRANSLATE;
                 break;
             case "registerMRCT":
-                org.fusfoundation.kranion.MRCTRegister register = new org.fusfoundation.kranion.MRCTRegister();
-                register.register(this.getModel().getCtImage(), this.getModel().getMrImage(0), scene);
-                 
+//                org.fusfoundation.kranion.MRCTRegister register = new org.fusfoundation.kranion.MRCTRegister();
+//                register.register(this.getModel().getCtImage(), this.getModel().getMrImage(0), scene);
+                
+                
+//                  mutualInformation.setImageVolumes(this.model.getCtImage(), this.model.getMrImage(0));
+//                  float mi = mutualInformation.calcMI(1.0f, false);
+//                  mutualInformation.updateTestImage(joinHistogram);
+//                  histoCanvas.setCTImage(joinHistogram);
+//                  histoCanvas.setMRImage(joinHistogram);
+//                  histoCanvas.setIsDirty(true);
+//                  miText.setText(String.format("%1.3f", mi));
+//                  
+//                  Quaternion origRot = new Quaternion((Quaternion)this.model.getCtImage().getAttribute("ImageOrientationQ"));
+//                  Vector3f tranVal = (Vector3f)this.model.getCtImage().getAttribute("ImageTranslation");
+//                  if (tranVal == null) {
+//                      tranVal = new Vector3f();
+//                      this.model.getCtImage().setAttribute("ImageTranslation", tranVal);
+//                  }
+//                  Vector3f origTran = new Vector3f(tranVal);
+//                  
+//                  Quaternion rotx = MutualInformation.toQuaternion((float)(Math.PI/180.0), 0,  0);
+//                  Quaternion roty = MutualInformation.toQuaternion(0, (float)(Math.PI/180.0),  0);
+//                  Quaternion rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/180.0));
+//                  Quaternion rot = null;
+//                  
+//                  Vector3f tranX = new Vector3f(2f, 0, 0);
+//                  Vector3f tranY = new Vector3f(0, 2f, 0);
+//                  Vector3f tranZ = new Vector3f(0, 0, 2f);
+//                  Vector3f tran = null;
+//                  
+//                  float bestMI = Float.NEGATIVE_INFINITY;
+//                  float miStep = 0;
+//                  int failedSteps = 0;
+//                  int stepPhase = 0;
+//                  
+//                 float tranNoiseScale = 1f;
+//                 float rotNoiseScale = 1.0f/25.0f;
+//                 float percentSample = 0.5f;
+//                 boolean doBlur = true;
+//                 
+//                for (int i=0; i<10000; i++) {
+//                      Quaternion testRot1 = new Quaternion();
+//                      Quaternion testRot2 = new Quaternion();
+//                      Vector3f testTran1 = new Vector3f();
+//                      Vector3f testTran2 = new Vector3f();
+//                      
+////                  origRot = new Quaternion((Quaternion)this.model.getCtImage().getAttribute("ImageOrientationQ"));
+////                  origTran = new Vector3f((Vector3f)this.model.getCtImage().getAttribute("ImageTranslation"));
+//                      
+//Vector3f noise = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0));
+//
+//
+//                      if (failedSteps > 12 && stepPhase==0) {
+//                            failedSteps = 0;
+//                            stepPhase++;
+//                            tranX = new Vector3f(0.75f, 0, 0);
+//                            tranY = new Vector3f(0, 0.75f, 0);
+//                            tranZ = new Vector3f(0, 0, 0.75f);                          
+//                            rotx = MutualInformation.toQuaternion((float)(Math.PI/720.0), 0,  0);
+//                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/720.0),  0);
+//                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/720.0));
+//                            percentSample = 0.75f;
+//                            rotNoiseScale *= 0.5f;
+//                            tranNoiseScale *= 0.4;
+//                      }
+//                      else if (failedSteps > 24 && stepPhase==1) {
+//                            failedSteps = 0;
+//                            stepPhase++;
+//                            tranX = new Vector3f(0.2f, 0, 0);
+//                            tranY = new Vector3f(0, 0.2f, 0);
+//                            tranZ = new Vector3f(0, 0, 0.2f);                          
+//                            rotx = MutualInformation.toQuaternion((float)(Math.PI/1440.0), 0,  0);
+//                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/1440.0),  0);
+//                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/1440.0));
+//                            //rotNoiseScale = 0.5f;
+//                           percentSample = 2.0f;
+//                           rotNoiseScale *= 0.5f;
+//                           tranNoiseScale *= 0.25;
+//                           doBlur = false;
+//                      }
+//                      else if (failedSteps > 24 && stepPhase==2) {
+//                          break;
+//                      }
+//                      
+//                      int n = i;//(int)Math.round(Math.random() * 36.0);
+//                      
+//                      switch(n%6) {
+//                          case 0:
+//                              rot = rotx;
+//                              break;
+//                          case 1:
+//                              rot = roty;
+//                              break;
+//                          case 2:
+//                              rot = rotz;
+//                              break;
+//                          case 3:
+//                              tran = tranX;
+//                              break;
+//                          case 4:
+//                              tran = tranY;
+//                              break;
+//                          case 5:
+//                              tran = tranZ;
+//                              break;
+//                          default:
+//                              break;
+//                      }
+//                      
+//                      if (n % 6 < 3) {
+//                          Quaternion.mul(origRot, rot, testRot1);
+//                          Quaternion.mul(origRot, rot.negate(null), testRot2);
+//
+//                          model.getCtImage().setAttribute("ImageOrientationQ", testRot1);
+//
+//                          float testResult1 = mutualInformation.calcMI(percentSample, doBlur);
+//
+//                          model.getCtImage().setAttribute("ImageOrientationQ", testRot2);
+//
+//                          float testResult2 = mutualInformation.calcMI(percentSample, doBlur);
+//
+//                          if (testResult1 > bestMI && testResult1 > testResult2) {
+//                              origRot.set(testRot1.x+noise.x*rotNoiseScale, testRot1.y+noise.y*rotNoiseScale, testRot1.z+noise.z*rotNoiseScale, testRot1.w);
+//                              origRot = origRot.normalise(null);
+//                              mi = testResult1;
+//                              miText.setText(String.format("%1.3f", mi));
+//                          }
+//                          if (testResult2 > bestMI && testResult2 > testResult1) {
+//                              origRot.set(testRot2.x+noise.x*rotNoiseScale, testRot2.y+noise.y*rotNoiseScale, testRot2.z+noise.z*rotNoiseScale, testRot2.w);
+//                              origRot = origRot.normalise(null);
+//                              mi = testResult2;
+//                              miText.setText(String.format("%1.3f", mi));
+//                          }
+//                      }
+//                      else {
+//                          Vector3f.add(origTran, tran, testTran1);
+//                          Vector3f.add(origTran, tran.negate(null), testTran2);
+//
+//                          model.getCtImage().setAttribute("ImageTranslation", testTran1);
+//
+//                          float testResult1 = mutualInformation.calcMI(percentSample, doBlur);
+//
+//                          model.getCtImage().setAttribute("ImageTranslation", testTran2);
+//
+//                          float testResult2 = mutualInformation.calcMI(percentSample, doBlur);
+//
+//                          if (testResult1 > bestMI && testResult1 > testResult2) {
+//                              origTran.set(testTran1.x+noise.x*tranNoiseScale, testTran1.y+noise.y*tranNoiseScale, testTran1.z+noise.z*tranNoiseScale);
+//                              mi = testResult1;
+//                              miText.setText(String.format("%1.3f", mi));
+//                          }
+//                          if (testResult2 > bestMI && testResult2 > testResult1) {
+//                              origTran.set(testTran2.x+noise.x, testTran2.y+noise.y, testTran2.z+noise.z);
+//                              mi = testResult2;
+//                              miText.setText(String.format("%1.3f", mi));
+//                          }
+//                      }
+//                      
+//                      if (mi > bestMI) {
+//                            failedSteps = 0;
+//                            miStep = mi - bestMI;
+//                            bestMI = mi;
+//                            model.getCtImage().setAttribute("ImageTranslation", origTran);
+//                            model.getCtImage().setAttribute("ImageOrientationQ", origRot);
+//                            
+//                            mutualInformation.updateTestImage(joinHistogram);
+//                            histoCanvas.setCTImage(joinHistogram);
+//                            histoCanvas.setMRImage(joinHistogram);
+//                            histoCanvas.setIsDirty(true);
+//                            miText.setText(String.format("%1.4f", mi));
+//                            
+//                            this.setIsDirty(true);
+//                            Main.update();
+//
+//                      }
+//                      else {
+//                          failedSteps++;
+//                      }
+//                      
+//                  }
+//                  mutualInformation.updateTestImage(joinHistogram);
+//                  histoCanvas.setCTImage(joinHistogram);
+//                  histoCanvas.setMRImage(joinHistogram);
+//                  histoCanvas.setIsDirty(true);
+//                  miText.setText(String.format("%1.3f", mi));
+                
                 
 //                float[] orientation2 = new float[6];
 //                orientation2[0] = 1f;

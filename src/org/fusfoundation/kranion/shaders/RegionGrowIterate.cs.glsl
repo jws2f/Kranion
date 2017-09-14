@@ -61,7 +61,10 @@ void main() {
 
     bool seed = (imgCoord.x == size.x/2 && imgCoord.y == size.y/2 && imgCoord.z == size.z/2);
 
-    if ((v>-250.0 && ((m & 0x01) == 0))) {
+    float threshold = -250.0;
+    if (ct_rescale_intercept == 0.0) threshold = 5.0;
+
+    if ((v>threshold && ((m & 0x01) == 0))) {
         if (    seed ||
                 (int(imageLoad(myMask3D, ivec3(imgCoord.x+1, imgCoord.y, imgCoord.z)).r * 255.0) & 0x01) != 0 ||
                 (int(imageLoad(myMask3D, ivec3(imgCoord.x-1, imgCoord.y, imgCoord.z)).r * 255.0) & 0x01) != 0 ||
@@ -71,7 +74,7 @@ void main() {
                 (int(imageLoad(myMask3D, ivec3(imgCoord.x, imgCoord.y, imgCoord.z-1)).r * 255.0) & 0x01) != 0 
             )
         {
-            float newValue = (m | 0x02) / 256.0;
+            float newValue = (m | 0x02) / 255.0;
             imageStore(myMask3D, imgCoord, vec4(newValue));
             atomicCounterIncrement( growCount );
         }

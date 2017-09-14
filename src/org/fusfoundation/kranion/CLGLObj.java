@@ -136,6 +136,8 @@ public class CLGLObj {
             System.out.println("*** Problem creating CL context");
             e.printStackTrace();
         }
+        
+        syncStatus(this.context);
     }
 
     private void checkDevices(List<CLDevice> devices) {
@@ -192,7 +194,7 @@ public class CLGLObj {
         final ContextCapabilities abilities = GLContext.getCapabilities();
 
         // GL3.2 or ARB_sync implied
-        syncGLtoCL = abilities.GL_ARB_cl_event;
+        syncGLtoCL = false;//abilities.GL_ARB_cl_event;
         if (syncGLtoCL) {
             clEvents = new CLEvent[1];
             clSyncs = new GLSync[1];
@@ -202,7 +204,7 @@ public class CLGLObj {
         }
 
         // Detect CLtoGL synchronization method
-        syncCLtoGL = abilities.OpenGL32 || abilities.GL_ARB_sync;
+        syncCLtoGL = false; //abilities.OpenGL32 || abilities.GL_ARB_sync;
         if (syncCLtoGL) {
             for (CLDevice device : context.getInfoDevices()) {
                 if (!CLCapabilities.getDeviceCapabilities(device).CL_KHR_gl_event) {

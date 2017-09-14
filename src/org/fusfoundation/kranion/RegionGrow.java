@@ -82,9 +82,9 @@ public class RegionGrow {
     
     public void grow(int x, int y, int z) {
         
-//        gpu_calculate();
-//        
-//        if (true) return;
+        gpu_calculate();
+        
+        if (true) return;
         
         growQ.addLast(new Seed(x, y, z));
          

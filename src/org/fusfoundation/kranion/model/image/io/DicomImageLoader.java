@@ -39,6 +39,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.lwjgl.util.vector.Vector3f;
 
 /**
  *
@@ -377,6 +378,7 @@ System.out.println(selectedDicomObj);
                         try {
                             image.setAttribute("ImageOrientation", ImageOrientationPatient);
                             image.setAttribute("ImagePosition", ImagePositionPatientRoot);
+                            image.setAttribute("ImageTranslation", new Vector3f(ImagePositionPatientRoot[0], ImagePositionPatientRoot[1], ImagePositionPatientRoot[2]));
                         }
                         catch(Exception e) {} // TODO: fix exception handling here for missing tags
                         

@@ -636,9 +636,9 @@ public class ImageCanvas2D extends GUIControl {
             if (imagePosition == null) {
                 imagePosition = new float[3];
             }
-            glTranslatef((/*centerOfRotation.x + */ imageTranslation.x + imagePosition[0])/ (canvasFOV),
-                    (/*centerOfRotation.y + */ imageTranslation.y + imagePosition[1]) / (canvasFOV),
-                    (/*centerOfRotation.z + */ imageTranslation.z + imagePosition[2]) / (canvasFOV));
+            glTranslatef((/*centerOfRotation.x + */ imageTranslation.x /* + imagePosition[0]*/)/ (canvasFOV),
+                    (/*centerOfRotation.y + */ imageTranslation.y /* + imagePosition[1]*/) / (canvasFOV),
+                    (/*centerOfRotation.z + */ imageTranslation.z /* + imagePosition[2]*/) / (canvasFOV));
             
            // Compute normal vectors for axial,coronal,sagittal planes
            //    - this puts the image in standard axial orientation no matter

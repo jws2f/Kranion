@@ -79,6 +79,9 @@ public class DefaultController extends Controller {
                 org.fusfoundation.kranion.PullDownSelection pulldown = (org.fusfoundation.kranion.PullDownSelection)e.getSource();
                 model.setAttribute("currentSonication", pulldown.getSelectionIndex());
         }
+        else if (e.getActionCommand().equals("registerMRCT")) {
+                Main.startBackgroundWorker("MRCTRegister");
+        }
         else if (e.getActionCommand().equals("transducerXTilt")) {
                 org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
                 model.setAttribute("transducerXTilt", slider.getCurrentValue());

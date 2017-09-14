@@ -688,6 +688,8 @@ public class TransducerRayTracer extends Renderable {
     public void writeSkullMeasuresFile(File outFile) {
 
         if (outFile != null) {
+            List<Double> speeds = getSpeeds();
+            
             glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
             ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
             FloatBuffer floatPhases = dists.asFloatBuffer();
@@ -701,7 +703,7 @@ public class TransducerRayTracer extends Renderable {
                 writer.write("NumberOfChannels = 1024");
                 writer.newLine();
                 writer.newLine();
-                writer.write("channel\tsdr\tsdr2\tincidentAngle\tskull thickness");
+                writer.write("channel\tsdr\tsdr2\tincidentAngle\tskull thickness\tSOS");
                 writer.newLine();
                 while (floatPhases.hasRemaining()) {
                     float dist = floatPhases.get();
@@ -709,14 +711,16 @@ public class TransducerRayTracer extends Renderable {
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
+                    float speed = CTSoundSpeed.lookupSpeed(speeds.get(count).floatValue() + 1000f); // add 1000 to get apparent density
 
                     writer.write(count + "\t");
-                    count++;
                     writer.write(String.format("%1.3f", sdr) + "\t");
                     writer.write(String.format("%1.3f", sdr2) + "\t");
                     writer.write(String.format("%3.3f", incidentAngle) + "\t");
                     writer.write(String.format("%3.3f", skullThickness) + "\t");
+                    writer.write(String.format("%3.3f", speed) + "\t");
                     writer.newLine();
+                    count++;
                 }
                 writer.close();
             } catch (IOException e) {
@@ -856,6 +860,59 @@ public class TransducerRayTracer extends Renderable {
                 
             glUnmapBuffer(GL_ARRAY_BUFFER);
             glBindBuffer(GL_ARRAY_BUFFER, 0);        
+        
+        return result;
+    }
+    
+    public List<Double> getSpeeds() {
+
+        List<Double> result = new ArrayList<>();
+        
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER,sdrSSBo);
+        ByteBuffer sdrOutput = glMapBuffer(GL_SHADER_STORAGE_BUFFER,GL_READ_ONLY,null);
+        FloatBuffer huValues = sdrOutput.asFloatBuffer();
+        
+        float[] huOut = new float[60];
+        float[] huIndices = new float[3];
+        
+        for (int i=0; i<1024; i++) {
+            huValues.get(huOut);
+            huValues.get(huIndices);
+            
+            int left = 0;
+            int right = 59;
+            
+            for (int x=0; x<59; x++) {
+                if (huOut[x] >= 100f) {
+                    left = x;
+                    break;
+                }
+            }
+            
+            for (int x=59; x>=0; x--) {
+                if (huOut[x] >= 100f) {
+                    right = x;
+                    break;
+                }
+            }
+            
+            int count = 0;
+            float sum = 0f;
+            for (int x=left; x<=right; x++) {
+                count++;
+                sum += huOut[x];
+            }
+            
+            if (count > 0) {
+                result.add((double)sum/(double)count);
+            }
+            else {
+                result.add(-1.0);
+            }
+        }
+        
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         
         return result;
     }
@@ -1583,9 +1640,9 @@ public class TransducerRayTracer extends Renderable {
             
             // Translation
             Matrix4f.translate(new Vector3f(
-                        (center.x + imageTranslation.x + imagePosition[0]),
-                        (center.y + imageTranslation.y + imagePosition[1]),
-                        (center.z + imageTranslation.z + imagePosition[2])
+                        (center.x + imageTranslation.x /* + imagePosition[0] */),
+                        (center.y + imageTranslation.y /* + imagePosition[1] */),
+                        (center.z + imageTranslation.z /* + imagePosition[2] */)
                         ),
                     ctTexMatrix, ctTexMatrix);
             
