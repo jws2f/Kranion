@@ -137,8 +137,6 @@ public class DefaultView extends View {
     private Trackball trackball = new Trackball(DISPLAY_HEIGHT / 2, DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2f);
     private Trackball registerBallCT = new Trackball(DISPLAY_HEIGHT / 2, DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2f);
     
-    private Quaternion ctQstart, mrQstart;
-    private Vector3f startCtImageTranslate = new Vector3f();
 //    private Vector3f startMrImageTranslate = new Vector3f();
     private int mouseStartX, mouseStartY;
 
@@ -275,7 +273,19 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(225, 330, 100, 25, "", controller).setTitle("Frequency").setCommand("sonicationFrequency");
+        textbox = (TextBox)new TextBox(225, 340, 100, 25, "", controller).setTitle("Frequency").setCommand("sonicationFrequency");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTextEditable(true);
+        model.addObserver(textbox);
+        flyout1.addChild(textbox);
+        
+        textbox = (TextBox)new TextBox(100, 300, 70, 25, "", controller).setTitle("Max Temp").setCommand("sonicationMaxTemp");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTextEditable(true);
+        model.addObserver(textbox);
+        flyout1.addChild(textbox);
+        
+        textbox = (TextBox)new TextBox(260, 300, 125, 25, "", controller).setTitle("Max Dose").setCommand("sonicationMaxDose");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
         model.addObserver(textbox);
@@ -1501,57 +1511,11 @@ public class DefaultView extends View {
 
                             }
                             
-
-                            
-                            // Need to fix the translation of the CT image since these rotations are about the MR volume center
-                            Vector3f mrtrans = (Vector3f) model.getMrImage(0).getAttribute("startMrImageTranslate");
-                            if (mrtrans == null) {
-                                mrtrans = new Vector3f();
+                            for (int i=1; i<model.getMrImageCount(); i++) {
+                                fixTranslationToRotateAboutImage(model.getMrImage(i), model.getMrImage(0));
                             }
-                            Vector4f mrtrans4f = new Vector4f(mrtrans.x, mrtrans.y, mrtrans.z, 1f);
-                            
-                            
-                            Vector3f cttrans = startCtImageTranslate;
-                            if (cttrans == null) {
-                                cttrans = new Vector3f();
-                            }
-                            Vector4f cttrans4f = new Vector4f(cttrans.x, cttrans.y, cttrans.z, 1f);
-                            
-
-                            // compute offset vector between MR and CT translated origins
-                            Vector4f ctRotVec = Vector4f.sub(cttrans4f, mrtrans4f, null);
-                            ctRotVec.w = 1f;
-                            
-                            // World to MR-local transform
-                            Matrix4f worldToMRlocal = Trackball.toMatrix4f(this.mrQstart);
-                            Matrix4f.transform(worldToMRlocal, ctRotVec, ctRotVec);
-                           
-                            
-                            Quaternion mrQNow = new Quaternion((Quaternion)model.getMrImage(0).getAttribute("ImageOrientationQ")); //////////////////
-//                            Quaternion.mul(ctQstart.negate(null), mrQNow, mrQNow); // effectively the rotational difference between start and drag Qs
-//                            Quaternion.mul(trackball.getCurrent().negate(null), mrQNow, mrQNow);
-
-                            Quaternion mrQdiff = Quaternion.mul(mrQstart, mrQNow.negate(null), null); // effectively the rotational difference between start and drag Qs
-                            Matrix4f translateMat4 = Trackball.toMatrix4f(mrQdiff);
-//                           System.out.println("mrQstart = " + mrQstart);
-//                           System.out.println("mrQNow = " + mrQNow);
-//                           System.out.println("Q diff = " + Quaternion.mul(mrQstart, mrQNow.negate(null), null));
-                            
-                            // MR-local rotate the offset vector
-                            Matrix4f.transform(translateMat4, ctRotVec, ctRotVec);
-                            
-                            // MR-local to World transform
-                            Matrix4f mrToWorld = Trackball.toMatrix4f(this.mrQstart.negate(null));
-                            Matrix4f.transform(mrToWorld, ctRotVec, ctRotVec);
-                            
-
-                            // add MR orgin back
-                            Vector4f.add(ctRotVec, mrtrans4f, ctRotVec);
-
-                            Vector3f translate = new Vector3f(ctRotVec.x, ctRotVec.y, ctRotVec.z);
-
-                            // update CT translation
-                            model.getCtImage().setAttribute("ImageTranslation", translate);
+                                        
+                            fixTranslationToRotateAboutImage(model.getCtImage(), model.getMrImage(0));
 
                             this.setIsDirty(true);
 
@@ -1575,6 +1539,7 @@ public class DefaultView extends View {
                     Matrix4f.transform(mat4, offset, offset);
                     Vector3f translate = new Vector3f(offset);
 
+                    Vector3f startCtImageTranslate = (Vector3f)model.getCtImage().getAttribute("startTranslation");
                     model.getCtImage().setAttribute("ImageTranslation", Vector3f.add(startCtImageTranslate, translate.negate(null), null));
                     this.setIsDirty(true);
 
@@ -1582,7 +1547,7 @@ public class DefaultView extends View {
                         System.out.println("*** Head translate");
                         try {
                             for (int i = 0; i < model.getMrImageCount(); i++) {
-                                Vector3f startMrImageTranslate = (Vector3f) model.getMrImage(i).getAttribute("startMrImageTranslate");
+                                Vector3f startMrImageTranslate = (Vector3f) model.getMrImage(i).getAttribute("startTranslation");
                                 if (startMrImageTranslate == null) {
                                     startMrImageTranslate = new Vector3f();
                                 }
@@ -1605,6 +1570,7 @@ public class DefaultView extends View {
                 this.mouseStartX = x;
                 this.mouseStartY = y;
                 
+                Vector3f startCtImageTranslate = new Vector3f();
                 try {
                     startCtImageTranslate = new Vector3f((Vector3f)model.getCtImage().getAttribute("ImageTranslation"));
                     if (startCtImageTranslate == null) {
@@ -1613,8 +1579,8 @@ public class DefaultView extends View {
                 }
                 catch(NullPointerException e) {
                     e.printStackTrace();
-                    startCtImageTranslate = new Vector3f(0, 0, 0);
                 }
+                model.getCtImage().setAttribute("startTranslation", new Vector3f(startCtImageTranslate));
                 
                 for (int i = 0; i < model.getMrImageCount(); i++) {
                     if (model.getMrImage(i) != null) {
@@ -1623,11 +1589,12 @@ public class DefaultView extends View {
                             if (startMrImageTranslate == null) {
                                 startMrImageTranslate = new Vector3f();
                             }
-                            model.getMrImage(i).setAttribute("startMrImageTranslate", new Vector3f(startMrImageTranslate));
+                            model.getMrImage(i).setAttribute("startTranslation", new Vector3f(startMrImageTranslate));
                         } catch (NullPointerException e) {
                             e.printStackTrace();
-                            model.getMrImage(i).setAttribute("startMrImageTranslate", new Vector3f());
+                            model.getMrImage(i).setAttribute("startTranslation", new Vector3f());
                         }
+                        
                     }
                 }
                 
@@ -1642,7 +1609,9 @@ public class DefaultView extends View {
                     
                     if (model.getCtImage() == null) return false;
                                         
-                    ctQstart = new Quaternion((Quaternion) model.getCtImage().getAttribute("ImageOrientationQ")).negate(null);
+                    Quaternion ctQstart = new Quaternion((Quaternion) model.getCtImage().getAttribute("ImageOrientationQ")).negate(null);
+                    model.getCtImage().setAttribute("startOrientationQ", new Quaternion(ctQstart));
+                    
                     Quaternion.mul(trackball.getCurrent(), ctQstart, ctQstart);
                     registerBallCT.setCurrent(ctQstart);
                     registerBallCT.mousePressed(x, y);
@@ -1666,7 +1635,8 @@ public class DefaultView extends View {
                             registerBall.setCurrent(new Quaternion(mrQstartTmp));
                             registerBall.mousePressed(x, y);
                             
-                            if (i==0) mrQstart = (Quaternion) model.getMrImage(i).getAttribute("ImageOrientationQ");
+                            Quaternion mrQstart = (Quaternion) model.getMrImage(i).getAttribute("ImageOrientationQ");
+                            model.getMrImage(i).setAttribute("startOrientationQ", new Quaternion(mrQstart));
                         }
                     }
                 }
@@ -1698,6 +1668,57 @@ public class DefaultView extends View {
         return false;
     }
 
+    // Adjust the translation of an target image volume so that it correctly orbits around
+    // the origin of the specified center image volume. Assumes both images have been rotated
+    // already by the same amount in the World coordinate system.
+    private void fixTranslationToRotateAboutImage(ImageVolume target, ImageVolume center) {
+        // Need to fix the translation of the CT image since these rotations are about the MR volume center
+        Vector3f centerTrans = (Vector3f) center.getAttribute("startTranslation");
+        if (centerTrans == null) {
+            centerTrans = new Vector3f();
+        }
+        Vector4f centerTrans4f = new Vector4f(centerTrans.x, centerTrans.y, centerTrans.z, 1f);
+
+        Vector3f targetTrans = (Vector3f) target.getAttribute("startTranslation");
+        if (targetTrans == null) {
+            targetTrans = new Vector3f();
+        }
+        Vector4f targetTrans4f = new Vector4f(targetTrans.x, targetTrans.y, targetTrans.z, 1f);
+
+        // compute offset vector between MR and CT translated origins
+        Vector4f targetRotVec = Vector4f.sub(targetTrans4f, centerTrans4f, null);
+        targetRotVec.w = 1f;
+
+        // World to MR-local transform
+        Quaternion centerQstart = new Quaternion((Quaternion) center.getAttribute("startOrientationQ"));
+
+        Matrix4f worldToCenterLocal = Trackball.toMatrix4f(centerQstart);
+        Matrix4f.transform(worldToCenterLocal, targetRotVec, targetRotVec);
+
+        Quaternion centerQNow = new Quaternion((Quaternion) center.getAttribute("ImageOrientationQ"));
+
+        Quaternion mrQdiff = Quaternion.mul(centerQstart, centerQNow.negate(null), null); // effectively the rotational difference between start and drag Qs
+        Matrix4f translateMat4 = Trackball.toMatrix4f(mrQdiff);
+//                           System.out.println("mrQstart = " + mrQstart);
+//                           System.out.println("mrQNow = " + mrQNow);
+//                           System.out.println("Q diff = " + Quaternion.mul(mrQstart, mrQNow.negate(null), null));
+
+        // MR-local rotate the offset vector
+        Matrix4f.transform(translateMat4, targetRotVec, targetRotVec);
+
+        // MR-local to World transform
+        Matrix4f centerLocalToWorld = Trackball.toMatrix4f(centerQstart.negate(null));
+        Matrix4f.transform(centerLocalToWorld, targetRotVec, targetRotVec);
+
+        // add MR orgin back
+        Vector4f.add(targetRotVec, centerTrans4f, targetRotVec);
+
+        Vector3f translate = new Vector3f(targetRotVec.x, targetRotVec.y, targetRotVec.z);
+
+        // update CT translation
+        target.setAttribute("ImageTranslation", translate);
+    }
+    
     @Override
     public void doLayout() {
         trackball.set(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
@@ -1966,6 +1987,11 @@ public class DefaultView extends View {
             thermometryChart.addSeries("Max", times, maxVals, new Vector4f(0.8f, 0.2f, 0.2f, 1f));
             thermometryChart.addSeries("Avg", times, avgVals, new Vector4f(0.2f, 0.8f, 0.2f, 1f));
             thermometryChart.generateChart();
+            
+            Vector2f maxT = findMaxTemperature(sonicationIndex);
+            System.out.println("Max temperature found = " + maxT.x);
+            model.setAttribute("sonicationMaxTemp", String.format("%4.1f C", maxT.x));
+            model.setAttribute("sonicationMaxDose", String.format("%4.2f kCEM", maxT.y/1000f));
 
             showThermometry(sonicationIndex);
         }
@@ -1974,6 +2000,72 @@ public class DefaultView extends View {
             thermometryChart.generateChart();
             showThermometry(-1);
         }
+    }
+    
+    private Vector2f findMaxTemperature(int sonicationIndex) {
+        Vector2f maxTemp = new Vector2f(-1f, 0f);
+        Vector2f maxPoint = new Vector2f();
+        
+        ImageVolume thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
+        
+        if (thermometry != null) {
+            float data[] = (float[])thermometry.getData();
+
+            int cols = thermometry.getDimension(0).getSize();
+            int rows = thermometry.getDimension(1).getSize();
+            int timepoints = thermometry.getDimension(3).getSize();
+            
+            float deltaT = thermometry.getDimension(3).getSampleWidth(0);
+
+            // searching in 16x16 neighborhood around the target
+            // for the maximum temperature achieved
+            int xspan = Math.min(8, cols/2);
+            int yspan = Math.min(8, rows/2);
+            
+            for (int i=0; i<timepoints; i++) {                
+                for (int x=-xspan; x<=xspan; x++) {
+                    for (int y=-yspan; y<=yspan; y++) {
+                        float tempVal = data[thermometry.getVoxelOffset(cols/2+x, rows/2+y, i)];
+                        if (tempVal > maxTemp.x) {
+                            maxTemp.x = tempVal;
+                            maxPoint.set(cols/2+x, rows/2+y);
+                        }
+                    }
+                }
+            }
+            
+            System.out.println("Max temperature index: " + maxPoint);
+            System.out.println("Sonication deltaT = " + deltaT);
+
+            /*
+                dt = x(2)-x(1);
+
+                for i = 1:length(x)
+                    if y(i) <43
+                        Dose(i) = .25^(43-y(i))*dt/60;
+                    else
+                        Dose(i) = .5^(43-y(i))*dt/60;
+                    end
+
+                    if i ~= 1
+                        Dose(i) = Dose(i) + Dose(i-1);
+                    end
+                end
+            */
+            float dose = 0f;
+            for (int i=0; i<timepoints; i++) {
+                float tempVal = data[thermometry.getVoxelOffset((int)(maxPoint.x), (int)(maxPoint.y), i)];
+                if (tempVal < 43f) {
+                    dose += Math.pow(0.25f, (43f - tempVal))*(deltaT/60f);
+                }
+                else {
+                    dose += Math.pow(0.5f, (43f - tempVal))*(deltaT/60f);
+                }
+            }
+            maxTemp.y = dose;
+        }
+        
+        return maxTemp;
     }
     
     private void updateMRlist() {
