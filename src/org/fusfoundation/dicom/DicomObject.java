@@ -32,9 +32,10 @@ package org.fusfoundation.dicom;
  * @version 1.0
  */
 
+import java.io.Serializable;
 import java.util.*;
 
-public class DicomObject {
+public class DicomObject implements Serializable {
 
   private  TreeSet tagSet = new TreeSet();
   private DicomDict dict = DicomDict.getDictionary();

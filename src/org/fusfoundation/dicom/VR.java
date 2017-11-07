@@ -37,7 +37,7 @@ import java.util.*;
  * @version 1.0
  */
 
-public class VR implements Comparable {
+public class VR implements Serializable, Comparable {
     
     private int group, element;
     private int vrType;

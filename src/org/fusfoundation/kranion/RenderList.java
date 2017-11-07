@@ -34,13 +34,6 @@ public class RenderList extends Clippable implements Resizeable {
     
     private boolean isVisible = true;
     
-    @Override
-    public boolean getVisible() { return isVisible; }
-    public void setVisible(boolean visible)
-    {
-        isVisible = visible;
-    }
-    
     public RenderList() {
         renderlist = new ArrayList<>();
     }
@@ -122,12 +115,14 @@ public class RenderList extends Clippable implements Resizeable {
     }
     
     @Override
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
             Iterator<Renderable> i = renderlist.iterator();
             while (i.hasNext()) {
                 Renderable child = i.next();
                 child.setIsDirty(dirty);//false);
             }
+            
+            return this;
     }
 
     @Override

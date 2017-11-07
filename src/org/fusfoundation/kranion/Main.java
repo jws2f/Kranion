@@ -130,7 +130,7 @@ public class Main implements ProgressListener {
         }
     }
     
-    public static void stopBackgroundWorkder(String name) {
+    public static void stopBackgroundWorker(String name) {
         Iterator<BackgroundWorker> i = workers.iterator();
         while(i.hasNext()) {
             BackgroundWorker w = i.next();
@@ -148,26 +148,39 @@ public class Main implements ProgressListener {
         }
     }
 
-//<<<<<<< Upstream, based on origin/master
+    public static Model getModel() { return Main.main.model; }
+    
+    public static void setModel(Model model) {
+        
+        //disconnect old model if exists
+        if (Main.main.model != null) {
+            Main.main.model.deleteObservers();
+        }
+        
+        Main.main.model = model;
+        Main.main.controller.setModel(model);
+        Main.main.view.setModel(model);
+        
+        // reconnect observer controls to new model
+        Iterator<Renderable> controls = Renderable.iterator();
+        while (controls.hasNext()) {
+            Renderable control = controls.next();
+            if (control instanceof GUIControl) {
+                model.addObserver((GUIControl)control);
+            }
+        }
+        
+        // update workers
+        Iterator<BackgroundWorker> i = workers.iterator();
+        while(i.hasNext()) {
+            BackgroundWorker w = i.next();
+            w.setModel(model);
+        }
+    }
+
     private Model model;
     private Controller controller;
     private View view;
-//=======
-//    private Loader ctloader, mrloader;
-//    private ImageVolume4D ctImage, mrImage;
-//
-//    private int slice = 62;
-//
-//    private Transducer transducer220, transducer650;
-//    private PlyFileReader frame = new PlyFileReader("meshes/Frame1v3.ply");
-//    private PlyFileReader mrBore2 = new PlyFileReader("meshes/Bore.ply");
-//    private PlyFileReader mrHousing = new PlyFileReader("meshes/Housing.ply");
-//    private PlyFileReader mrPedestal = new PlyFileReader("meshes/Pedestal.ply");
-//    private PlyFileReader skull = new PlyFileReader("meshes/ProtoSkullBin.ply");
-//    private PlyFileReader body = new PlyFileReader("meshes/humanbody.ply");
-//    private Cylinder mrBore, mrBoreOuter;
-//    private Ring mrBoreFront, mrBoreBack;
-//>>>>>>> a2c7a7e First functional check in. -SDR implemented as a reasonable first pass. -GUI controls are still almost non-existent. -Must restart to load different data.
 
     private int currentBuffer = 0;
     private boolean bufferNeedsRendering[] = new boolean[3];

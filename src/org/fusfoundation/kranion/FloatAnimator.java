@@ -85,7 +85,8 @@ public class FloatAnimator extends Renderable implements Animator {
     }
 
     @Override
-    public void setVisible(boolean visible) {
+    public Renderable setVisible(boolean visible) {
+        return this;
     }
 
     @Override
@@ -94,6 +95,7 @@ public class FloatAnimator extends Renderable implements Animator {
     }
 
     @Override
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
+        return this;
     }
 }

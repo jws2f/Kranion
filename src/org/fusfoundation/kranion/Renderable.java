@@ -68,8 +68,9 @@ public abstract class Renderable {
     
     public long getID() { return id; }
     public String getTag() { return tag; }
-    public void setTag(String newTag) {
+    public Renderable setTag(String newTag) {
         tag = newTag;
+        return this;
     }
     
     public abstract void render();
@@ -78,19 +79,21 @@ public abstract class Renderable {
     public boolean getVisible() {
         return isVisible;
     };
-    public void setVisible(boolean visible) {
+    public Renderable setVisible(boolean visible) {
         if (isVisible != visible) {
             isVisible = visible;
             setIsDirty(true);
         }
+        return this;
     }
     
     public boolean getIsDirty() {
         return isDirty;
     }
             
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
         isDirty = dirty;
+        return this;
     }
     
     public boolean getAcceptsKeyboardFocus() { return acceptsKeyboardFocus; }

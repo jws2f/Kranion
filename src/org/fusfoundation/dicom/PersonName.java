@@ -30,7 +30,7 @@ import java.io.*;
  *
  * @author  jsnell
  */
-public class PersonName implements VrValue {
+public class PersonName implements Serializable, VrValue {
 
     private String _firstName, _lastName, _middleName, _prefix, _suffix;
     

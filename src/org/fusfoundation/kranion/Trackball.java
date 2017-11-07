@@ -23,6 +23,7 @@
  */
 package org.fusfoundation.kranion;
 
+import java.io.Serializable;
 import static org.lwjgl.opengl.GL11.glMultMatrix;
 
 import java.nio.FloatBuffer;
@@ -33,13 +34,13 @@ import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector2f;
 import org.lwjgl.util.vector.Vector3f;
 
-public class Trackball extends GUIControl {
+public class Trackball extends GUIControl implements Serializable {
 	private Quaternion qCurrent, qDrag, qPrevious;
 	private Vector2f trackball_center;
 	private float trackball_radius;
 	private int startMouseX, mouseX;
 	private int startMouseY, mouseY;
-	private FloatBuffer trackballBuffer = BufferUtils.createFloatBuffer(16);
+	private transient FloatBuffer trackballBuffer = BufferUtils.createFloatBuffer(16);
 	
 	public Trackball(int centerX, int centerY, float radius) {
 		set(centerX, centerY, radius);

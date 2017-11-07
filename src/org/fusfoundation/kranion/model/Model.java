@@ -33,7 +33,10 @@ import org.fusfoundation.kranion.model.image.*;
  * @author John Snell
  */
 public class Model extends Observable implements Serializable, Observer {
-    private HashMap<String, Object> attributes = new HashMap<String, Object>();
+    //private HashMap<String, Object> attributes = new HashMap<String, Object>();
+    private AttributeList attributes = new AttributeList();
+    
+    private static final long serialVersionUID = -729845232606031972L;
     
     // CT image (only one)
     private ImageVolume4D ct_image;
@@ -57,11 +60,12 @@ public class Model extends Observable implements Serializable, Observer {
     
     // Notifications
     
+    
     public Model() {
         selectedMR = -1;
         selectedSonication = -1;
-        mr_images = new ArrayList<ImageVolume4D>(3); // initial array size
-        sonications = new ArrayList<Sonication>(25);
+        mr_images = new ArrayList<>(3); // initial array size
+        sonications = new ArrayList<>(25);
     }
     
     public void clear() {
@@ -275,4 +279,5 @@ public class Model extends Observable implements Serializable, Observer {
        }
         
     }
+    
 }

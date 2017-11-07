@@ -31,7 +31,7 @@ import java.text.*;
  *
  * @author  jsnell
  */
-public class DicomDate implements VrValue {
+public class DicomDate implements Serializable, VrValue {
    
    /** Creates a new instance of DicomDate */
    private Date date;

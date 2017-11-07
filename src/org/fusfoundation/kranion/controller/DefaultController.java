@@ -41,7 +41,7 @@ import org.fusfoundation.kranion.Renderable;
 import org.fusfoundation.kranion.Canvas2DLayoutManager;
 import org.fusfoundation.kranion.ProgressBar;
 
-import org.fusfoundation.kranion.model.*;
+
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.fusfoundation.kranion.model.image.ImageVolume4D;
 import org.fusfoundation.kranion.model.image.io.Loader;
@@ -79,9 +79,6 @@ public class DefaultController extends Controller {
                 org.fusfoundation.kranion.PullDownSelection pulldown = (org.fusfoundation.kranion.PullDownSelection)e.getSource();
                 model.setAttribute("currentSonication", pulldown.getSelectionIndex());
         }
-        else if (e.getActionCommand().equals("registerMRCT")) {
-                Main.startBackgroundWorker("MRCTRegister");
-        }
         else if (e.getActionCommand().equals("transducerXTilt")) {
                 org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
                 model.setAttribute("transducerXTilt", slider.getCurrentValue());
@@ -100,6 +97,12 @@ public class DefaultController extends Controller {
             if (model != null) {
                 org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
                 model.setAttribute("showThermometry", button.getIndicator());
+            }
+        }
+        else if (e.getActionCommand().equals("showTargets")) {
+            if (model != null) {
+                org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
+                model.setAttribute("showTargets", button.getIndicator());
             }
         }
         else if (e.getActionCommand().equals("doClip")) {

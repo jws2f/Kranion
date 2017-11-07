@@ -127,8 +127,9 @@ public class TransformationAdapter extends Renderable {
     }
 
     @Override
-    public void setVisible(boolean visible) {
+    public Renderable setVisible(boolean visible) {
         child.setVisible(visible);
+        return this;
     }
     
     public static Matrix4f toMatrix4f(Quaternion q) {
@@ -165,7 +166,8 @@ public class TransformationAdapter extends Renderable {
     }
 
     @Override
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
         child.setIsDirty(dirty);
+        return this;
     }
 }

@@ -30,6 +30,10 @@ uniform float center;
 uniform float window;
 uniform float mr_center;
 uniform float mr_window;
+uniform float mr_rescale_intercept;
+uniform float mr_rescale_slope;
+uniform float ct_rescale_intercept;
+uniform float ct_rescale_slope;
 uniform float ct_threshold;
 uniform float mr_threshold;
 uniform sampler3D ct_tex;
@@ -81,9 +85,9 @@ void main(void)
         //float ctOpacity = texture1D(lut_tex, ctTexVal).r;
         color = texture1D(lut_tex, ctTexVal);
 
-        float ctsample = ctTexVal * 32767.0 * 2.0;
+        float ctsample = ctTexVal * 32767.0 * ct_rescale_slope + ct_rescale_intercept;
         float mrsample = 0;
-        float ctval = (ctsample - center)/window;
+        float ctval = (ctsample - center)/window + 0.5;
         bool noLighting = false;
         bool useMRval = false;
 
@@ -111,7 +115,7 @@ void main(void)
 
         if (slice==last_slice) {
             if (showMR==1) {
-                mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 32767.0 * 2.0;
+                mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 32767.0 * mr_rescale_slope + mr_rescale_intercept;
                 if (mrsample < mr_threshold && color.a < 0.05 && ovlyTexVal == 0) {
                     discard;
                 }
@@ -183,7 +187,7 @@ void main(void)
         }
         else {
             if (useMRval) {
-                float mrval = (mrsample - mr_center)/mr_window;
+                float mrval = (mrsample - mr_center)/mr_window + 0.5;
                 color.rgb = vec3(mrval);
                 if (mrsample>mr_threshold) {
                     color.a = 1;

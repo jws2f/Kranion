@@ -75,16 +75,7 @@ public class PlyFileReader extends Clippable {
     private boolean isBinaryFormat = false;
     
     private boolean isVisible = true;
-    @Override
-    public boolean getVisible() { return isVisible; }
-    @Override
-    public void setVisible(boolean visible)
-    {
-        if (isVisible != visible) {
-            setIsDirty(true);
-        }
-        isVisible = visible;
-    }
+
     
     /** Creates a new instance of PlyFileWriter */
     public PlyFileReader(String file) {

@@ -410,7 +410,7 @@ glDisable(GL_CULL_FACE);
             setCurrentValue((Float)newValue);  
         }
         catch(Exception e) {
-            System.out.println("Wrong or NULL new value.");
+            System.out.println(this + " Wrong or NULL new value.");
         }
     }
 

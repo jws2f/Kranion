@@ -23,13 +23,14 @@
  */
 package org.fusfoundation.dicom;
 
+import java.io.Serializable;
 import org.fusfoundation.util.StringConvert;
 
 /**
  *
  * @author  jsnell
  */
-public class DicomString implements VrValue {
+public class DicomString implements Serializable, VrValue {
 
     private String value;
     

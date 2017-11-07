@@ -303,7 +303,7 @@ public class Button extends GUIControl {
             setIndicator((Boolean)newValue);  
         }
         catch(Exception e) {
-            System.out.println("Wrong or NULL new value.");
+            System.out.println(this + "Name=" + this.getTitle() + " command=" + this.getCommand() + " Wrong or NULL new value: " + newValue.toString());
         }
     }
 }

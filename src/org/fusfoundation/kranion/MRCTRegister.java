@@ -58,15 +58,22 @@ public class MRCTRegister implements BackgroundWorker {
     private Vector3f tranX, tranY, tranZ, tran;
     private Vector3f origTran;
     
+    private String command = new String("registerMRCT");
+    
     public MRCTRegister(Model model) {
         this.model = model;
         mutualInformation = new MutualInformation(null, null);
         Main.addBackgroundWorker(this);
     }
     
+    public void setCommand(String cmd) {
+        command = new String(cmd);
+    }
+    
     public void start() {
         
         if (this.model.getCtImage() == null || this.model.getMrImageCount() == 0 || this.model.getMrImage(0) == null) {
+            model.setAttribute(command, false);
             return;
         }
         
@@ -101,9 +108,12 @@ public class MRCTRegister implements BackgroundWorker {
         tranY = new Vector3f(0, 2f, 0);
         tranZ = new Vector3f(0, 0, 2f);
         tran = null;
+        
+        model.setAttribute(command, true);
     }
     
     public void stop() {
+       model.setAttribute(command, false);
        done = true; 
     }
     
@@ -177,6 +187,8 @@ Vector3f noise = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.r
                       }
                       else if (failedSteps > 24 && stepPhase==2) {
                           done = true;
+                          model.setAttribute(command, false);
+
                           Main.getView().setIsDirty(true);
                           return;
                       }
@@ -291,6 +303,11 @@ Vector3f noise = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.r
     @Override
     public String getName() {
         return "MRCTRegister";
+    }
+
+    @Override
+    public void setModel(Model model) {
+        this.model = model;
     }
 
 

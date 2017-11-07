@@ -77,6 +77,10 @@ public class ImageCanvas2D extends GUIControl {
     
     private int ct_center = 1024, ct_window = 1024;
     private int mr_center = 1024, mr_window = 1024;
+    private float ct_rescale_slope = 1f;
+    private float ct_rescale_intercept = 0f;
+    private float mr_rescale_slope = 1f;
+    private float mr_rescale_intercept = 0f;
     private int slice = 0, imageTime = 0;
     private double panx = 0.0, pany = 0.0;
     private double rotation = 0.0;
@@ -1262,6 +1266,16 @@ public class ImageCanvas2D extends GUIControl {
                 texLoc = glGetUniformLocation(shaderprogram, "ovly_tex");
                 glUniform1i(texLoc, 2);
                 
+                texLoc = glGetUniformLocation(shaderprogram, "ct_rescale_slope");
+                glUniform1f(texLoc, ct_rescale_slope);
+                texLoc = glGetUniformLocation(shaderprogram, "ct_rescale_intercept");
+                glUniform1f(texLoc, ct_rescale_intercept);
+
+                texLoc = glGetUniformLocation(shaderprogram, "mr_rescale_slope");
+                glUniform1f(texLoc, mr_rescale_slope);
+                texLoc = glGetUniformLocation(shaderprogram, "mr_rescale_intercept");
+                glUniform1f(texLoc, mr_rescale_intercept);
+                
                 glUniform1f(mrcenterUniform, (float) mr_center);
                 glUniform1f(mrwindowUniform, (float) mr_window);
                 int showMRUniform = glGetUniformLocation(shaderprogram, "showMR");
@@ -1426,6 +1440,22 @@ public class ImageCanvas2D extends GUIControl {
         mr_window = w;    
     }
 
+    public void setMRrescale(float slope, float intercept) {
+        if (mr_rescale_slope != slope || mr_rescale_intercept != intercept) {
+            setIsDirty(true);
+        }
+        mr_rescale_slope = slope;
+        mr_rescale_intercept = intercept;    
+    }
+    
+    public void setCTrescale(float slope, float intercept) {
+        if (ct_rescale_slope != slope || ct_rescale_intercept != intercept) {
+            setIsDirty(true);
+        }
+        ct_rescale_slope = slope;
+        ct_rescale_intercept = intercept;    
+    }
+
     public void setPan(float px, float py) {
         if (panx != px || pany != py) {
             setIsDirty(true);
@@ -1469,6 +1499,10 @@ public class ImageCanvas2D extends GUIControl {
                 + "uniform float window;\n"
                 + "uniform float mr_center;\n"
                 + "uniform float mr_window;\n"
+                + "uniform float mr_rescale_intercept;\n"
+                + "uniform float mr_rescale_slope;\n"
+                + "uniform float ct_rescale_intercept;\n"
+                + "uniform float ct_rescale_slope;\n"
                 + "uniform float threshold;\n"
                 + "uniform int showMR;\n"
                 + "uniform sampler3D ct_tex;\n"
@@ -1477,8 +1511,8 @@ public class ImageCanvas2D extends GUIControl {
                 + "void main(void)\n"
                 + "{\n"
                 + "       vec4 color;\n"
-                + "        float ctsample = texture3D(ct_tex, gl_TexCoord[0].stp).r * 32767.0 * 2.0 ;\n"
-                + "        float mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 32767.0 * 2.0 ;\n"
+                + "        float ctsample = texture3D(ct_tex, gl_TexCoord[0].stp).r * 32767.0 * ct_rescale_slope + ct_rescale_intercept;\n"
+                + "        float mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 32767.0 * mr_rescale_slope + mr_rescale_intercept;\n"
                 + "//        if (ctsample < threshold-150 && (showMR!=1 || mrsample < threshold))\n"
                 + "//           discard;\n"
                 + "        float ovlyTexVal = texture3D(ovly_tex, gl_TexCoord[2].stp).r; // * 32767.0;\n"
@@ -1492,8 +1526,8 @@ public class ImageCanvas2D extends GUIControl {
                 + "        else if (ovlyTexVal > 399.0) {\n"
                 + "            ovlyColor = vec4(1.0, 0.7, 0.7, 1.0);\n"
                 + "        }\n"
-                + "        float ctval = (ctsample - center)/window;\n"
-                + "        float mrval = (mrsample - mr_center)/mr_window;\n"
+                + "        float ctval = (ctsample - center)/(window) + 0.5;\n"
+                + "        float mrval = (mrsample - mr_center)/(mr_window) + 0.5;\n"
                 + "        color.rgb = vec3(ctval*0.6, ctval, ctval*0.6);\n"
                 + "        if (showMR==1 && ctsample < threshold) \n"
                 + "             color.rgb = vec3(mrval);\n"

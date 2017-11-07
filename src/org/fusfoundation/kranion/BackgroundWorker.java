@@ -24,6 +24,8 @@
 
 package org.fusfoundation.kranion;
 
+import org.fusfoundation.kranion.model.Model;
+
 /**
  *
  * @author john
@@ -33,4 +35,5 @@ public interface BackgroundWorker {
     public void stop();
     public void doWorkStep();
     public String getName();
+    public void setModel(Model model);
 }

@@ -23,6 +23,8 @@
  */
 package org.fusfoundation.dicom;
 
+import java.io.Serializable;
+
 /**
  * Title:
  * Description:
@@ -32,7 +34,7 @@ package org.fusfoundation.dicom;
  * @version 1.0
  */
 
-public class UID {
+public class UID implements Serializable {
   public static final UID ImplementationClass = new UID("9.9.9.9.9");
   public static final UID DicomAppContext = new UID("1.2.840.10008.3.1.1.1");
   

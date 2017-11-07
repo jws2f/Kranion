@@ -108,7 +108,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     }
     
     @Override
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
         isDirty = dirty;
 //        if (dirty == false) {
             Iterator<Renderable> i = children.iterator();
@@ -117,6 +117,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                 child.setIsDirty(dirty);
             }
 //        }
+        return this;
     }
     
     public void setIsEnabled(boolean enabled) {
@@ -233,11 +234,13 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     @Override
     public boolean getVisible() { return isVisible; }
     @Override
-    public void setVisible(boolean visible) {
+    public Renderable setVisible(boolean visible) {
         if (isVisible != visible) {
             setIsDirty(true);
         }
         isVisible = visible;
+        
+        return this;
     }
     
     public void setBounds(float x, float y, float width, float height) {
@@ -356,14 +359,16 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                 return;
             }
             
-            PropertyChangeEvent propEvt = (PropertyChangeEvent)arg;
+            PropertyChangeEvent propEvt = (PropertyChangeEvent) arg;
             String propName = this.getFilteredPropertyName(propEvt);
-            if (propName.equals(this.getCommand())) {
-                update(propEvt.getNewValue());
-            }
+            if (propName.length() > 0) {
+                if (propName.equals(this.getCommand())) {
+                    update(propEvt.getNewValue());
+                }
 //            else {
-                update(propName, propEvt.getNewValue());
+                update(propName, propEvt.getNewValue()); // TODO: Always pass?
 //            }
+            }
         }
     }
     
@@ -416,6 +421,84 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         renderText(str, rect, font, color, shadowed, vpos, hpos, false, -1);
     }
     
+    public int calculateCaretPos(String str, Rectangle rect, Font font, float mouseX, float mouseY, VPosFormat vpos, HPosFormat hpos, int currentCursorPosition) {
+        if (str.length() == 0) return 0;
+        
+        BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+
+        Graphics2D gc = (Graphics2D)img.getGraphics();
+        gc.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        gc.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
+                           RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+        
+        if (font == null) font = stdfont;
+        
+        FontMetrics metrics = gc.getFontMetrics(font);
+        
+            float cursorXPos = -1f;
+        
+        try {
+            cursorXPos = metrics.stringWidth(str.substring(0, currentCursorPosition));
+        }
+        catch(StringIndexOutOfBoundsException e) {
+            cursorXPos = -1f;
+        }
+//    float cursorXPos = (float)metrics.getStringBounds(str, 0, currentCursorPosition, gc).getMaxX();
+
+        float hScroll = 0f;
+//        float textHPos = 0f;
+        switch(hpos) {
+            case HPOSITION_LEFT:
+//                textHPos = 1;
+                if (currentCursorPosition > -1) {
+                    hScroll = Math.max(0f, cursorXPos - (rect.width));
+                }
+                break;
+            case HPOSITION_RIGHT:
+//                textHPos = rect.width - newWidth;
+                if (currentCursorPosition > -1) {
+////                    hScroll = Math.min(0, Math.round(cursorXPos) + (rect.getIntWidth() - 1 - (int)newWidth));
+                }
+                break;
+            case HPOSITION_CENTER:
+//                textHPos = rect.width/2 - newWidth/2;
+                break;
+        }
+        
+        for (int i=1; i<=str.length(); i++) {
+            Rectangle2D r1 = metrics.getStringBounds(str, 0, i-1, gc);
+            Rectangle2D r2 = metrics.getStringBounds(str, 0, i, gc);
+            float index = (float)((r1.getMaxX() + r2.getMaxX())/2f);
+            System.out.println("pos " + i + " = " + index + " ? " + (mouseX-(rect.x-hScroll)) + " hscroll " + hScroll);
+            if (index > mouseX-(rect.x-hScroll)) {
+                if (hScroll > 0f) {
+                    return Math.max(0, i);
+                }
+                else {
+                    return Math.max(0, i-2);
+                }
+            }
+        }
+        
+        return str.length();
+        
+//        float textVPos = 0f;               
+//        int hScroll = 0;
+//        switch(vpos) {
+//            case VPOSITION_TOP:
+//               textVPos = metrics.getAscent();
+//                break;
+//            case VPOSITION_CENTER:
+//                textVPos = (metrics.getAscent() + (rect.height - (metrics.getAscent() + metrics.getDescent())) / 2);
+//                break;
+//            case VPOSITION_BOTTOM:
+//                textVPos = rect.height - metrics.getDescent();
+//        }
+//        
+
+        
+    }
+
     public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
         
         BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);

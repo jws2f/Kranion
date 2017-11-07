@@ -80,6 +80,8 @@ public class ImageCanvas3D extends GUIControl {
 //    private Object pixels;
     private int ct_center = 1024, ct_window = 1024;
     private int mr_center = 1024, mr_window = 1024;
+    private float ct_rescale_slope = 1f, ct_rescale_intercept = 0f;
+    private float mr_rescale_slope = 1f, mr_rescale_intercept = 0f;
     private int imageTime = 0;
     private double panx = 0.0, pany = 0.0;
     private double rotation = 0.0;
@@ -97,17 +99,17 @@ public class ImageCanvas3D extends GUIControl {
     public Matrix4f mrTexMatrix = new Matrix4f();
 
     
-    public Vector3f ctImageOrientationX = new Vector3f();
-    public Vector3f ctImageOrientationY = new Vector3f();
-    public Vector3f ctImageOrientationZ = new Vector3f();    
-    public Vector3f ctImageOriginPosition = new Vector3f();    
-    private Quaternion ctImageOrientation = new Quaternion();
-
-    public Vector3f mrImageOrientationX = new Vector3f();
-    public Vector3f mrImageOrientationY = new Vector3f();
-    public Vector3f mrImageOrientationZ = new Vector3f();    
-    public Vector3f mrImageOriginPosition = new Vector3f();    
-    private Quaternion mrImageOrientation = new Quaternion();
+//    public Vector3f ctImageOrientationX = new Vector3f();
+//    public Vector3f ctImageOrientationY = new Vector3f();
+//    public Vector3f ctImageOrientationZ = new Vector3f();    
+//    public Vector3f ctImageOriginPosition = new Vector3f();    
+//    private Quaternion ctImageOrientation = new Quaternion();
+//
+//    public Vector3f mrImageOrientationX = new Vector3f();
+//    public Vector3f mrImageOrientationY = new Vector3f();
+//    public Vector3f mrImageOrientationZ = new Vector3f();    
+//    public Vector3f mrImageOriginPosition = new Vector3f();    
+//    private Quaternion mrImageOrientation = new Quaternion();
     
     private int lutTextureName=0;
 
@@ -1094,6 +1096,16 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
                 texLoc = glGetUniformLocation(shaderProgID, "ovly_tex");
                 glUniform1i(texLoc, 5);
                 
+                texLoc = glGetUniformLocation(shaderProgID, "ct_rescale_slope");
+                glUniform1f(texLoc, ct_rescale_slope);
+                texLoc = glGetUniformLocation(shaderProgID, "ct_rescale_intercept");
+                glUniform1f(texLoc, ct_rescale_intercept);
+
+                texLoc = glGetUniformLocation(shaderProgID, "mr_rescale_slope");
+                glUniform1f(texLoc, mr_rescale_slope);
+                texLoc = glGetUniformLocation(shaderProgID, "mr_rescale_intercept");
+                glUniform1f(texLoc, mr_rescale_intercept);
+                
                 glUniform1f(centerUniform, (float) ct_center);
                 glUniform1f(windowUniform, (float) ct_window);
                 glUniform1f(mrcenterUniform, (float) mr_center);
@@ -1521,7 +1533,23 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         mr_center = c;
         mr_window = w;    
     }
-
+    
+    public void setMRrescale(float slope, float intercept) {
+        if (mr_rescale_slope != slope || mr_rescale_intercept != intercept) {
+            setIsDirty(true);
+        }
+        mr_rescale_slope = slope;
+        mr_rescale_intercept = intercept;    
+    }
+    
+    public void setCTrescale(float slope, float intercept) {
+        if (ct_rescale_slope != slope || ct_rescale_intercept != intercept) {
+            setIsDirty(true);
+        }
+        ct_rescale_slope = slope;
+        ct_rescale_intercept = intercept;    
+    }
+    
     public void setPan(float px, float py) {
         if (panx != px || pany != py) {
             setIsDirty(true);

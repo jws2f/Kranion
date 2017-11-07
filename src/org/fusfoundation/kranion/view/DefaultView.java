@@ -93,10 +93,13 @@ import javax.swing.*;
 import org.fusfoundation.kranion.MRCTRegister;
 import org.fusfoundation.kranion.RegionGrow;
 import org.fusfoundation.kranion.Renderable;
+import org.fusfoundation.kranion.TargetRenderer;
 
-import org.fusfoundation.kranion.model.*;
+import org.fusfoundation.kranion.model.Model;
+import org.fusfoundation.kranion.model.Sonication;
 import org.fusfoundation.kranion.model.image.*;
 import org.fusfoundation.kranion.controller.Controller;
+
 
 import org.knowm.xchart.Histogram;
 
@@ -109,9 +112,7 @@ import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
 import static org.lwjgl.opengl.GL20.glUniform1f;
 import static org.lwjgl.opengl.GL20.glUniform3f;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
+
 
 
 
@@ -263,31 +264,41 @@ public class DefaultView extends View {
 
         TextBox textbox = (TextBox)new TextBox(225, 400, 100, 25, "", controller).setTitle("Acoustic Power").setCommand("sonicationPower");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTag("tbSonicationAcousticPower");
         textbox.setTextEditable(true);
+        model.addObserver(textbox);
+        flyout1.addChild(textbox);
+        
+        textbox = (TextBox)new TextBox(100, 490, 265, 25, "", controller).setTitle("Description").setCommand("sonicationDescription");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTextEditable(true);
+        textbox.setTag("tbSonicationDescription");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
         textbox = (TextBox)new TextBox(225, 370, 100, 25, "", controller).setTitle("Duration").setCommand("sonicationDuration");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
+        textbox.setTag("tbSonicationDuration");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
         textbox = (TextBox)new TextBox(225, 340, 100, 25, "", controller).setTitle("Frequency").setCommand("sonicationFrequency");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTag("tbSonicationFrequency");
         textbox.setTextEditable(true);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
         textbox = (TextBox)new TextBox(100, 300, 70, 25, "", controller).setTitle("Max Temp").setCommand("sonicationMaxTemp");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-        textbox.setTextEditable(true);
+        textbox.setTextEditable(false);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
         textbox = (TextBox)new TextBox(260, 300, 125, 25, "", controller).setTitle("Max Dose").setCommand("sonicationMaxDose");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-        textbox.setTextEditable(true);
+        textbox.setTextEditable(false);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
@@ -312,9 +323,10 @@ public class DefaultView extends View {
         flyout1.addChild(thermometryChart);
         
         flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 50, 180, 25, controller).setTitle("Show Thermometry").setCommand("showThermometry"));
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 20, 180, 25, controller).setTitle("Show Targets").setCommand("showTargets"));
         
-        flyout1.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 100, 25, controller).setTitle("Update").setCommand("OPEN"));
-        flyout1.addChild(new Button(Button.ButtonType.BUTTON,10, 50, 100, 25, controller).setTitle("Add").setCommand("CLOSE"));
+        flyout1.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 100, 25, this).setTitle("Update").setCommand("updateSonication"));
+        flyout1.addChild(new Button(Button.ButtonType.BUTTON,10, 50, 100, 25, this).setTitle("Add").setCommand("addSonication"));
         
         flyout1.addChild(sonicationSelector = (PullDownSelection)new PullDownSelection(10, 550, 380, 25, controller).setTitle("Sonication").setCommand("currentSonication"));
         sonicationSelector.setPropertyPrefix("Model.Attribute");
@@ -376,13 +388,16 @@ public class DefaultView extends View {
       
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 250, 200, 25, controller).setTitle("Load CT...").setCommand("loadCT"));
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 220, 250, 100, 25, this).setTitle("Filter CT").setCommand("filterCT"));
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 250, 125, 25, this).setTitle("Filter CT").setCommand("filterCT"));
         
         flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 215, 200, 25, controller).setTitle("Load MR...").setCommand("loadMR"));
 
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 220, 215, 100, 25, controller).setTitle("Register").setCommand("registerMRCT"));
+        Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 215, 215, 125, 25, this);
+        regButton.setTitle("Registration").setCommand("registerMRCT").setTag("registerMRCT");
+        regButton.setPropertyPrefix("Model.Attribute");
+        flyout2.addChild(regButton);
         
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 150, 200, 25, this).setTitle("Exit").setCommand("exit"));
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 140, 200, 25, this).setTitle("Exit").setCommand("exit"));
                 
 //        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 250, 220, 25, controller).setTitle("Find Fiducials").setCommand("findFiducials"));
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 215, 220, 25, this).setTitle("Save Skull Params").setCommand("saveSkullParams"));
@@ -723,6 +738,8 @@ public class DefaultView extends View {
         
         mainLayer.addChild(steeringCrossHair);
         
+        mainLayer.addChild(new TargetRenderer(canvas).setTag("targetRenderer").setVisible(false));
+        
         // add animation renderables
         mainLayer.addChild(zoomAnimator);
         mainLayer.addChild(orientAnimator);
@@ -833,9 +850,9 @@ public class DefaultView extends View {
         float rescaleSlope = (Float) image.getAttribute("RescaleSlope");
         float rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
 
-        this.center = (int)(windowCenter*rescaleSlope - rescaleIntercept);
-        this.window = (int)(windowWidth*rescaleSlope - rescaleIntercept);
-        this.ct_threshold = (int) ((1800f - rescaleIntercept) / rescaleSlope);
+        this.center = (int)windowCenter;
+        this.window = (int)windowWidth;
+        this.ct_threshold = 500;//(int) ((1800f - rescaleIntercept) / rescaleSlope);
 
         if (model != null) {
             model.setAttribute("CTwindow", (float)window);
@@ -845,22 +862,26 @@ public class DefaultView extends View {
         
         canvas.setCTImage(image);
         canvas.setCenterWindow(center, window);
+        canvas.setCTrescale(rescaleSlope, rescaleIntercept);
         canvas.setOrientation(0);
         canvas.setCTThreshold(ct_threshold);
 
         System.out.println("MAIN: setImage #2");
         canvas1.setCTImage(image);
         canvas1.setCenterWindow((int) center, (int) window);
+        canvas1.setCTrescale(rescaleSlope, rescaleIntercept);
         canvas1.setOrientation(0);
         canvas1.setCTThreshold(ct_threshold);
 
         canvas2.setCTImage(image);
         canvas2.setCenterWindow((int) center, (int) window);
+        canvas2.setCTrescale(rescaleSlope, rescaleIntercept);
         canvas2.setOrientation(1);
         canvas2.setCTThreshold(ct_threshold);
 
         canvas3.setCTImage(image);
         canvas3.setCenterWindow((int) center, (int) window);
+        canvas3.setCTrescale(rescaleSlope, rescaleIntercept);
         canvas3.setOrientation(2);
         canvas3.setCTThreshold(ct_threshold);
 
@@ -889,33 +910,40 @@ public class DefaultView extends View {
         
         //            float rescaleSlope = (Float)mrImage.getAttribute("RescaleSlope");
         //            float rescaleIntercept = (Float)mrImage.getAttribute("RescaleIntercept");
-        this.mr_center = (int) windowCenter;
-        this.mr_window = (int) windowWidth;
+        float rescaleSlope = (Float) image.getAttribute("RescaleSlope");
+        float rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
+
+        this.mr_center = (int)windowCenter;
+        this.mr_window = (int)windowWidth;
         
         if (model != null) {
-            model.setAttribute("MRwindow", (float)mr_window);
-            model.setAttribute("MRcenter", (float)mr_center);
+            model.setAttribute("MRwindow", (float)this.mr_window);
+            model.setAttribute("MRcenter", (float)this.mr_center);
 //            model.setAttribute("MRthresh", 125f);
         }
         
 
         canvas.setMRImage(image);
-        canvas.setMRCenterWindow((int) windowCenter, (int) windowWidth);
+        canvas.setMRCenterWindow((int) this.mr_center, (int) this.mr_window);
+        canvas.setMRrescale(rescaleSlope, rescaleIntercept);
         canvas.setOrientation(0);
         canvas.setMRThreshold(mrThreshold);
 
         canvas1.setMRImage(image);
-        canvas1.setMRCenterWindow((int) windowCenter, (int) windowWidth);
+        canvas1.setMRCenterWindow((int) this.mr_center, (int) this.mr_window);
+        canvas1.setMRrescale(rescaleSlope, rescaleIntercept);
         canvas1.setOrientation(0);
         canvas1.setMRThreshold(mrThreshold);
 
         canvas2.setMRImage(image);
-        canvas2.setMRCenterWindow((int) windowCenter, (int) windowWidth);
+        canvas2.setMRCenterWindow((int) this.mr_center, (int) this.mr_window);
+        canvas2.setMRrescale(rescaleSlope, rescaleIntercept);
         canvas2.setOrientation(1);
         canvas2.setMRThreshold(mrThreshold);
 
         canvas3.setMRImage(image);
-        canvas3.setMRCenterWindow((int) windowCenter, (int) windowWidth);
+        canvas3.setMRCenterWindow((int) this.mr_center, (int) this.mr_window);
+        canvas3.setMRrescale(rescaleSlope, rescaleIntercept);
         canvas3.setOrientation(2);
         canvas3.setMRThreshold(mrThreshold);
     }
@@ -934,57 +962,93 @@ public class DefaultView extends View {
                 return;
             }
             
-            FileWriter saveFile = new FileWriter(selectedFile);
-            PrintWriter writer = new PrintWriter(saveFile);
+            ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(selectedFile));
+            os.writeObject(model);
+            os.close();
             
-            Quaternion orient = ((Quaternion)model.getCtImage().getAttribute("ImageOrientationQ"));
-            Vector3f trans = (Vector3f)model.getCtImage().getAttribute("ImageTranslation");
+            return;
             
-            writer.println(orient.x);
-            writer.println(orient.y);
-            writer.println(orient.z);
-            writer.println(orient.w);
-            
-            writer.println(trans.x);
-            writer.println(trans.y);
-            writer.println(trans.z);
-            
-            try {
-                orient = ((Quaternion)model.getMrImage(0).getAttribute("ImageOrientationQ"));
-            }
-            catch(NullPointerException e) {
-                orient = new Quaternion().setIdentity();
-            }
-            
-            try {
-                trans = (Vector3f)model.getMrImage(0).getAttribute("ImageTranslation");
-            }
-            catch(NullPointerException e) {
-                trans = new Vector3f();
-            }
-            
-            writer.println(orient.x);
-            writer.println(orient.y);
-            writer.println(orient.z);
-            writer.println(orient.w);
-            
-            writer.println(trans.x);
-            writer.println(trans.y);
-            writer.println(trans.z);
-            
-            writer.println(this.center);
-            writer.println(this.window);
-            writer.println(this.mr_center);
-            writer.println(this.mr_window);
-
-            //Close writer
-            writer.close();
-            saveFile.close();
+//            FileWriter saveFile = new FileWriter(selectedFile);
+//            PrintWriter writer = new PrintWriter(saveFile);
+//            
+//            Quaternion orient = ((Quaternion)model.getCtImage().getAttribute("ImageOrientationQ"));
+//            Vector3f trans = (Vector3f)model.getCtImage().getAttribute("ImageTranslation");
+//            
+//            writer.println(orient.x);
+//            writer.println(orient.y);
+//            writer.println(orient.z);
+//            writer.println(orient.w);
+//            
+//            writer.println(trans.x);
+//            writer.println(trans.y);
+//            writer.println(trans.z);
+//            
+//            try {
+//                orient = ((Quaternion)model.getMrImage(0).getAttribute("ImageOrientationQ"));
+//            }
+//            catch(NullPointerException e) {
+//                orient = new Quaternion().setIdentity();
+//            }
+//            
+//            try {
+//                trans = (Vector3f)model.getMrImage(0).getAttribute("ImageTranslation");
+//            }
+//            catch(NullPointerException e) {
+//                trans = new Vector3f();
+//            }
+//            
+//            writer.println(orient.x);
+//            writer.println(orient.y);
+//            writer.println(orient.z);
+//            writer.println(orient.w);
+//            
+//            writer.println(trans.x);
+//            writer.println(trans.y);
+//            writer.println(trans.z);
+//            
+//            writer.println(this.center);
+//            writer.println(this.window);
+//            writer.println(this.mr_center);
+//            writer.println(this.mr_window);
+//
+//            //Close writer
+//            writer.close();
+//            saveFile.close();
         }
         catch (Exception e) {
             System.out.println("Error writing scene file.");
+            e.printStackTrace();
         }
         
+    }
+    
+    private void enumSavedClasses(Model model) {
+        Iterator<String> keys = model.getAttributeKeys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object obj = model.getAttribute(key);
+            System.out.println("Model[" + key + "] = " + obj.getClass().toString());
+        }
+        
+        keys = model.getCtImage().getAttributeKeys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object obj = model.getCtImage().getAttribute(key);
+            System.out.println("Model.CTImage[" + key + "] = " + obj.getClass().toString());
+        }
+        keys = model.getMrImage(0).getAttributeKeys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object obj = model.getMrImage(0).getAttribute(key);
+            System.out.println("Model.MRImage[0][" + key + "] = " + obj.getClass().toString());
+        }
+        
+        keys = model.getSonication(0).getAttributeKeys();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            Object obj = model.getSonication(0).getAttribute(key);
+            System.out.println("Model.Sonication[0][" + key + "] = " + obj.getClass().toString());
+        }
     }
     
     private void loadScene() {
@@ -1001,75 +1065,113 @@ public class DefaultView extends View {
             else {
                 return;
             }
+            
+            ObjectInputStream is = new ObjectInputStream(new FileInputStream(selectedFile));
+            Model newModel = (Model)is.readObject();
+            is.close();
+            
+            enumSavedClasses(newModel);
+            
+            // re-plumb everything for the new model...
+            
+            Main.setModel(newModel); // should update M,V,C
+                        
+            ImageVolumeUtil.releaseTextures(model.getCtImage());
+            ImageVolumeUtil.releaseTextures(model.getMrImage(0));
+            
+            this.setDisplayCTimage(model.getCtImage());
+            this.setDisplayMRimage(model.getMrImage(0));
+            
+                    model.setAttribute("doMRI", true);
+                    canvas.setVolumeRender(true);
+                    canvas.setIsDirty(true);
+                    ctHistogram.calculate();
+                    transFuncDisplay.setHistogram(ctHistogram.getData());
+                    ctHistogram.release();
+            
+            this.updateFromModel();
+            this.updateMRlist();
+            this.updateSonicationList();
+            model.setAttribute("currentSonication", 0);
+            
+            setDoTransition(true);
+            
+            return;
 
-            String sCurrentLine;
-            BufferedReader bufferedReader = new BufferedReader(new FileReader(selectedFile));
-            
-            Quaternion orient = new Quaternion();
-            Vector3f trans = new Vector3f();
-            
-            orient.x = Float.parseFloat(bufferedReader.readLine());
-            orient.y = Float.parseFloat(bufferedReader.readLine());
-            orient.z = Float.parseFloat(bufferedReader.readLine());
-            orient.w = Float.parseFloat(bufferedReader.readLine());
-            
-            trans.x = Float.parseFloat(bufferedReader.readLine());
-            trans.y = Float.parseFloat(bufferedReader.readLine());
-            trans.z = Float.parseFloat(bufferedReader.readLine());
-            
-            model.getCtImage().setAttribute("ImageOrientationQ", orient);
-            model.getCtImage().setAttribute("ImageTranslation", trans);
-            
-            orient = new Quaternion();
-            trans = new Vector3f();
-            
-            orient.x = Float.parseFloat(bufferedReader.readLine());
-            orient.y = Float.parseFloat(bufferedReader.readLine());
-            orient.z = Float.parseFloat(bufferedReader.readLine());
-            orient.w = Float.parseFloat(bufferedReader.readLine());
-            
-            trans.x = Float.parseFloat(bufferedReader.readLine());
-            trans.y = Float.parseFloat(bufferedReader.readLine());
-            trans.z = Float.parseFloat(bufferedReader.readLine());
-            
-            try {
-                model.getMrImage(0).setAttribute("ImageOrientationQ", orient);
-                model.getMrImage(0).setAttribute("ImageTranslation", trans);
-            }
-            catch(NullPointerException e) {
-                
-            }
-            
-            this.center = Integer.parseInt(bufferedReader.readLine());
-            this.window = Integer.parseInt(bufferedReader.readLine());
-            this.mr_center = Integer.parseInt(bufferedReader.readLine());
-            this.mr_window = Integer.parseInt(bufferedReader.readLine());
-            
-            if (model != null) {
-                model.setAttribute("MRcenter", (float)mr_center);
-                model.setAttribute("MRwindow", (float)mr_window);
-                model.setAttribute("CTcenter", (float)center);
-                model.setAttribute("CTwindow", (float)window);
-            }
-            
-            canvas.setCenterWindow(center, window);
-            canvas.setMRCenterWindow(mr_center, mr_window);
-            canvas1.setCenterWindow(center, window);
-            canvas1.setMRCenterWindow(mr_center, mr_window);
-            canvas2.setCenterWindow(center, window);
-            canvas2.setMRCenterWindow(mr_center, mr_window);
-            canvas3.setCenterWindow(center, window);
-            canvas3.setMRCenterWindow(mr_center, mr_window);
-
-            //Close reader
-            bufferedReader.close();
+//            String sCurrentLine;
+//            BufferedReader bufferedReader = new BufferedReader(new FileReader(selectedFile));
+//            
+//            Quaternion orient = new Quaternion();
+//            Vector3f trans = new Vector3f();
+//            
+//            orient.x = Float.parseFloat(bufferedReader.readLine());
+//            orient.y = Float.parseFloat(bufferedReader.readLine());
+//            orient.z = Float.parseFloat(bufferedReader.readLine());
+//            orient.w = Float.parseFloat(bufferedReader.readLine());
+//            
+//            trans.x = Float.parseFloat(bufferedReader.readLine());
+//            trans.y = Float.parseFloat(bufferedReader.readLine());
+//            trans.z = Float.parseFloat(bufferedReader.readLine());
+//            
+//            model.getCtImage().setAttribute("ImageOrientationQ", orient);
+//            model.getCtImage().setAttribute("ImageTranslation", trans);
+//            
+//            orient = new Quaternion();
+//            trans = new Vector3f();
+//            
+//            orient.x = Float.parseFloat(bufferedReader.readLine());
+//            orient.y = Float.parseFloat(bufferedReader.readLine());
+//            orient.z = Float.parseFloat(bufferedReader.readLine());
+//            orient.w = Float.parseFloat(bufferedReader.readLine());
+//            
+//            trans.x = Float.parseFloat(bufferedReader.readLine());
+//            trans.y = Float.parseFloat(bufferedReader.readLine());
+//            trans.z = Float.parseFloat(bufferedReader.readLine());
+//            
+//            try {
+//                model.getMrImage(0).setAttribute("ImageOrientationQ", orient);
+//                model.getMrImage(0).setAttribute("ImageTranslation", trans);
+//            }
+//            catch(NullPointerException e) {
+//                
+//            }
+//            
+//            this.center = Integer.parseInt(bufferedReader.readLine());
+//            this.window = Integer.parseInt(bufferedReader.readLine());
+//            this.mr_center = Integer.parseInt(bufferedReader.readLine());
+//            this.mr_window = Integer.parseInt(bufferedReader.readLine());
+//            
+//            if (model != null) {
+//                model.setAttribute("MRcenter", (float)mr_center);
+//                model.setAttribute("MRwindow", (float)mr_window);
+//                model.setAttribute("CTcenter", (float)center);
+//                model.setAttribute("CTwindow", (float)window);
+//            }
+//            
+//            canvas.setCenterWindow(center, window);
+//            canvas.setMRCenterWindow(mr_center, mr_window);
+//            canvas1.setCenterWindow(center, window);
+//            canvas1.setMRCenterWindow(mr_center, mr_window);
+//            canvas2.setCenterWindow(center, window);
+//            canvas2.setMRCenterWindow(mr_center, mr_window);
+//            canvas3.setCenterWindow(center, window);
+//            canvas3.setMRCenterWindow(mr_center, mr_window);
+//
+//            //Close reader
+//            bufferedReader.close();
         }
         catch (Exception e) {
             System.out.println("Error reading scene file.");
+            e.printStackTrace();
         }
         
     }
 
+    private void setShowTargets(boolean bShow) {
+        Renderable targetRenderer = Renderable.lookupByTag("targetRenderer");
+        targetRenderer.setVisible(bShow);
+    }
+    
     private void showThermometry(int sonicationIndex) {
         
         if (sonicationIndex == -1) {
@@ -1572,15 +1674,20 @@ public class DefaultView extends View {
                 
                 Vector3f startCtImageTranslate = new Vector3f();
                 try {
-                    startCtImageTranslate = new Vector3f((Vector3f)model.getCtImage().getAttribute("ImageTranslation"));
-                    if (startCtImageTranslate == null) {
-                        startCtImageTranslate = new Vector3f();
+                        if (model.getCtImage() != null) {
+                        Vector3f ctrans = (Vector3f)model.getCtImage().getAttribute("ImageTranslation");
+                        if (ctrans != null) {
+                            startCtImageTranslate = new Vector3f(ctrans);
+                        }
                     }
                 }
                 catch(NullPointerException e) {
                     e.printStackTrace();
                 }
-                model.getCtImage().setAttribute("startTranslation", new Vector3f(startCtImageTranslate));
+                
+                if (model.getCtImage() != null) {
+                    model.getCtImage().setAttribute("startTranslation", new Vector3f(startCtImageTranslate));
+                }
                 
                 for (int i = 0; i < model.getMrImageCount(); i++) {
                     if (model.getMrImage(i) != null) {
@@ -1726,7 +1833,14 @@ public class DefaultView extends View {
         
         try {
             for (int i=0; i<model.getMrImageCount(); i++) {
-                Trackball registerBall = (Trackball)model.getMrImage(i).getAttribute("registerBall"); //TEMP CHANGE
+                Trackball registerBall;
+                try {
+                    registerBall = (Trackball)model.getMrImage(i).getAttribute("registerBall"); //TEMP CHANGE
+                }
+                catch(ClassCastException e) {
+                    registerBall = null;
+                }
+                
                 if (registerBall == null) {
                    registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f); 
                 }
@@ -1757,8 +1871,9 @@ public class DefaultView extends View {
     }
     
     @Override
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
         scene.setIsDirty(dirty);
+        return this;
     }
     
     @Override
@@ -1777,10 +1892,14 @@ public class DefaultView extends View {
         
         if (arg != null && arg instanceof PropertyChangeEvent) {
             PropertyChangeEvent event = (PropertyChangeEvent)arg;
-//            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName());
-//            System.out.println();
+            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName());
+            System.out.println();
             
             switch(this.getFilteredPropertyName(event)) {
+                case "registerMRCT":
+                    Button registerButton = (Button)Renderable.lookupByTag("registerMRCT");
+                    registerButton.setIndicator((Boolean)event.getNewValue());
+                    break;
                 case "currentSceneOrienation":
                     Quaternion orient = (Quaternion)event.getNewValue();
                     orientAnimator.set(trackball.getCurrent(), orient, 1.5f);
@@ -1812,6 +1931,7 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationPower", String.format("%4.1f W", model.getSonication(sonicationIndex).getPower()));
                         model.setAttribute("sonicationDuration", String.format("%4.1f s", model.getSonication(sonicationIndex).getDuration()));
                         model.setAttribute("sonicationFrequency", String.format("%4.1f kHz", model.getSonication(sonicationIndex).getFrequency()/1000f));
+                        model.setAttribute("sonicationDescription", String.format("%s", model.getSonication(sonicationIndex).getAttribute("Description")));
                         
                         Vector3f t = Vector3f.add(model.getSonication(sonicationIndex).getFocusSteering(), model.getSonication(sonicationIndex).getNaturalFocusLocation(), null);
                         model.setAttribute("sonicationRLoc", String.format("%4.1f", -t.x));
@@ -1825,6 +1945,11 @@ public class DefaultView extends View {
                 case "transducerXTilt":
                     this.transducerModel.setTransducerXTilt((float)event.getNewValue());
                     this.transducerTilt = (float)event.getNewValue();
+                    break;
+                case "showTargets":
+                    boolean bShow = (Boolean)model.getAttribute("showTargets");
+                    Renderable.lookupByTag("targetRenderer").setVisible(bShow);
+                    this.setDoTransition(true);
                     break;
             }
             
@@ -2002,6 +2127,7 @@ public class DefaultView extends View {
         }
     }
     
+    // returns max temp in X and max dose in Y
     private Vector2f findMaxTemperature(int sonicationIndex) {
         Vector2f maxTemp = new Vector2f(-1f, 0f);
         Vector2f maxPoint = new Vector2f();
@@ -2053,8 +2179,12 @@ public class DefaultView extends View {
                 end
             */
             float dose = 0f;
-            for (int i=0; i<timepoints; i++) {
+            for (int i=1; i<timepoints; i++) {
+                // trapezoidal rule integration
                 float tempVal = data[thermometry.getVoxelOffset((int)(maxPoint.x), (int)(maxPoint.y), i)];
+                tempVal += data[thermometry.getVoxelOffset((int)(maxPoint.x), (int)(maxPoint.y), i-1)];
+                tempVal /= 2f;
+                
                 if (tempVal < 43f) {
                     dose += Math.pow(0.25f, (43f - tempVal))*(deltaT/60f);
                 }
@@ -2092,8 +2222,11 @@ public class DefaultView extends View {
         this.sonicationSelector.clear();
         sonicationSelector.setTitle("Sonication 1");
         for (int i=0; i<model.getSonicationCount(); i++) {
+            String desc = (String)model.getSonication(i).getAttribute("Description");
+            if (desc == null) desc = "";
+            
             try {
-                sonicationSelector.addItem(i, "Sonication " + (i + 1) + " (" + Math.round(model.getSonication(i).getPower() * 10f) / 10f + "W)");
+                sonicationSelector.addItem(i, "Sonication " + (i + 1) + " (" + Math.round(model.getSonication(i).getPower() * 10f) / 10f + "W) " + desc);
             }
             catch(Exception e) {
             }
@@ -2908,206 +3041,6 @@ public class DefaultView extends View {
             case "translateFrame":
                 this.currentMouseMode = mouseMode.FRAME_TRANSLATE;
                 break;
-            case "registerMRCT":
-//                org.fusfoundation.kranion.MRCTRegister register = new org.fusfoundation.kranion.MRCTRegister();
-//                register.register(this.getModel().getCtImage(), this.getModel().getMrImage(0), scene);
-                
-                
-//                  mutualInformation.setImageVolumes(this.model.getCtImage(), this.model.getMrImage(0));
-//                  float mi = mutualInformation.calcMI(1.0f, false);
-//                  mutualInformation.updateTestImage(joinHistogram);
-//                  histoCanvas.setCTImage(joinHistogram);
-//                  histoCanvas.setMRImage(joinHistogram);
-//                  histoCanvas.setIsDirty(true);
-//                  miText.setText(String.format("%1.3f", mi));
-//                  
-//                  Quaternion origRot = new Quaternion((Quaternion)this.model.getCtImage().getAttribute("ImageOrientationQ"));
-//                  Vector3f tranVal = (Vector3f)this.model.getCtImage().getAttribute("ImageTranslation");
-//                  if (tranVal == null) {
-//                      tranVal = new Vector3f();
-//                      this.model.getCtImage().setAttribute("ImageTranslation", tranVal);
-//                  }
-//                  Vector3f origTran = new Vector3f(tranVal);
-//                  
-//                  Quaternion rotx = MutualInformation.toQuaternion((float)(Math.PI/180.0), 0,  0);
-//                  Quaternion roty = MutualInformation.toQuaternion(0, (float)(Math.PI/180.0),  0);
-//                  Quaternion rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/180.0));
-//                  Quaternion rot = null;
-//                  
-//                  Vector3f tranX = new Vector3f(2f, 0, 0);
-//                  Vector3f tranY = new Vector3f(0, 2f, 0);
-//                  Vector3f tranZ = new Vector3f(0, 0, 2f);
-//                  Vector3f tran = null;
-//                  
-//                  float bestMI = Float.NEGATIVE_INFINITY;
-//                  float miStep = 0;
-//                  int failedSteps = 0;
-//                  int stepPhase = 0;
-//                  
-//                 float tranNoiseScale = 1f;
-//                 float rotNoiseScale = 1.0f/25.0f;
-//                 float percentSample = 0.5f;
-//                 boolean doBlur = true;
-//                 
-//                for (int i=0; i<10000; i++) {
-//                      Quaternion testRot1 = new Quaternion();
-//                      Quaternion testRot2 = new Quaternion();
-//                      Vector3f testTran1 = new Vector3f();
-//                      Vector3f testTran2 = new Vector3f();
-//                      
-////                  origRot = new Quaternion((Quaternion)this.model.getCtImage().getAttribute("ImageOrientationQ"));
-////                  origTran = new Vector3f((Vector3f)this.model.getCtImage().getAttribute("ImageTranslation"));
-//                      
-//Vector3f noise = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0));
-//
-//
-//                      if (failedSteps > 12 && stepPhase==0) {
-//                            failedSteps = 0;
-//                            stepPhase++;
-//                            tranX = new Vector3f(0.75f, 0, 0);
-//                            tranY = new Vector3f(0, 0.75f, 0);
-//                            tranZ = new Vector3f(0, 0, 0.75f);                          
-//                            rotx = MutualInformation.toQuaternion((float)(Math.PI/720.0), 0,  0);
-//                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/720.0),  0);
-//                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/720.0));
-//                            percentSample = 0.75f;
-//                            rotNoiseScale *= 0.5f;
-//                            tranNoiseScale *= 0.4;
-//                      }
-//                      else if (failedSteps > 24 && stepPhase==1) {
-//                            failedSteps = 0;
-//                            stepPhase++;
-//                            tranX = new Vector3f(0.2f, 0, 0);
-//                            tranY = new Vector3f(0, 0.2f, 0);
-//                            tranZ = new Vector3f(0, 0, 0.2f);                          
-//                            rotx = MutualInformation.toQuaternion((float)(Math.PI/1440.0), 0,  0);
-//                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/1440.0),  0);
-//                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/1440.0));
-//                            //rotNoiseScale = 0.5f;
-//                           percentSample = 2.0f;
-//                           rotNoiseScale *= 0.5f;
-//                           tranNoiseScale *= 0.25;
-//                           doBlur = false;
-//                      }
-//                      else if (failedSteps > 24 && stepPhase==2) {
-//                          break;
-//                      }
-//                      
-//                      int n = i;//(int)Math.round(Math.random() * 36.0);
-//                      
-//                      switch(n%6) {
-//                          case 0:
-//                              rot = rotx;
-//                              break;
-//                          case 1:
-//                              rot = roty;
-//                              break;
-//                          case 2:
-//                              rot = rotz;
-//                              break;
-//                          case 3:
-//                              tran = tranX;
-//                              break;
-//                          case 4:
-//                              tran = tranY;
-//                              break;
-//                          case 5:
-//                              tran = tranZ;
-//                              break;
-//                          default:
-//                              break;
-//                      }
-//                      
-//                      if (n % 6 < 3) {
-//                          Quaternion.mul(origRot, rot, testRot1);
-//                          Quaternion.mul(origRot, rot.negate(null), testRot2);
-//
-//                          model.getCtImage().setAttribute("ImageOrientationQ", testRot1);
-//
-//                          float testResult1 = mutualInformation.calcMI(percentSample, doBlur);
-//
-//                          model.getCtImage().setAttribute("ImageOrientationQ", testRot2);
-//
-//                          float testResult2 = mutualInformation.calcMI(percentSample, doBlur);
-//
-//                          if (testResult1 > bestMI && testResult1 > testResult2) {
-//                              origRot.set(testRot1.x+noise.x*rotNoiseScale, testRot1.y+noise.y*rotNoiseScale, testRot1.z+noise.z*rotNoiseScale, testRot1.w);
-//                              origRot = origRot.normalise(null);
-//                              mi = testResult1;
-//                              miText.setText(String.format("%1.3f", mi));
-//                          }
-//                          if (testResult2 > bestMI && testResult2 > testResult1) {
-//                              origRot.set(testRot2.x+noise.x*rotNoiseScale, testRot2.y+noise.y*rotNoiseScale, testRot2.z+noise.z*rotNoiseScale, testRot2.w);
-//                              origRot = origRot.normalise(null);
-//                              mi = testResult2;
-//                              miText.setText(String.format("%1.3f", mi));
-//                          }
-//                      }
-//                      else {
-//                          Vector3f.add(origTran, tran, testTran1);
-//                          Vector3f.add(origTran, tran.negate(null), testTran2);
-//
-//                          model.getCtImage().setAttribute("ImageTranslation", testTran1);
-//
-//                          float testResult1 = mutualInformation.calcMI(percentSample, doBlur);
-//
-//                          model.getCtImage().setAttribute("ImageTranslation", testTran2);
-//
-//                          float testResult2 = mutualInformation.calcMI(percentSample, doBlur);
-//
-//                          if (testResult1 > bestMI && testResult1 > testResult2) {
-//                              origTran.set(testTran1.x+noise.x*tranNoiseScale, testTran1.y+noise.y*tranNoiseScale, testTran1.z+noise.z*tranNoiseScale);
-//                              mi = testResult1;
-//                              miText.setText(String.format("%1.3f", mi));
-//                          }
-//                          if (testResult2 > bestMI && testResult2 > testResult1) {
-//                              origTran.set(testTran2.x+noise.x, testTran2.y+noise.y, testTran2.z+noise.z);
-//                              mi = testResult2;
-//                              miText.setText(String.format("%1.3f", mi));
-//                          }
-//                      }
-//                      
-//                      if (mi > bestMI) {
-//                            failedSteps = 0;
-//                            miStep = mi - bestMI;
-//                            bestMI = mi;
-//                            model.getCtImage().setAttribute("ImageTranslation", origTran);
-//                            model.getCtImage().setAttribute("ImageOrientationQ", origRot);
-//                            
-//                            mutualInformation.updateTestImage(joinHistogram);
-//                            histoCanvas.setCTImage(joinHistogram);
-//                            histoCanvas.setMRImage(joinHistogram);
-//                            histoCanvas.setIsDirty(true);
-//                            miText.setText(String.format("%1.4f", mi));
-//                            
-//                            this.setIsDirty(true);
-//                            Main.update();
-//
-//                      }
-//                      else {
-//                          failedSteps++;
-//                      }
-//                      
-//                  }
-//                  mutualInformation.updateTestImage(joinHistogram);
-//                  histoCanvas.setCTImage(joinHistogram);
-//                  histoCanvas.setMRImage(joinHistogram);
-//                  histoCanvas.setIsDirty(true);
-//                  miText.setText(String.format("%1.3f", mi));
-                
-                
-//                float[] orientation2 = new float[6];
-//                orientation2[0] = 1f;
-//                orientation2[4] = 1f;
-//                
-//                this.getModel().getMrImage(0).setAttribute("ImageOrientation", orientation2);
-//                this.getModel().getMrImage(0).setAttribute("ImageOrientationQ", new Quaternion().setIdentity());
-//                this.getModel().getMrImage(0).setAttribute("ImagePosition", new float[3]);
-//                this.getModel().getMrImage(0).setAttribute("ImageTranslation", new Vector3f());
-//                
-//                this.setDisplayMRimage(this.getModel().getMrImage(0));
-                
-                break;
             case "exit":
                 this.release();
                 System.exit(0);
@@ -3122,6 +3055,69 @@ public class DefaultView extends View {
                     this.setDoTransition(true);
                 }
                 break;
+            case "registerMRCT":
+                Button registerButton = (Button)Renderable.lookupByTag("registerMRCT");
+                if (registerButton.getIndicator()) {
+                    Main.startBackgroundWorker("MRCTRegister");
+                }
+                else {
+                    Main.stopBackgroundWorker("MRCTRegister");                    
+                }
+                break;
+            case "addSonication":
+                
+                Sonication newSonication = new Sonication();
+                newSonication.setNaturalFocusLocation(new Vector3f(this.currentTarget.getLocation()));
+                newSonication.setFocusSteering(new Vector3f(this.currentSteering.getLocation()));
+                newSonication.setAttribute("Description", ((TextBox)Renderable.lookupByTag("tbSonicationDescription")).getText());
+                newSonication.setPower(parseTextBoxFloat("tbSonicationAcousticPower"));
+                newSonication.setDuration(parseTextBoxFloat("tbSonicationAcousticPower"));
+                newSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency"));
+
+                model.addSonication(newSonication);
+                
+                this.updateSonicationList();
+                sonicationSelector.setSelectionIndex(model.getSonicationCount()-1);
+                
+                this.mainLayer.setIsDirty(true);
+                
+                break;
+            case "updateSonication":
+                int sIndex = this.sonicationSelector.getSelectionIndex();
+                Sonication selSonication = model.getSonication(sIndex);
+                if (selSonication != null) {
+                    selSonication.setNaturalFocusLocation(new Vector3f(this.currentTarget.getLocation()));
+                    selSonication.setFocusSteering(new Vector3f(this.currentSteering.getLocation()));
+                    selSonication.setDuration(parseTextBoxFloat("tbSonicationDuration"));
+                    selSonication.setPower(parseTextBoxFloat("tbSonicationAcousticPower"));
+                    selSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency"));
+
+                    selSonication.setAttribute("Description", ((TextBox) Renderable.lookupByTag("tbSonicationDescription")).getText());
+
+                    this.updateSonicationList();
+                    sonicationSelector.setSelectionIndex(sIndex);
+                    
+                    this.mainLayer.setIsDirty(true);
+                }
+                break;
         }
+    }
+    
+    private float parseTextBoxFloat(String textboxTagName) {
+        TextBox tb = (TextBox)Renderable.lookupByTag(textboxTagName);
+        String text = tb.getText().trim();
+        int trailWhiteSpace = text.indexOf(" ");
+        if (trailWhiteSpace != -1) {
+            text = text.substring(0, trailWhiteSpace).trim();
+        }
+        float retVal = 0f;
+        try {
+            retVal = Float.parseFloat(text);
+        }
+        catch(NumberFormatException e) {
+            retVal = 0f;
+        }
+        
+        return retVal;       
     }
 }

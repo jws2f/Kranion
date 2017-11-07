@@ -154,7 +154,8 @@ public class Canvas2DLayoutManager extends Renderable implements Animator, Resiz
     }
 
     @Override
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
+        return this;
     }
 
     @Override

@@ -44,6 +44,7 @@ import static org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_S;
 import static org.lwjgl.opengl.GL11.GL_TEXTURE_WRAP_T;
 import static org.lwjgl.opengl.GL11.GL_UNPACK_ALIGNMENT;
 import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_SHORT;
 import static org.lwjgl.opengl.GL11.glBindTexture;
 import static org.lwjgl.opengl.GL11.glDeleteTextures;
 import static org.lwjgl.opengl.GL11.glGenTextures;
@@ -62,6 +63,9 @@ import static org.lwjgl.opengl.GL11.glDeleteTextures;
 import static org.lwjgl.opengl.GL11.glGenTextures;
 import static org.lwjgl.opengl.GL12.GL_TEXTURE_MAX_LEVEL;
 import static org.lwjgl.opengl.GL12.glTexImage3D;
+import static org.lwjgl.opengl.GL30.GL_R16F;
+import static org.lwjgl.opengl.GL30.GL_R16I;
+import static org.lwjgl.opengl.GL30.GL_R16UI;
 import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 
 import org.lwjgl.util.vector.Quaternion;
@@ -146,6 +150,17 @@ public class ImageVolumeUtil {
                 } else if (pixelType == ImageVolume.USHORT_VOXEL) {
                     System.out.println("  building 16bit texture");
 
+ //For debugging center/window display                    
+//                    short[] tmpBuf = (short[]) image.getData();
+//                    for (int i = 0; i < image.getDimension(0).getSize(); i++) {
+//                        for (int j = 0; j < image.getDimension(1).getSize(); j++) {
+//                            for (int k = 0; k < image.getDimension(2).getSize(); k++) {
+//                                int offset = image.getVoxelOffset(i, j, k);
+//                                tmpBuf[offset] = (short)((i * 8) & 0xffff);
+//                            }
+//                        }
+//                    }
+                    
                     ByteBuffer tmp = image.getByteBuffer();
                     tmp.order(ByteOrder.LITTLE_ENDIAN);
                     //ShortBuffer pixelBuf = (tmp.asShortBuffer());

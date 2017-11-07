@@ -86,8 +86,10 @@ public class RenderableAdapter extends Renderable {
     }
 
     @Override
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
         this.renderable.setIsDirty(dirty);
+        
+        return this;
     }
     
 }

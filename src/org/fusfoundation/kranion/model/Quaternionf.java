@@ -1,7 +1,7 @@
-/* 
+/*
  * The MIT License
  *
- * Copyright 2016 Focused Ultrasound Foundation.
+ * Copyright 2017 Focused Ultrasound Foundation.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,37 +21,20 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package org.fusfoundation.dicom;
+package org.fusfoundation.kranion.model;
 
 import java.io.Serializable;
 
 /**
  *
- * @author  jsnell
+ * @author john
  */
-public class DicomUnknown implements Serializable, VrValue {
-
-    private byte[] value;
-    
-    /** Creates a new instance of DicomUnknown */
-    public DicomUnknown() {
-        value = null;
+    public class Quaternionf implements Serializable {
+        public float x, y, z, w;
+        public Quaternionf(float x, float y, float z, float w) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.w = w;
+        }
     }
-    
-    public DicomUnknown(byte[] val) {
-        value = val;
-    }
-
-    public void setVrValue(int vrType, byte[] value) {
-        value = value;
-    }
-    
-    public byte[] getVrValue(int vrType) {
-        return value;
-    }
-    
-    public String toString() {
-        return "???";
-    }
-    
-}

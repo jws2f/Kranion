@@ -61,7 +61,7 @@ public class Landmark extends GUIControl {
     @Override
     public void update(Object newValue) {
         try {
-            Vector3f target = (Vector3f)newValue;
+            Vector3f target = new Vector3f((Vector3f)newValue);
             setLocation(target);
             System.out.println("Landmark.update");
         }

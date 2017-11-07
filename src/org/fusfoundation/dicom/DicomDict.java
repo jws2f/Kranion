@@ -35,7 +35,7 @@ package org.fusfoundation.dicom;
 import java.util.*;
 import java.io.*;
 
-public class DicomDict {
+public class DicomDict implements Serializable {
 
   // This class implements the Singleton pattern
   static private DicomDict theDict = null;

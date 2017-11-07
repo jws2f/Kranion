@@ -32,6 +32,7 @@ import java.io.Serializable;
 import java.nio.*;
 import java.util.*;
 import java.util.Observable;
+import org.fusfoundation.kranion.model.AttributeList;
 
 
 /**
@@ -44,7 +45,7 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     private int voxelCount;
     private Vector voxelData = new Vector();
     private Vector<Integer> voxelType = new Vector();
-    private HashMap attributes = new HashMap();
+    private AttributeList attributes = new AttributeList();
     
     /** Creates a new instance of ImageVolume4D */
     public ImageVolume4D(int voxelType, int x, int y, int z, int t) {

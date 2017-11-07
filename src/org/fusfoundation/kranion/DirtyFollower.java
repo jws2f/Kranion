@@ -44,21 +44,14 @@ public class DirtyFollower extends Renderable {
     }
 
     @Override
-    public boolean getVisible() {
-        return followed.getVisible();
-    }
-
-    @Override
-    public void setVisible(boolean visible) {
-    }
-
-    @Override
     public boolean getIsDirty() {
         return followed.getIsDirty();
     }
 
     @Override
-    public void setIsDirty(boolean dirty) {
+    public Renderable setIsDirty(boolean dirty) {
+        followed.setIsDirty(dirty);
+        return this;
     }
     
 }

@@ -31,7 +31,7 @@ import java.util.*;
  *
  * @author  jsnell
  */
-public class DicomNumber implements VrValue {
+public class DicomNumber implements Serializable, VrValue {
     
      private double value;
      private int    vrType;

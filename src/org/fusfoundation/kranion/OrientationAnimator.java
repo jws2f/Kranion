@@ -131,16 +131,12 @@ public class OrientationAnimator extends Renderable implements Animator {
         return true;
     }
 
-    @Override
-    public void setVisible(boolean visible) {
-    }
+    
 
     @Override
     public boolean getIsDirty() {
         return !isAnimationDone();
     }
 
-    @Override
-    public void setIsDirty(boolean dirty) {
-    }
+    
 }

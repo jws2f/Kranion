@@ -23,19 +23,27 @@
  */
 package org.fusfoundation.kranion.model;
 
+// import the lwjgl Vector classes specifically
+import org.lwjgl.util.vector.Vector3f;
+
 import com.sun.scenario.effect.impl.BufferUtil;
 import java.beans.PropertyChangeEvent;
 import java.io.*;
-import org.lwjgl.util.vector.*;
 import java.util.*;
 import java.nio.FloatBuffer;
-import org.fusfoundation.kranion.model.image.*;
+import org.fusfoundation.kranion.model.image.ImageVolume;
+import org.fusfoundation.kranion.model.image.ImageVolume4D;
+import org.fusfoundation.kranion.model.image.ImageVolumeUtil;
+
 
 /**
  *
  * @author John Snell
  */
 public class Sonication extends Observable implements Serializable{
+
+    private static final long serialVersionUID = 7114004181140529979L;
+    
     private Vector3f natural_focus_location = new Vector3f(0f, 0f, 0f); // UVW/LPS coordinate system
     private Vector3f focus_steering = new Vector3f(0f, 0f, 0f);
     private float power_w;
@@ -43,9 +51,9 @@ public class Sonication extends Observable implements Serializable{
     private float frequency;
     private ImageVolume4D thermometryMagnitude;
     private ImageVolume4D thermometryPhase;
-    private HashMap<String, Object> attributes = new HashMap<String, Object>();
-    private FloatBuffer phases = BufferUtil.newFloatBuffer(1024);
-    private FloatBuffer amplitudes = BufferUtil.newFloatBuffer(1024);
+    private AttributeList attributes = new AttributeList();
+    private float phases[] = new float[1024];
+    private float amplitudes[] = new float[1024];
     
     public Sonication() {
     }
@@ -59,7 +67,9 @@ public class Sonication extends Observable implements Serializable{
     public void clear() {
         attributes.clear();
         ImageVolumeUtil.releaseTextures(thermometryMagnitude);
+        thermometryMagnitude = null;
         ImageVolumeUtil.releaseTextures(thermometryPhase);
+        thermometryPhase = null;
     }
     
     public void setNaturalFocusLocation(Vector3f pos) {
@@ -86,6 +96,9 @@ public class Sonication extends Observable implements Serializable{
     
     public void setFrequency(float freq) {
         frequency = freq;
+        //notify
+        setChanged();
+        notifyObservers(new PropertyChangeEvent(this, "frequency", null, frequency));
     }
     
     public float getFrequency() { return frequency; }
@@ -131,6 +144,10 @@ public class Sonication extends Observable implements Serializable{
         return attributes.get(name);
     }
     
+    public Iterator getAttributeKeys() {
+        return attributes.keySet().iterator();
+    }
+    
     public void removeAttribute(String name) {
         attributes.remove(name);
     }
@@ -141,7 +158,34 @@ public class Sonication extends Observable implements Serializable{
         setChanged();
         notifyObservers(new PropertyChangeEvent(this, "Attribute["+name+"]", null, value));
     }
+        
+    public float getPhase(int channel) {
+        if (channel >= 0 && channel < phases.length) {
+            return phases[channel];
+        } else {
+            return 0f;
+        }
+    }
+
+    public float getAmplitude(int channel) {
+        if (channel >= 0 && channel < phases.length) {
+            return amplitudes[channel];
+        } else {
+            return 0f;
+        }
+    }
     
-    public FloatBuffer getPhases() { return phases; }
-    public FloatBuffer getAmplitudes() { return amplitudes; }
+    public void setPhase(int channel, float value) {
+        if (channel >= 0 && channel < phases.length) {
+            phases[channel] = value;
+//            System.out.println("Export phase " + channel + " = " + value);
+        } 
+    }
+
+    public void setAmplitude(int channel, float value) {
+        if (channel >= 0 && channel < phases.length) {
+            amplitudes[channel] = value;
+//            System.out.println("Export amplitude " + channel + " = " + value);
+        } 
+    }
 }

@@ -407,7 +407,10 @@ System.out.println(selectedDicomObj);
                             image.setAttribute("RescaleIntercept", obj.getVR("RescaleIntercept").getFloatValue());
                             image.setAttribute("RescaleSlope", obj.getVR("RescaleSlope").getFloatValue());
                         }
-                        catch (Exception e) {}
+                        catch (Exception e) {
+                            image.setAttribute("RescaleIntercept", 0f);
+                            image.setAttribute("RescaleSlope", 1f);
+                        }
                         
                         System.out.println("ImageVolume init done");
                     }
@@ -523,7 +526,7 @@ System.out.println(selectedDicomObj);
                                 min = val;
                         }
                         else {
-                            voxelData[offset + v] = (outData[v]);
+                            voxelData[offset + v] = (short)(outData[v]);
                         }
                     }
                     

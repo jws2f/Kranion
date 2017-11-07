@@ -234,8 +234,8 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
                 bounds.width,
                 bounds.height);
         
-        itemBounds.x += 100;
-        itemBounds.width -= 100;
+        itemBounds.x += 10;
+        itemBounds.width -= 10;
         renderText(items.get(i), itemBounds, null, new Color(1.0f, 1.0f, 1.0f, 1.0f), true, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT);
     }        
         
