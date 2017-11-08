@@ -83,7 +83,7 @@ void main(void)
         //float ctOpacity = texture1D(lut_tex, ctTexVal).r;
         color = texture1D(lut_tex, ctTexVal);
 
-        float ctsample = ctTexVal * 32767.0  * ct_rescale_slope + ct_rescale_intercept;
+        float ctsample = ctTexVal * 65535.0  * ct_rescale_slope + ct_rescale_intercept;
         float mrsample = 0;
         float ctval = (ctsample - center)/(window) + 0.5;
         bool noLighting = false;
@@ -114,7 +114,7 @@ void main(void)
 */
         if (slice==last_slice) {
             if (showMR==1) {
-                mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 32767.0  * mr_rescale_slope + mr_rescale_intercept;
+                mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 65535.0  * mr_rescale_slope + mr_rescale_intercept;
                 if (mrsample < mr_threshold && color.a < 0.05 && ovlyTexVal == 0) {
                     discard;
                 }

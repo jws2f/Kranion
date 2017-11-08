@@ -551,7 +551,7 @@ public class ImageCanvas3D extends GUIControl {
 //    }
 
     private void buildLutTexture() {
-            if (lutTextureName == 0) {
+        if (lutTextureName == 0) {
             ByteBuffer buf = ByteBuffer.allocateDirect(4);
             IntBuffer texName = buf.asIntBuffer();
 
@@ -1612,8 +1612,8 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
                 + "void main(void)\n"
                 + "{\n"
                 + "       vec4 color;\n"
-                + "        float ctsample = texture3D(ct_tex, gl_TexCoord[0].stp).r * 32767.0 * 2.0;\n"
-                + "        float mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 32767.0 * 2.0;\n"
+                + "        float ctsample = texture3D(ct_tex, gl_TexCoord[0].stp).r * 65536.0;\n"
+                + "        float mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 65536.0;\n"
                 + "        float ovlyTexVal = texture3D(ovly_tex, gl_TexCoord[5].stp).r; // * 32767.0;\n"
                 + "        if (ctsample < ct_threshold-150 && (showMR!=1 || mrsample < mr_threshold))\n"
                 + "           discard;\n"

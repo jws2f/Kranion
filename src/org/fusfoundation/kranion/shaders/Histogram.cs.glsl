@@ -68,7 +68,7 @@ void main() {
     // is 0 - 32767, although texture() returns normalized values in the
     // range of 0.0 - 1.0
     //int v = int(clamp(value * 32767.0, 0.0, 4095.0));
-    int v = int(clamp(value * 32767.0, 0.0, 4095.0));
+    int v = int(clamp(value * 65535.0, 0.0, 4095.0));
 
     // Add this threads voxel value vote to histogram
     // atomic add keeps other threads from clobbering each other

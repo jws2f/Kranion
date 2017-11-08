@@ -53,7 +53,7 @@ void main() {
                          gl_GlobalInvocationID.z);
 
     // Retrieve the voxel value for this thread (one thread per voxel)
-    float value = imageLoad(myImage3D, imgCoord).r * 32767.0 * ct_rescale_slope + ct_rescale_intercept;
+    float value = imageLoad(myImage3D, imgCoord).r * 65535.0 * ct_rescale_slope + ct_rescale_intercept;
 
     int v = int(value);
 

@@ -199,7 +199,7 @@ vec3 findNormal(vec3 position)
 	for (int i = 0; i<125; i++)
 	{
 		vec3 coord = position + (offset[i] * gradient_delta);
-		float s = texture(image_tex, coord).r * 4095.0;
+		float s = texture(image_tex, coord).r * 65535.0;
 		grad.x += s * xGradZH[i];
 		grad.y += s * yGradZH[i];
 		grad.z += s * zGradZH[i];

@@ -62,13 +62,13 @@ public class TransferFunctionDisplay extends GUIControl {
         }
         opacityThreshold = Math.min(4095, Math.max(0, value));
 
-        float scale = 300f;
+        float scale = 600f;
 
-        float low = (sigmoid(0f, scale));
-        float high = (sigmoid(1f, scale));
+        float low = (sigmoid(-0.5f, scale));
+        float high = (sigmoid(0.5f, scale));
 
-        for (int i=0; i<4095; i++) {
-            float t = (i-opacityThreshold)/2048f + 0.5f;
+        for (int i=0; i<4096; i++) {
+            float t = (i-opacityThreshold*0.5f)/2048f;
 
             //setAlphaValue(i, (mouseY-(y+1f))/(height-2f) * (sigmoid(t, scale) - low) * 1f/(high - low));
             setAlphaValue(i, (sigmoid(t, scale) - low) * 1f/(high - low));
@@ -78,20 +78,21 @@ public class TransferFunctionDisplay extends GUIControl {
     }
     
     public int getMaterialThreshold() { return materialThreshold; }
+    
     public void setMaterialThreshold(int value) {
         if (materialThreshold != value) {
             setIsDirty(true);
         }
         materialThreshold = Math.min(4095, Math.max(0, value));
        
-        float scale = 650f;
+        float scale = 1300f;
         
-        float low = (sigmoid(0f, scale));
-        float high = (sigmoid(1f, scale));
+        float low = (sigmoid(-0.5f, scale));
+        float high = (sigmoid(0.5f, scale));
             
 
         for (int i=0; i<4096; i++) {
-            float t = (i-materialThreshold)/2048f + 0.5f;
+            float t = (i-materialThreshold*0.5f)/2048f;
             
             float blend = (sigmoid(t, scale) - low) * 1f/(high - low);
             
@@ -199,7 +200,7 @@ public class TransferFunctionDisplay extends GUIControl {
                     float height1 = bounds.height-2f;
                     glBegin(GL_LINES);
                         for (int i=1; i<bins.length/4; i++) {
-                            int index = i*4;
+                            int index = i/2*4;
                             glColor4f(lutValues[index], lutValues[index+1], lutValues[index+2], Math.max(lutValues[index+3], 0.3f) * 0.8f);
 //                            if (i>this.materialThreshold) {
 //                                glColor4f(boneColor.x, boneColor.y, boneColor.z, Math.max(alpha[i], 0.3f) * 0.8f);
@@ -318,7 +319,7 @@ public class TransferFunctionDisplay extends GUIControl {
     }
     
     private float sigmoid(float t, float m) {
-            return (1f / (1f + (float)Math.exp(-((t-0.5f)*m))));
+            return (1f / (1f + (float)Math.exp(-((t)*m))));
     }
     
 }

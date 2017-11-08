@@ -107,7 +107,7 @@ void main()
 
             for (int i=0; i<60; i++) {
                 vec3 tcoord = (ct_tex_matrix * vec4 (pp, 1)).xyz;
-                float ctsample = texture(ct_tex,tcoord).r * 32767.0  * ct_rescale_slope + ct_rescale_intercept;
+                float ctsample = texture(ct_tex,tcoord).r * 65535.0  * ct_rescale_slope + ct_rescale_intercept;
 
                 sdr[gid].huSamples[i] = ctsample;
 

@@ -516,7 +516,7 @@ System.out.println(selectedDicomObj);
                     for (int v=0; v<frameSize; v++) {
                         if (!bLosslessJPEG) {
                 //            voxelData[offset + v] = (short)((((int)sliceData[v*2] & 0xff) << 8 | ((int)sliceData[v*2 + 1] & 0xff)) & 0xfffL);
-                            voxelData[offset + v] = (short)(((int)sliceData[v*2] & 0xff) << 8 | ((int)sliceData[v*2 + 1] & 0xff));
+                            voxelData[offset + v] = (short)((sliceData[v*2] & 0xff) << 8 | (sliceData[v*2 + 1] & 0xff));
                             //int val = v%4096;
                             //voxelData[offset + v] = (short)(((int)val & 0xff) << 8 | ((int)val & 0xff));
                             int val = voxelData[offset + v] & 0x0fff;

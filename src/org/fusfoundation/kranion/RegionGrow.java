@@ -39,6 +39,8 @@ import static org.lwjgl.opengl.GL15.GL_READ_WRITE;
 import static org.lwjgl.opengl.GL15.GL_READ_ONLY;
 import static org.lwjgl.opengl.GL15.glMapBuffer;
 import static org.lwjgl.opengl.GL15.glUnmapBuffer;
+import static org.lwjgl.opengl.GL30.GL_R16UI;
+import static org.lwjgl.opengl.GL30.GL_R8UI;
 /**
  *
  * @author john
@@ -379,7 +381,7 @@ public class RegionGrow {
         
         ShortBuffer voxelData = src.getByteBuffer(0).asShortBuffer(); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
         
-        glGetTexImage(GL_TEXTURE_3D, 0, GL_RED, GL_SHORT, voxelData);
+        glGetTexImage(GL_TEXTURE_3D, 0, GL_RED, GL_UNSIGNED_SHORT, voxelData);
         
         short[] imgData = (short[])src.getData(0);
         

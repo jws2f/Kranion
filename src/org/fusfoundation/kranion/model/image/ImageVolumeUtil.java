@@ -166,7 +166,7 @@ public class ImageVolumeUtil {
                     //ShortBuffer pixelBuf = (tmp.asShortBuffer());
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_ALPHA16, texWidth, texHeight, texDepth, 0, GL_ALPHA, GL_SHORT, pixelBuf);
-                    glTexImage3D(GL_TEXTURE_3D, 0, GL_R16, texWidth, texHeight, texDepth, 0, GL_RED, GL_SHORT, tmp);
+                    glTexImage3D(GL_TEXTURE_3D, 0, GL_R16, texWidth, texHeight, texDepth, 0, GL_RED, GL_UNSIGNED_SHORT, tmp);
 //                    glGenerateMipmap(GL_TEXTURE_3D);
                 } else if (pixelType == ImageVolume.FLOAT_VOXEL) {
                     System.out.println("  building float32 texture");

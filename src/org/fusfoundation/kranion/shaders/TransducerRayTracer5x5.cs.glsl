@@ -311,7 +311,7 @@ vec3 findEdge(vec3 start, vec3 direction, bool inWater)
 	for (int i = 0; i<1500; i++) // 150 mm traversal
 	{
 		vec3 tcoord = (ct_tex_matrix * vec4 (pp, 1)).xyz;
-		float ctsample = texture(ct_tex,tcoord).r * 32767.0 * ct_rescale_slope + ct_rescale_intercept;
+		float ctsample = texture(ct_tex,tcoord).r * 65535.0 * ct_rescale_slope + ct_rescale_intercept;
 		if(inWater)
 		{
 			if (ctsample > ct_bone_threshold)
@@ -331,7 +331,7 @@ vec3 findEdge(vec3 start, vec3 direction, bool inWater)
                             while(ctsample < ct_bone_threshold && maxSteps < 500) {
                                 pp -= direction*stepSize;
                                 tcoord = (ct_tex_matrix * vec4 (pp, 1)).xyz;
-                                ctsample = texture(ct_tex,tcoord).r * 32767.0 * ct_rescale_slope + ct_rescale_intercept;
+                                ctsample = texture(ct_tex,tcoord).r * 65535.0 * ct_rescale_slope + ct_rescale_intercept;
                                 maxSteps++;
                             }
                             strike = true;
@@ -360,7 +360,7 @@ vec3 findNormal(vec3 position)
 	for (int i = 0; i<125; i++)
 	{
 		vec3 coord = (ct_tex_matrix * vec4(position+offset[i],1)).xyz;
-		float s = texture(ct_tex,coord).r * 32767.0;
+		float s = texture(ct_tex,coord).r * 65535.0;
 		grad.x += s * xGradZH[i];
 		grad.y += s * yGradZH[i];
 		grad.z += s * zGradZH[i];

@@ -70,14 +70,14 @@ void main() {
          vec4 pos = samplePosition[gid];
 
          vec3 coord = (ct_tex_matrix * pos).xyz;
-         //float ctValue = textureLod(ct_tex,coord, 3.0).r * 32767.0;
-         //float ctValue = filtered_sample(ct_tex,coord).r * 32767.0;
-         float ctValue = texture(ct_tex,coord).r * 32767.0;
+         //float ctValue = textureLod(ct_tex,coord, 3.0).r * 65535.0;
+         //float ctValue = filtered_sample(ct_tex,coord).r * 65535.0;
+         float ctValue = texture(ct_tex,coord).r * 65535.0;
 
          coord = (mr_tex_matrix * pos).xyz;
-         //float mrValue = textureLod(mr_tex,coord, 3.0).r * 32767.0;
-         //float mrValue = filtered_sample(mr_tex,coord).r * 32767.0; // texture() for no filter
-         float mrValue = texture(mr_tex,coord).r * 32767.0;
+         //float mrValue = textureLod(mr_tex,coord, 3.0).r * 65535.0;
+         //float mrValue = filtered_sample(mr_tex,coord).r * 65535.0; // texture() for no filter
+         float mrValue = texture(mr_tex,coord).r * 65535.0;
 
          int ctIndex = int(min(binCount-1, round(ctValue/81.9))); // 4095/50
          int mrIndex = int(min(binCount-1, round(mrValue/81.9))); // 4095/50
