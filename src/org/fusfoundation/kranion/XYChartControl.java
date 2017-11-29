@@ -60,7 +60,7 @@ public class XYChartControl extends GUIControl {
     public void render() {
         if (image != null) {
             Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
-            renderBufferedImage(image, bounds);
+            renderBufferedImageViaTexture(image, bounds);
 //
 //            byte buf[] = (byte[]) image.getRaster().getDataElements(0, 0, image.getWidth(), image.getHeight(), null);
 //
@@ -95,9 +95,13 @@ public class XYChartControl extends GUIControl {
     }
 
     public void newChart() {
+        newChart("Time (s)", "Temp \u00b0C");
+    }
+    
+    public void newChart(String xLabel, String yLabel) {
 
         // Create Chart
-        chart = new XYChartBuilder().width((int) bounds.width).height((int) bounds.height).title(getClass().getSimpleName()).xAxisTitle("Time (s)").yAxisTitle("Temp \u00b0C").build();
+        chart = new XYChartBuilder().width((int) bounds.width).height((int) bounds.height).title(getClass().getSimpleName()).xAxisTitle(xLabel).yAxisTitle(yLabel).build();
 
         // Customize Chart
         chart.getStyler().setChartTitleVisible(false);

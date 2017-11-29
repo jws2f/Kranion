@@ -60,7 +60,7 @@ import org.fusfoundation.kranion.model.image.*;
  *
  * @author john
  */
-public class TransducerRayTracer extends Renderable {
+public class TransducerRayTracer extends Renderable implements Pickable {
 
     private Vector3f steering = new Vector3f(0f, 0f, 0f);
     
@@ -68,6 +68,7 @@ public class TransducerRayTracer extends Renderable {
     private static ShaderProgram refractShader;
     private static ShaderProgram sdrShader;
     private static ShaderProgram pressureShader;
+    private static ShaderProgram pickShader;
     
     private int posSSBo=0; // buffer of element starting center points
     private int colSSBo=0; // buffer of color data per element
@@ -142,9 +143,9 @@ public class TransducerRayTracer extends Renderable {
     private float colormap_min, colormap_max;
     
     public void setImage(ImageVolume image) {
-        if (CTimage != image) {
+//        if (CTimage != image) {
             setIsDirty(true);
-        }
+//        }
         CTimage = image;
         Float value = (Float) image.getAttribute("RescaleIntercept");
         if (value != null) rescaleIntercept = value;
@@ -153,9 +154,9 @@ public class TransducerRayTracer extends Renderable {
     }
     
     public void setTextureRotatation(Vector3f rotationOffset, Trackball tb) {
-        if (trackball == null || !centerOfRotation.equals(rotationOffset) || trackball.getCurrent() != tb.getCurrent()) {
+//        if (trackball == null || !centerOfRotation.equals(rotationOffset) || trackball.getCurrent() != tb.getCurrent()) {
             setIsDirty(true);
-        }
+//        }
         centerOfRotation = rotationOffset;
         trackball = tb;
     }
@@ -173,7 +174,7 @@ public class TransducerRayTracer extends Renderable {
     }
     
     private float boneSpeed = 2652f;//3500f;
-    private float boneRefractionSpeed = 2652f;
+    private float boneRefractionSpeed = 2900f;
     
     public void setTargetSteering(float x, float y, float z) { // (0, 0, 0) = no steering
         if (steering.x != x || steering.y != y || steering.z != z) {
@@ -219,6 +220,11 @@ public class TransducerRayTracer extends Renderable {
             refractShader = new ShaderProgram();
             refractShader.addShader(GL_COMPUTE_SHADER, "shaders/TransducerRayTracer5x5.cs.glsl");
             refractShader.compileShaderProgram();
+        }
+        if (pickShader == null) {
+            pickShader = new ShaderProgram();
+            pickShader.addShader(GL_COMPUTE_SHADER, "shaders/TransducerRayTracerPick.cs.glsl");
+            pickShader.compileShaderProgram();
         }
         if (sdrShader == null) {
             sdrShader = new ShaderProgram();
@@ -517,6 +523,61 @@ public class TransducerRayTracer extends Renderable {
         
         this.updateObservers(new PropertyChangeEvent(this, "rayCalc", null, null));        
     }
+    private void doPickCalc() {
+        pickShader.start();
+        
+        int shaderProgID = refractShader.getShaderProgramID();
+        
+        int texLoc = glGetUniformLocation(shaderProgID, "ct_tex");
+        glUniform1i(texLoc, 0);
+        int texMatLoc = glGetUniformLocation(shaderProgID, "ct_tex_matrix");
+        glUniformMatrix4(texMatLoc, false, this.matrixBuf);
+        
+        int boneLoc = glGetUniformLocation(shaderProgID, "boneSpeed");
+        glUniform1f(boneLoc, boneRefractionSpeed);
+        int waterLoc = glGetUniformLocation(shaderProgID, "waterSpeed");
+        glUniform1f(waterLoc, 1482f);
+        int boneThreshLoc = glGetUniformLocation(shaderProgID, "ct_bone_threshold");
+        glUniform1f(boneThreshLoc, boneThreshold);
+        
+        int rescaleLoc = glGetUniformLocation(shaderProgID, "ct_rescale_intercept");
+        glUniform1f(rescaleLoc, this.rescaleIntercept);
+        rescaleLoc = glGetUniformLocation(shaderProgID, "ct_rescale_slope");
+        glUniform1f(rescaleLoc, this.rescaleSlope);
+        
+        int targetLoc = glGetUniformLocation(shaderProgID, "target");
+        glUniform3f(targetLoc, steering.x, steering.y, steering.z);
+        
+        
+//        int targetLoc = glGetUniformLocation(shaderprogram, "target");
+//        glUniform3f(targetLoc, 0f, 0f, 300f);
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, posSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, colSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, distSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, outDiscSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, outRaysSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, phaseSSBo);
+        
+        // run compute shader
+        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+        org.lwjgl.opengl.GL43.glDispatchCompute(1024 / 256, 1, 1);
+        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
+
+        
+        pickShader.stop();
+        
+//        this.updateObservers(new PropertyChangeEvent(this, "rayCalc", null, null));        
+    }
     
     public void doSDRCalc() {
          // Calculate per element SDR data
@@ -685,6 +746,24 @@ public class TransducerRayTracer extends Renderable {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     
+    public float[] getChannelSkullSamples(int channel) {
+            glBindBuffer(GL_ARRAY_BUFFER, this.sdrSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatSamples = dists.asFloatBuffer();
+            int count = 0;
+            
+            float[] huOut = new float[63];
+            
+            for (int i=0; i<huOut.length; i++) {
+                huOut[i] = floatSamples.get(channel * 63 + i);
+            }
+        
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            
+            return huOut;
+    } 
+    
     public void writeSkullMeasuresFile(File outFile) {
 
         if (outFile != null) {
@@ -811,6 +890,33 @@ public class TransducerRayTracer extends Renderable {
         
         return result;
     }
+    
+    public List<Double> getIncidentAnglesFull() {
+
+        List<Double> result = new ArrayList<>();
+        
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = dists.asFloatBuffer();
+            int count = 0;
+
+                while (floatPhases.hasRemaining()) {
+                    float dist = floatPhases.get();
+                    float sdr = floatPhases.get();
+                    float incidentAngle = floatPhases.get();
+                    float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
+                    
+                    result.add((double)incidentAngle);
+                }
+                
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+        
+        return result;
+    }
+
+    
     public List<Double> getSDRs() {
 
         List<Double> result = new ArrayList<>();
@@ -855,6 +961,37 @@ public class TransducerRayTracer extends Renderable {
                     
                     if (dist >= 0f) {
                         result.add((double)sdr2);
+                    }
+                }
+                
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+        
+        return result;
+    }
+    
+    // this list will contain sdr = -1 for inactive elements
+    public List<Double> getSDR2sFull() {
+
+        List<Double> result = new ArrayList<>();
+        
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = dists.asFloatBuffer();
+            int count = 0;
+
+                while (floatPhases.hasRemaining()) {
+                    float dist = floatPhases.get();
+                    float sdr = floatPhases.get();
+                    float incidentAngle = floatPhases.get();
+                    float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
+                    
+                    if (dist >= 0f) {
+                        result.add((double)sdr2);
+                    }
+                    else {
+                        result.add(-1.0);
                     }
                 }
                 
@@ -1199,7 +1336,7 @@ public class TransducerRayTracer extends Renderable {
         if (!getVisible()) return;
         
         setIsDirty(false);
-        
+                
         if (CTimage == null) return;
         
         setupImageTexture(CTimage, 0, centerOfRotation);
@@ -1548,7 +1685,7 @@ public class TransducerRayTracer extends Renderable {
         
         Integer tn = (Integer) image.getAttribute("textureName");
         
-        if (tn == null) return;
+        if (tn == null) return; // TODO: this should be handled when the 3D texture doesn't exist for some reason (i.e. after some image filter)
         
         int textureName = tn.intValue();
         glBindTexture(GL_TEXTURE_3D, textureName);  
@@ -1732,6 +1869,150 @@ public class TransducerRayTracer extends Renderable {
             pressureShader.release();
             pressureShader = null;
         }
+    }
+
+    @Override
+    public void renderPickable() {
+        
+        if (!getVisible()) return;
+                
+        if (CTimage == null) return;
+        
+        setupImageTexture(CTimage, 0, centerOfRotation);
+        
+        doPickCalc();
+        
+        glActiveTexture(GL_TEXTURE0 + 0);
+        glDisable(GL_TEXTURE_3D);
+        
+        
+
+
+        glTranslatef(-steering.x, -steering.y, -steering.z);
+        
+        glRotatef(this.transducerTilt, 1, 0, 0);
+//        glTranslatef(0, 0, -150);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, outSSBo);
+        glVertexPointer(4, GL_FLOAT, 16*6, 0);
+        glBindBuffer(GL_ARRAY_BUFFER, colSSBo); 
+        glColorPointer(4, GL_FLOAT, 16*6, 0);
+
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
+
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT);
+        
+            glDisable(GL_LIGHTING);
+            
+            if (clipRays) {
+                glEnable(GL_CLIP_PLANE0);
+                glEnable(GL_CLIP_PLANE1);
+            }
+            else {
+                glDisable(GL_CLIP_PLANE0);
+                glDisable(GL_CLIP_PLANE1);
+            }
+            
+            //glEnable(GL_BLEND);
+            //glColor4f(1f, 0f, 0f, 1f);
+            glPointSize(6f);
+
+            // Draw outer skull points
+            if (clipRays) {
+                glDrawArrays(GL_POINTS, 0, 1024);
+            }
+            
+            // Draw inner skull points
+        glBindBuffer(GL_ARRAY_BUFFER, outSSBo);
+        glVertexPointer(4, GL_FLOAT, 16*6, 16*3);
+        glBindBuffer(GL_ARRAY_BUFFER, colSSBo); 
+        glColorPointer(4, GL_FLOAT, 16*6, 16*3);
+        
+        if (clipRays) {
+            glDrawArrays(GL_POINTS, 0, 1024);
+        }
+
+       
+            if (clipRays) {
+            //
+            // Draw normal flags
+            /////////////////////////////////////////////
+            glDisableClientState(GL_VERTEX_ARRAY);
+            glDisableClientState(GL_COLOR_ARRAY);
+
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+            glBindBuffer(GL_ARRAY_BUFFER, outSSBo);
+            glVertexPointer(4, GL_FLOAT, 16, 0);
+            
+            glBindBuffer(GL_ARRAY_BUFFER, colSSBo); 
+            glColorPointer(4, GL_FLOAT, 16, 0);
+            
+            glEnableClientState(GL_VERTEX_ARRAY);
+            glEnableClientState(GL_COLOR_ARRAY);
+        
+            org.lwjgl.opengl.GL11.glLineWidth(1.2f);
+            if (!showEnvelope) {
+                glDrawArrays(GL_LINES, 0, 1024*6);
+            }
+            /////////////////////////////////////////////
+            //
+            }
+            
+            // Draw skull strike discs
+            if (!clipRays) {
+
+            Main.glPushAttrib(GL_LIGHTING_BIT);
+            
+                glDisable(GL_LIGHTING);
+
+                glBindBuffer(GL_ARRAY_BUFFER, outDiscSSBo);
+                glVertexPointer(4, GL_FLOAT, 12*4, 0);
+
+                glBindBuffer(GL_ARRAY_BUFFER, outDiscSSBo);
+                glNormalPointer(GL_FLOAT, 12*4, 16);
+
+                glBindBuffer(GL_ARRAY_BUFFER, outDiscSSBo);
+                glColorPointer(4, GL_FLOAT, 12*4, 32);
+
+                glEnableClientState(GL_VERTEX_ARRAY);
+                glEnableClientState(GL_COLOR_ARRAY);
+                glEnableClientState(GL_NORMAL_ARRAY);
+                glDrawArrays(GL_TRIANGLES, 0, 1024*3*20);
+                
+            Main.glPopAttrib();
+            
+            
+            }
+            else {
+                Main.glPushAttrib(GL_COLOR_BUFFER_BIT);
+                
+                    org.lwjgl.opengl.GL11.glLineWidth(1.0f);
+                    
+                    glBindBuffer(GL_ARRAY_BUFFER, outRaysSSBo);
+                    glVertexPointer(4, GL_FLOAT, 8*4, 0);
+
+                    glBindBuffer(GL_ARRAY_BUFFER, outRaysSSBo);
+                    glColorPointer(4, GL_FLOAT, 8*4, 16);
+
+                    glEnableClientState(GL_VERTEX_ARRAY);
+                    glEnableClientState(GL_COLOR_ARRAY);
+
+                    glDisable(GL_BLEND);
+                    glDrawArrays(GL_LINES, 0, 1024*2);
+                
+                Main.glPopAttrib();
+
+            }
+       
+        Main.glPopAttrib();
+               
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);   
     }
 
 }

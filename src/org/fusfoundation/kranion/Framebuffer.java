@@ -24,8 +24,10 @@
 package org.fusfoundation.kranion;
 
 import java.nio.*;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.Display;
+import static org.lwjgl.opengl.EXTFramebufferObject.GL_COLOR_ATTACHMENT0_EXT;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL14.*;
 import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
@@ -240,6 +242,13 @@ public class Framebuffer extends Renderable implements Resizeable {
       
     }
     
+    // this.bind() first!
+    public void clear() {
+        glClearColor(0f, 0f, 0f, 0.0f);
+        glClearStencil(0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);        
+    }
+    
     public void bind() {
         if (myFBOId == 0) return;
         
@@ -435,6 +444,25 @@ public class Framebuffer extends Renderable implements Resizeable {
         Main.glPopAttrib();
     }
 
+    public int getPixelRGBasInt(int x, int y) { // TODO:
+        glBindFramebuffer(GL_FRAMEBUFFER, myFBOId);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+        
+        ByteBuffer buf = BufferUtils.createByteBuffer(4);
+        
+//        System.out.println("reading framebuffer pixel " + x + ", " + y);
+        glReadPixels(x, y, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                
+        byte b1 = buf.get();
+        byte b2 = buf.get();
+        byte b3 = buf.get();
+        
+        return (b3 & 0xff) << 16 |(b2 & 0xff) << 8 | (b1 & 0xff);
+        
+    }
+    
     @Override
     public void release() {
         glDeleteTextures(renderedTextureID);

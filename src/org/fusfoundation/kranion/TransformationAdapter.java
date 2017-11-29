@@ -37,7 +37,7 @@ import org.lwjgl.util.vector.Quaternion;
  *
  * @author john
  */
-public class TransformationAdapter extends Renderable {
+public class TransformationAdapter extends Renderable implements Pickable {
 
     private Renderable child;
     
@@ -169,5 +169,28 @@ public class TransformationAdapter extends Renderable {
     public Renderable setIsDirty(boolean dirty) {
         child.setIsDirty(dirty);
         return this;
+    }
+
+    @Override
+    public void renderPickable() {
+        if (!this.getVisible()) return;
+        
+        if (child instanceof Pickable) {
+            glMatrixMode(GL_MODELVIEW);
+            Main.glPushMatrix();
+
+            // Translation
+                glTranslatef(translation.x, translation.y, translation.z);
+
+            // Rotation
+                toMatrix4f(rotation).store(rotationBuffer);
+                rotationBuffer.flip();
+                glMultMatrix(rotationBuffer);
+
+
+                ((Pickable)child).renderPickable();
+
+            Main.glPopMatrix();
+        }
     }
 }

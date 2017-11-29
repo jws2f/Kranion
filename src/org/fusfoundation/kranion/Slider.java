@@ -99,9 +99,15 @@ public class Slider extends GUIControl {
     }
     
     public void setCurrentValue(float value) {
+        float old = current;
         this.current = Math.max(this.min, Math.min(value, this.max));
         generateLabel();
         setIsDirty(true);
+        
+        if (old != current) {
+            setIsDirty(true);
+            fireActionEvent();
+        }
     }
     
     public float getCurrentValue() { return current; }
@@ -158,18 +164,14 @@ public class Slider extends GUIControl {
                         scale = 10f;
                     }
                     
-                    current = grabbedCurrent + (float)((x - xgrab)/scale)/(float)(troughLength - handleLength) * (max - min);
+                    float newVal = grabbedCurrent + (float)((x - xgrab)/scale)/(float)(troughLength - handleLength) * (max - min);
                                         
                     xgrab = x;
-                    grabbedCurrent = current;
+                    grabbedCurrent = newVal;
                     
                     System.out.println("Slider val: " + x + " " + xgrab + " " + current);
-                    setCurrentValue(current);
+                    setCurrentValue(newVal);
                     
-                    if (old != current) {
-                        setIsDirty(true);
-                        fireActionEvent();
-                    }
                 }
             }
         }
@@ -366,41 +368,45 @@ glDisable(GL_CULL_FACE);
     }
 
     public void renderLabel() {
-        // Overlay demographics
         
         if (labelImage == null) {
             generateLabel();
         }
         
         if (labelImage != null) {
-            Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
-
-            byte buf[] = (byte[]) labelImage.getRaster().getDataElements(0, 0, labelImage.getWidth(), labelImage.getHeight(), null);
-
-
-        //            glEnable(GL_BLEND);
-        //            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                    glPixelZoom(1.0f, -1.0f);
-                    //glRasterPos2d(-1.0, 1.0);
-
-                    glDisable(GL_CLIP_PLANE0);
-                    glDisable(GL_CLIP_PLANE1);
-                    glDisable(GL_DEPTH_TEST);
-
-                    ByteBuffer bbuf = ByteBuffer.allocateDirect(buf.length);
-                    bbuf.put(buf, 0, buf.length);
-                    bbuf.flip();
-                    glRasterPos2f(bounds.x, bounds.y+labelImage.getHeight()/labelScale);
-                    glDrawPixels(labelImage.getWidth(), labelImage.getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, bbuf);
-
-                    //      }
-                    //     glPopMatrix();
-                    //  }
-                    //  glMatrixMode(GL_PROJECTION);
-                    //   glPopMatrix();
-//                    glDisable(GL_BLEND);
-
-            Main.glPopAttrib();
+//            Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+//
+//            byte buf[] = (byte[]) labelImage.getRaster().getDataElements(0, 0, labelImage.getWidth(), labelImage.getHeight(), null);
+//
+//
+//        //            glEnable(GL_BLEND);
+//        //            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+//                    glPixelZoom(1.0f, -1.0f);
+//                    //glRasterPos2d(-1.0, 1.0);
+//
+//                    glDisable(GL_CLIP_PLANE0);
+//                    glDisable(GL_CLIP_PLANE1);
+//                    glDisable(GL_DEPTH_TEST);
+//
+//                    ByteBuffer bbuf = ByteBuffer.allocateDirect(buf.length);
+//                    bbuf.put(buf, 0, buf.length);
+//                    bbuf.flip();
+//                    glRasterPos2f(bounds.x, bounds.y+labelImage.getHeight()/labelScale);
+//                    glDrawPixels(labelImage.getWidth(), labelImage.getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, bbuf);
+//
+//                    //      }
+//                    //     glPopMatrix();
+//                    //  }
+//                    //  glMatrixMode(GL_PROJECTION);
+//                    //   glPopMatrix();
+////                    glDisable(GL_BLEND);
+//
+//            Main.glPopAttrib();
+            
+            this.renderBufferedImageViaTexture(labelImage,
+                    new Rectangle(bounds.x, bounds.y,
+                                    labelImage.getWidth(), labelImage.getHeight())
+                );
         }        
     }
     

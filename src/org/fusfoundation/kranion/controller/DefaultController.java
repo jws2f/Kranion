@@ -144,7 +144,9 @@ public class DefaultController extends Controller {
                     currentMRindex = ((Integer)model.getAttribute("currentMRSeries")).intValue();
                 }
                 catch(Exception e1) {}
-                model.getMrImage(currentMRindex).setAttribute("WindowWidth", slider.getCurrentValue());
+                if (model.getMrImageCount() > currentMRindex) {
+                    model.getMrImage(currentMRindex).setAttribute("WindowWidth", slider.getCurrentValue());
+                }
             }
             catch(NullPointerException npe) {
                 npe.printStackTrace();
@@ -159,7 +161,9 @@ public class DefaultController extends Controller {
                     currentMRindex = ((Integer)model.getAttribute("currentMRSeries")).intValue();
                 }
                 catch(Exception e1) {}
-                model.getMrImage(currentMRindex).setAttribute("WindowCenter", slider.getCurrentValue());
+                if (model.getMrImageCount() > currentMRindex) {
+                    model.getMrImage(currentMRindex).setAttribute("WindowCenter", slider.getCurrentValue());
+                }
             }
             catch(NullPointerException npe) {
                 npe.printStackTrace();

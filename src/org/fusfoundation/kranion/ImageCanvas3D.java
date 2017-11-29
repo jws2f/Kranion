@@ -66,7 +66,7 @@ import static org.lwjgl.opengl.GL15.glGenBuffers;
  *
  * @author jsnell
  */
-public class ImageCanvas3D extends GUIControl {
+public class ImageCanvas3D extends GUIControl implements Pickable {
 
     private ImageVolume CTimage, MRimage, TransferFunction, OverlayImage=null;
     private int imageChannel = 0;
@@ -121,7 +121,7 @@ public class ImageCanvas3D extends GUIControl {
     private static int mr_thresholdUniform = 0, ct_thresholdUniform = 0;
 //    private static int shaderprogram = 0;
 //    private static int shaderprogram2D = 0;
-    private ShaderProgram shader, pressureShader, thermometryShader, shader2D;
+    private ShaderProgram shader, pressureShader, thermometryShader, shader2D, pickShader;
     
     private boolean doVolumeRender = false;
     private boolean showMR = true;
@@ -129,6 +129,7 @@ public class ImageCanvas3D extends GUIControl {
     
     private boolean showPressure = false;
     private boolean showThermometry = false;
+    private boolean doPicking = false;
 
     private int orientation = 0; // temp hack for now, playing with tex matrix ops
     
@@ -1065,6 +1066,10 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
                 shaderToUse = shader2D;
             }
             
+            if (doPicking) {
+                shaderToUse = pickShader;
+            }
+            
         int sliceUniform = 0;
         int lastSliceUniform = 0;
         
@@ -1642,6 +1647,9 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         Shader fragShader = new Shader();
         fragShader.addShaderSource(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRend.fs.glsl");
         
+        Shader fragShaderPick = new Shader();
+        fragShaderPick.addShaderSource(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRendPick.fs.glsl");
+        
         Shader fragShaderPressure = new Shader();
         fragShaderPressure.addShaderSource(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRendWPressure.fs.glsl");
         
@@ -1655,6 +1663,11 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         shader.addShader(vertexShader);
         shader.addShader(fragShader);
         shader.compileShaderProgram();
+        
+        pickShader = new ShaderProgram();
+        pickShader.addShader(vertexShader);
+        pickShader.addShader(fragShaderPick);
+        pickShader.compileShaderProgram();
         
         pressureShader = new ShaderProgram();
         pressureShader.addShader(vertexShader);
@@ -1682,6 +1695,17 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         catch(Exception e) {
             System.out.println(this + ": Wrong or NULL new value.");
         }
+    }
+
+    @Override
+    public void renderPickable() {
+        doPicking = true;
+        
+        if (!getVisible()) return;
+        
+        draw();
+        
+        doPicking = false;
     }
     
 }

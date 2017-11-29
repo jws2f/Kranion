@@ -248,6 +248,7 @@ public class Main implements ProgressListener {
         view.setModel(model);
         view.setPropertyPrefix("Model.Attribute");
         view.setController(controller);
+        view.setTag("DefaultView");
 
         controller.setView(view);
 

@@ -84,7 +84,7 @@ void main()
     float skullThickness = length(pos2 - pos1);
     float finalRaySegmentDistance = d[gid].dist; // -1 indicates ineffective element
 
-    vec3 pp = pos1 - v*5.0;
+    vec3 pp = pos1 - v*10.0;
 
     for (int i=0; i<60; i++) {
         vec3 tcoord = (ct_tex_matrix * vec4 (pp, 1)).xyz;

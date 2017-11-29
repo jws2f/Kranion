@@ -100,10 +100,12 @@ void main()
     float sdr2Sum = 0.0;
     float sdrDivisor = 0.0;
 
-    for (int x=-2; x<=2; x++) {
-        for (int y=-2; y<=2; y++) {
+    const float offsets[5] = float[5](-2, -1, 1, 2, 0);
 
-            vec3 pp = pos1 - v*10.0 + 2.25*x*xvec + 2.25*y*yvec;
+    for (int x=0; x<5; x++) {
+        for (int y=0; y<5; y++) {
+
+            vec3 pp = pos1 - v*10.0 + 2.25*offsets[x]*xvec + 2.25*offsets[y]*yvec;
 
             for (int i=0; i<60; i++) {
                 vec3 tcoord = (ct_tex_matrix * vec4 (pp, 1)).xyz;
@@ -174,9 +176,7 @@ void main()
             sdr[gid].minVal = minValueIndex;
 
             if (leftPeakIndex != -1 && rightPeakIndex != -1 && minValueIndex != -1) {
-                if (x==0 && y==0) { // just central axis ray
-                    sdrSum += minValue/((sdr[gid].huSamples[leftPeakIndex] + sdr[gid].huSamples[rightPeakIndex])/2.0);
-                }
+                sdrSum += minValue/((sdr[gid].huSamples[leftPeakIndex] + sdr[gid].huSamples[rightPeakIndex])/2.0);
 
                 if (sdr[gid].huSamples[leftPeakIndex] != 0.0) {
                     sdrDivisor += 1.0;
@@ -186,6 +186,7 @@ void main()
 
         } // y for loop
     } // x for loop
+
 
     d[gid].sdr = (sdrSum == 0.0 ? -1 : sdrSum);
 

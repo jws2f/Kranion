@@ -529,20 +529,28 @@ void main()
 	o[gid].pos[5].xyz = finalPoint;
         o[gid].pos[5].w = 1;
         
+
+        uint id = gid + 5; // offset for now to make room for CT=1, MR=2, Frame=3; TODO: add better management of id's
+
+        uint red = id & 0xff;
+        uint green = (id >> 8) & 0xf;
+        ivec2 code = ivec2(red, green);
+        outColor = vec4(code.x * 1.0/255.0, code.y * 1.0/255.0, 0, 1);
+
         for (int i=0; i<6; i++) {
-            c[gid].color[i].xyz = outColor.xyz * 0.9;
+            c[gid].color[i].xyz = outColor.xyz;
             c[gid].color[i].w = outColor.w;
         }
 
         outRays[gid*2].pos.xyz = pos.xyz;
         outRays[gid*2].pos.w = 1.0;
-        outRays[gid*2].col.xyz = outColor.xyz * 0.9;
-        outRays[gid*2].col.w = 0.7;
+        outRays[gid*2].col.xyz = outColor.xyz;
+        outRays[gid*2].col.w =outColor.w;
 
         outRays[gid*2+1].pos.xyz = firstCollision.xyz;
         outRays[gid*2+1].pos.w = 1.0;
-        outRays[gid*2+1].col.xyz = outColor.xyz * 0.9;
-        outRays[gid*2+1].col.w = 0.7;
+        outRays[gid*2+1].col.xyz = outColor.xyz;
+        outRays[gid*2+1].col.w = outColor.w;
 
         // discs normal to outer skull surface
         vec3 xvec = normalize(cross(normal, vec3(0, 0, 1)));
@@ -570,21 +578,21 @@ void main()
             outDiscTris[startIndex].pos.w = 1.0;
             outDiscTris[startIndex].norm.xyz = normal;
             outDiscTris[startIndex].norm.w = 0.0;
-            outDiscTris[startIndex].col.xyz = outColor.xyz * 0.8;
-            outDiscTris[startIndex].col.a = 1.0;
+            outDiscTris[startIndex].col.xyz = outColor.xyz;
+            outDiscTris[startIndex].col.a = outColor.w;
 
             outDiscTris[startIndex+1].pos.xyz = firstCollision.xyz - normal + 2.0 *(cos(angle1)*xvec + sin(angle1)*yvec);
             outDiscTris[startIndex+1].pos.w = 1.0;
             outDiscTris[startIndex+1].norm.xyz = normal;
             outDiscTris[startIndex+1].norm.w = 0.0;
-            outDiscTris[startIndex+1].col.xyz = outColor.xyz * 0.8;
-            outDiscTris[startIndex+1].col.a = 1.0;
+            outDiscTris[startIndex+1].col.xyz = outColor.xyz;
+            outDiscTris[startIndex+1].col.a = outColor.w;
 
             outDiscTris[startIndex+2].pos.xyz = firstCollision.xyz - normal + 2.0 *(cos(angle2)*xvec + sin(angle2)*yvec);
             outDiscTris[startIndex+2].pos.w = 1.0;
             outDiscTris[startIndex+2].norm.xyz = normal;
             outDiscTris[startIndex+2].norm.w = 0.0;
-            outDiscTris[startIndex+2].col.xyz = outColor.xyz * 0.8;
-            outDiscTris[startIndex+2].col.a = 1.0;
+            outDiscTris[startIndex+2].col.xyz = outColor.xyz;
+            outDiscTris[startIndex+2].col.a = outColor.w;
         }
 }

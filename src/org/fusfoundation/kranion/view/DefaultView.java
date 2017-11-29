@@ -90,6 +90,8 @@ import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
 import java.util.Observable;
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import org.fusfoundation.kranion.Framebuffer;
 import org.fusfoundation.kranion.MRCTRegister;
 import org.fusfoundation.kranion.RegionGrow;
 import org.fusfoundation.kranion.Renderable;
@@ -191,6 +193,8 @@ public class DefaultView extends View {
     private XYChartControl thermometryChart;
     private HistogramChartControl incidentAngleChart, sdrChart;
     
+    private XYChartControl skullProfileChart;
+    
 //    private Framebuffer overlay = new Framebuffer();
 //    private Framebuffer overlayMSAA = new Framebuffer();
 //    private Framebuffer mainLayerMSAA = new Framebuffer();
@@ -199,6 +203,8 @@ public class DefaultView extends View {
     private RenderLayer background = new RenderLayer(1);
     private RenderLayer mainLayer = new RenderLayer(8);
     private RenderLayer overlay = new RenderLayer(8);
+    
+    private Framebuffer pickLayer = new Framebuffer();
     
     private FlyoutPanel flyout1 = new FlyoutPanel();
     private FlyoutPanel flyout2 = new FlyoutPanel();
@@ -332,38 +338,40 @@ public class DefaultView extends View {
         sonicationSelector.setPropertyPrefix("Model.Attribute");
         model.addObserver(sonicationSelector);
         
+        flyout2.addTab("File"); // Just to make sure this is the first tab
+        
         flyout2.setBounds(0, Display.getHeight()-300, Display.getWidth(), 300);
         flyout2.setAutoExpand(true);
         flyout2.setFlyDirection(FlyoutPanel.direction.SOUTH);
         flyout2.setTag("MainFlyout");
                 
-        Button button = new Button(Button.ButtonType.TOGGLE_BUTTON, 10, 25, 120, 25, controller);
+        Button button = new Button(Button.ButtonType.TOGGLE_BUTTON, 10, 125, 120, 25, controller);
         button.setTitle("Raytracer");
         button.setCommand("showRayTracer");
         button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(button);
-        flyout2.addChild(button);
+        flyout2.addChild("View", button);
         
-        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 25, 120, 25, controller);
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 125, 120, 25, controller);
         button.setTitle("Clip");
         button.setCommand("doClip");
         button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(button);
-        flyout2.addChild(button);
+        flyout2.addChild("View", button);
         
-        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 60, 120, 25, controller);
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 160, 120, 25, controller);
         button.setTitle("Frame");
         button.setCommand("doFrame");
         button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(button);
-        flyout2.addChild(button);
+        flyout2.addChild("View", button);
         
-        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 10, 60, 120, 25, controller);
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 10, 160, 120, 25, controller);
         button.setTitle("Imaging");
         button.setCommand("doMRI");
         button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(button);
-        flyout2.addChild(button);
+        flyout2.addChild("View", button);
 
 //        // new added part
 //         button = new Button(Button.ButtonType.TOGGLE_BUTTON, 400, 205, 240, 25, controller);
@@ -385,25 +393,26 @@ public class DefaultView extends View {
 //        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 830, 160, 100, 25, controller).setTitle("Ellipse -").setCommand("EllipseMinus"));
 //             
 
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 10, 240, 200, 25, this).setTitle("Open...").setCommand("openKranionFile"));
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 10, 205, 200, 25, this).setTitle("Save...").setCommand("saveKranionFile"));
       
         
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 250, 200, 25, controller).setTitle("Load CT...").setCommand("loadCT"));
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 215, 250, 125, 25, this).setTitle("Filter CT").setCommand("filterCT"));
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 230, 240, 200, 25, controller).setTitle("Import DICOM CT...").setCommand("loadCT"));
         
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 215, 200, 25, controller).setTitle("Load MR...").setCommand("loadMR"));
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON,230, 205, 200, 25, controller).setTitle("Import DICOM MR...").setCommand("loadMR"));
 
-        Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 215, 215, 125, 25, this);
+        Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 10, 205, 125, 25, this);
         regButton.setTitle("Registration").setCommand("registerMRCT").setTag("registerMRCT");
         regButton.setPropertyPrefix("Model.Attribute");
-        flyout2.addChild(regButton);
+        flyout2.addChild("View", regButton);
         
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON,10, 140, 200, 25, this).setTitle("Exit").setCommand("exit"));
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 200, 25, this).setTitle("Exit").setCommand("exit"));
                 
 //        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 250, 220, 25, controller).setTitle("Find Fiducials").setCommand("findFiducials"));
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 215, 220, 25, this).setTitle("Save Skull Params").setCommand("saveSkullParams"));
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 180, 220, 25, this).setTitle("Save ACT file").setCommand("saveACTfile"));
+        flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 115, 220, 25, this).setTitle("Save Skull Params...").setCommand("saveSkullParams"));
+        flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 80, 220, 25, this).setTitle("Save ACT file...").setCommand("saveACTfile"));
         
-        Slider slider1 = new Slider(800, 75, 410, 25, controller);
+        Slider slider1 = new Slider(750, 100, 410, 25, controller);
         slider1.setTitle("Average bone speed");
         slider1.setCommand("boneSOS"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -411,10 +420,10 @@ public class DefaultView extends View {
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.0f m/s");
         slider1.setCurrentValue(2652);
-        flyout2.addChild(slider1);
+        flyout2.addChild("View", slider1);
         model.addObserver(slider1);
         
-        slider1 = new Slider(800, 25, 410, 25, controller);
+        slider1 = new Slider(750, 50, 410, 25, controller);
         slider1.setTitle("Cortical bone speed");
         slider1.setCommand("boneRefractionSOS"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -422,10 +431,10 @@ public class DefaultView extends View {
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.0f m/s");
         slider1.setCurrentValue(2900);
-        flyout2.addChild(slider1);
+        flyout2.addChild("View", slider1);
         model.addObserver(slider1);
         
-        slider1 = new Slider(800, 200, 410, 25, controller);
+        slider1 = new Slider(750, 225, 410, 25, controller);
         slider1.setTitle("Transducer tilt");
         slider1.setCommand("transducerXTilt"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -433,7 +442,7 @@ public class DefaultView extends View {
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.0f degrees");
         slider1.setCurrentValue(0);
-        flyout2.addChild(slider1);
+        flyout2.addChild("View", slider1);
         model.addObserver(slider1);
         
                // for the slider of the ellipse function
@@ -448,7 +457,7 @@ public class DefaultView extends View {
 //        flyout2.addChild(slider1);
 //        model.addObserver(slider1);
         
-        slider1 = new Slider(800, 130, 410, 25, controller);
+        slider1 = new Slider(750, 155, 410, 25, controller);
         slider1.setTitle("VR Slicing");
         slider1.setCommand("foregroundVolumeSlices"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -456,12 +465,39 @@ public class DefaultView extends View {
         slider1.setLabelWidth(120);
         slider1.setFormatString("%3.0f");
         slider1.setCurrentValue(0);
-        flyout2.addChild(slider1);
+        flyout2.addChild("View", slider1);
         model.addObserver(slider1);
         
-        flyout3.setBounds(Display.getWidth() - 400, 200, 400, 375);
+        
+        skullProfileChart = new XYChartControl(250, 10, 500, 250);
+        flyout2.addChild("Transducer", skullProfileChart);
+        
+        textbox = (TextBox)new TextBox(150, 225, 60, 25, "", this).setTitle("Channel").setCommand("currentTransducerChannelNum");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        textbox = (TextBox)new TextBox(150, 190, 60, 25, "", this).setTitle("SDR").setCommand("currentTransducerChannelSDR");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        textbox = (TextBox)new TextBox(150, 155, 60, 25, "", this).setTitle("Incident Angle").setCommand("currentTransducerChannelOuterAngle");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        textbox = (TextBox)new TextBox(150, 120, 60, 25, "", this).setTitle("Skull Thickness").setCommand("currentTransducerChannelSkullThickness");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        
+        flyout3.addTab("CT"); // Make sure this is the first tab
+        flyout3.setBounds(Display.getWidth() - 400, 200, 400, 275);
         flyout3.setFlyDirection(FlyoutPanel.direction.WEST);
         
+        flyout3.addChild("CT", new Button(Button.ButtonType.BUTTON, 10, 30, 150, 25, this).setTitle("Filter CT").setCommand("filterCT"));
         
         slider1 = new Slider(10, 150, 380, 25, controller);
         slider1.setTitle("MR Center");
@@ -471,7 +507,7 @@ public class DefaultView extends View {
         slider1.setLabelWidth(120);
         slider1.setFormatString("%4.0f");
         slider1.setCurrentValue(400);
-        flyout3.addChild(slider1);
+        flyout3.addChild("MR", slider1);
         model.addObserver(slider1);
         
         slider1 = new Slider(10, 90, 380, 25, controller);
@@ -482,7 +518,7 @@ public class DefaultView extends View {
         slider1.setLabelWidth(120);
         slider1.setFormatString("%4.0f");
         slider1.setCurrentValue(400);
-        flyout3.addChild(slider1);
+        flyout3.addChild("MR", slider1);
         model.addObserver(slider1);
 
         slider1 = new Slider(10, 30, 380, 25, controller);
@@ -493,10 +529,10 @@ public class DefaultView extends View {
         slider1.setLabelWidth(120);
         slider1.setFormatString("%4.0f");
         slider1.setCurrentValue(400);
-        flyout3.addChild(slider1);
+        flyout3.addChild("MR", slider1);
         model.addObserver(slider1);
         
-        slider1 = new Slider(10, 270, 380, 25, controller);
+        slider1 = new Slider(10, 150, 380, 25, controller);
         slider1.setTitle("CT Center");
         slider1.setCommand("CTcenter"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -504,10 +540,10 @@ public class DefaultView extends View {
         slider1.setLabelWidth(120);
         slider1.setFormatString("%4.0f");
         slider1.setCurrentValue(400);
-        flyout3.addChild(slider1);
+        flyout3.addChild("CT", slider1);
         model.addObserver(slider1);
         
-        slider1 = new Slider(10, 210, 380, 25, controller);
+        slider1 = new Slider(10, 90, 380, 25, controller);
         slider1.setTitle("CT Window");
         slider1.setCommand("CTwindow"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -515,7 +551,7 @@ public class DefaultView extends View {
         slider1.setLabelWidth(120);
         slider1.setFormatString("%4.0f");
         slider1.setCurrentValue(400);
-        flyout3.addChild(slider1);
+        flyout3.addChild("CT", slider1);
         model.addObserver(slider1);
         
 //                flyout2.addChild(new ImageLabel("images/3dmoveicon.png", 350, 50, 200, 200));
@@ -523,11 +559,11 @@ public class DefaultView extends View {
                 
                 RadioButtonGroup buttonGrp1 = new RadioButtonGroup();
                 
-                Button radio1 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 25, 150, 25, this);
+                Button radio1 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 125, 150, 25, this);
                 radio1.setTitle("Rotate Skull");
                 radio1.setCommand("rotateSkull");
                 
-                Button radio2 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 60, 150, 25, this);
+                Button radio2 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 160, 150, 25, this);
                 radio2.setTitle("Rotate Head");
                 radio2.setCommand("rotateHead");
                 
@@ -535,23 +571,23 @@ public class DefaultView extends View {
 //                radio3.setTitle("Rotate Frame");
 //                radio3.setCommand("rotateFrame");
                 
-                Button radio4 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 95/*130*/, 150, 25, this);
+                Button radio4 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 195/*130*/, 150, 25, this);
                 radio4.setTitle("Rotate Scene");
                 radio4.setCommand("rotateScene");
                 radio4.setIndicator(true);
             
                 
-                Button radio5 = new Button(Button.ButtonType.RADIO_BUTTON, 500, 25, 150, 25, this);
+                Button radio5 = new Button(Button.ButtonType.RADIO_BUTTON, 500, 125, 150, 25, this);
                 radio5.setTitle("Translate Skull");
                 radio5.setCommand("translateSkull");
                 
-                Button radio6 = new Button(Button.ButtonType.RADIO_BUTTON, 500, 60, 150, 25, this);
+                Button radio6 = new Button(Button.ButtonType.RADIO_BUTTON, 500, 160, 150, 25, this);
                 radio6.setTitle("Translate Head");
                 radio6.setCommand("translateHead");
                 
-//                Button radio7 = new Button(Button.ButtonType.RADIO_BUTTON, 500, 95, 150, 25, this);
-//                radio7.setTitle("Translate Frame");
-//                radio7.setCommand("translateFrame");
+                Button radio7 = new Button(Button.ButtonType.RADIO_BUTTON, 500, 195, 150, 25, this);
+                radio7.setTitle("Translate Frame");
+                radio7.setCommand("translateFrame");
                 
 
 
@@ -561,7 +597,7 @@ public class DefaultView extends View {
                 radio4.setDrawBackground(false);
                 radio5.setDrawBackground(false);
                 radio6.setDrawBackground(false);
-//                radio7.setDrawBackground(false);
+                radio7.setDrawBackground(false);
                 
                 buttonGrp1.addChild(radio1);
                 buttonGrp1.addChild(radio2);
@@ -569,12 +605,12 @@ public class DefaultView extends View {
                 buttonGrp1.addChild(radio4);
                 buttonGrp1.addChild(radio5);
                 buttonGrp1.addChild(radio6);
-//                buttonGrp1.addChild(radio7);
+                buttonGrp1.addChild(radio7);
                 
-                flyout2.addChild(buttonGrp1);
+                flyout2.addChild("View", buttonGrp1);
 
         
-        flyout3.addChild(mrSeriesSelector = (PullDownSelection)new PullDownSelection(10, 325, 380, 25, controller).setTitle("MR Series").setCommand("selectMRSeries"));
+        flyout3.addChild("MR", mrSeriesSelector = (PullDownSelection)new PullDownSelection(10, 210, 380, 25, controller).setTitle("MR Series").setCommand("selectMRSeries"));
         
         mrBore = new Cylinder(300.0f, 50.0f, -25.0f, -1f);
         mrBoreOuter = new Cylinder(310.0f, 50.0f, -25.0f, 1f);
@@ -809,7 +845,7 @@ public class DefaultView extends View {
         CoordinateWidget widget = new CoordinateWidget();
         widget.setTrackball(trackball);
         overlay.addChild(widget);
-      
+              
         background.setSize(Display.getWidth(), Display.getHeight());
         overlay.setSize(Display.getWidth(), Display.getHeight());
         mainLayer.setSize(Display.getWidth(), Display.getHeight());
@@ -817,9 +853,73 @@ public class DefaultView extends View {
         scene.addChild(background);
         scene.addChild(mainLayer);
         scene.addChild(overlay);
+        
         scene.addChild(transition); // must be last to work properly
         
+        
         this.transition.doFadeFromBlack(0.75f);
+    }
+    
+    public int doPick(int mouseX, int mouseY) {
+        int result = 0;
+        
+
+        pickLayer.bind();
+        pickLayer.clear();
+        
+        preRenderSetup();
+        scene.renderPickable();
+        
+        pickLayer.unbind();
+        
+        result = pickLayer.getPixelRGBasInt(mouseX, mouseY);
+        
+        int index = result-5;
+        
+        if (index >= 0 && index < 1024) { // transducer channel
+            double angle = transRayTracer.getIncidentAnglesFull().get(index);
+            double sdr = transRayTracer.getSDR2sFull().get(index);
+            float samples[] = transRayTracer.getChannelSkullSamples(index);
+            double yData[] = new double[60];
+            double xData[] = new double[60];
+            
+            for (int i=0; i<60; i++) {
+                xData[i] = i * 0.5f - 10f;
+                yData[i] = (double)samples[i];
+            }
+            
+            model.setAttribute("currentTransducerChannelNum", String.format("%d", result-5));
+            model.setAttribute("currentTransducerChannelOuterAngle", String.format("%3.1f", angle));
+            model.setAttribute("currentTransducerChannelSDR", String.format("%3.2f", sdr));
+            
+            skullProfileChart.newChart("Depth (mm)", "HU");
+            skullProfileChart.addSeries("HU", xData, yData, new Vector4f(0.7f, 0.7f, 0.7f, 1f));
+            
+            xData = new double[1];
+            yData = new double[1];
+            
+            if (samples[60] >= 0) {
+                xData[0] = samples[60] * 0.5 - 10d;
+                yData[0] = samples[(int)samples[60]];
+                skullProfileChart.addSeries("L Peak", xData, yData, new Vector4f(0.2f, 0.9f, 0.2f, 1f));
+            }
+            
+            if (samples[61] >= 0) {
+                xData[0] = samples[61] * 0.5 - 10d;
+                yData[0] = samples[(int)samples[61]];
+                skullProfileChart.addSeries("R Peak", xData, yData, new Vector4f(0.3f, 0.3f, 0.9f, 1f));
+            }
+            
+            if (samples[62] >= 0) {
+                xData[0] = samples[62] * 0.5 - 10d;
+                yData[0] = samples[(int)samples[62]];
+                skullProfileChart.addSeries("Mid", xData, yData, new Vector4f(0.9f, 0.2f, 0.2f, 1f));
+            }
+            
+            skullProfileChart.generateChart();
+        }
+                
+        return result;
     }
         
     // sets flag to do an animated blend transition at next frame update
@@ -887,6 +987,7 @@ public class DefaultView extends View {
 
         transRayTracer.setImage(image);
         ctHistogram.setImage(image);
+        
     }
     
     public void setDisplayMRimage(ImageVolume image) {
@@ -952,16 +1053,45 @@ public class DefaultView extends View {
         try {
             File selectedFile;
             
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle(new String("Choose scene file name to save..."));
+            JFileChooser fileChooser = new JFileChooser() {
+                @Override
+                public void approveSelection(){
+                    File f = getSelectedFile();
+                    String fname = f.getAbsolutePath();
+                    if(!fname.endsWith(".kranion") && !fname.endsWith(".krn")) {
+                        f = new File(fname + ".krn");
+                    }
+                    this.setSelectedFile(f);
+                    if(f.exists() && getDialogType() == SAVE_DIALOG){
+                        int result = JOptionPane.showConfirmDialog(this,"The file exists, overwrite?","Existing file",JOptionPane.YES_NO_CANCEL_OPTION);
+                        switch(result){
+                            case JOptionPane.YES_OPTION:
+                                super.approveSelection();
+                                return;
+                            case JOptionPane.CANCEL_OPTION:
+                                cancelSelection();
+                                return;
+                            default:
+                                return;
+                        }
+                    }
+                    super.approveSelection();
+                }                        
+            };
+            fileChooser.setDialogTitle(new String("Save Kranion file..."));
 //            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("Kranion file", "kranion", "krn");
+            fileChooser.addChoosableFileFilter(filter);
+            fileChooser.setFileFilter(filter);
+//            fileChooser.setAcceptAllFileFilterUsed(false);    
+            
             if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                 selectedFile = fileChooser.getSelectedFile();
             }
             else {
                 return;
             }
-            
+                        
             ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(selectedFile));
             os.writeObject(model);
             os.close();
@@ -1057,7 +1187,11 @@ public class DefaultView extends View {
             File selectedFile;
             
             JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle(new String("Choose scene file..."));
+            fileChooser.setDialogTitle(new String("Load Kranion file..."));
+            FileNameExtensionFilter filter = new FileNameExtensionFilter("Kranion file", "kranion", "krn");
+            fileChooser.addChoosableFileFilter(filter);
+            fileChooser.setFileFilter(filter);
+//            fileChooser.setAcceptAllFileFilterUsed(false);    
 //            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
             if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
                 selectedFile = fileChooser.getSelectedFile();
@@ -1065,7 +1199,7 @@ public class DefaultView extends View {
             else {
                 return;
             }
-            
+                                    
             ObjectInputStream is = new ObjectInputStream(new FileInputStream(selectedFile));
             Model newModel = (Model)is.readObject();
             is.close();
@@ -1082,14 +1216,19 @@ public class DefaultView extends View {
             this.setDisplayCTimage(model.getCtImage());
             this.setDisplayMRimage(model.getMrImage(0));
             
-                    model.setAttribute("doMRI", true);
+//                    model.setAttribute("doMRI", true);
+                    model.updateAllAttributes();
                     canvas.setVolumeRender(true);
                     canvas.setIsDirty(true);
+                    
                     ctHistogram.calculate();
                     transFuncDisplay.setHistogram(ctHistogram.getData());
                     ctHistogram.release();
             
-            this.updateFromModel();
+//            this.updateFromModel();
+
+            this.imageregistration.setModel(newModel);
+            
             this.updateMRlist();
             this.updateSonicationList();
             model.setAttribute("currentSonication", 0);
@@ -1176,7 +1315,7 @@ public class DefaultView extends View {
         
         if (sonicationIndex == -1) {
             canvas.setShowThermometry(false);
-            canvas.setOverlayImage(null);
+//            canvas.setOverlayImage(null);
             return;
         }
         
@@ -1281,6 +1420,7 @@ public class DefaultView extends View {
         }
         catch (NullPointerException e) {
             this.showRayTracer = false;
+            model.setAttribute("showRayTracer", showRayTracer); //TODO: need a better way to make sure defaults update model
         }
         
         try {
@@ -1288,6 +1428,7 @@ public class DefaultView extends View {
         }
         catch(NullPointerException e) {
             this.doClip = false;
+            model.setAttribute("doClip", doClip);
         }
         
         try {
@@ -1295,6 +1436,7 @@ public class DefaultView extends View {
         }
         catch(NullPointerException e) {
             this.doMRI = false;
+            model.setAttribute("doMRI", doMRI);
         }
 
         try {
@@ -1302,18 +1444,21 @@ public class DefaultView extends View {
         }
         catch(NullPointerException e) {
             this.doFrame = false;
+            model.setAttribute("doFrame", doFrame);
         }
         
         try {
             this.transRayTracer.setBoneSpeed((Float)model.getAttribute("boneSOS"));
         }
         catch(NullPointerException e) {
+            model.setAttribute("boneSOS", transRayTracer.getBoneSpeed());
         }  
         
         try {
             this.transRayTracer.setBoneRefractionSpeed((Float)model.getAttribute("boneRefractionSOS"));
         }
         catch(NullPointerException e) {
+            model.setAttribute("boneRefractionSOS", transRayTracer.getBoneRefractionSpeed());
         }
         
         try {
@@ -1332,6 +1477,7 @@ public class DefaultView extends View {
             }
         }
         catch(NullPointerException e) {
+            model.setAttribute("showThermometry", false);
         }
         
         try {
@@ -1355,7 +1501,7 @@ public class DefaultView extends View {
         try {
             window = ((Float)model.getAttribute("CTwindow")).intValue();
         }
-            catch(NullPointerException e) {
+        catch(NullPointerException e) {
         }
        
         try {
@@ -1367,14 +1513,19 @@ public class DefaultView extends View {
             }
         }
         catch(NullPointerException e) {
-        }        
+            model.setAttribute("foregroundVolumeSlices", 0f);
+        }
+        
+        try {
+            Vector3f trans = ((Vector3f)model.getAttribute("frameOffsetTranslation"));
+            this.frameOffsetTransform.setTranslation(trans.x, trans.y, trans.z);
+        }
+        catch(NullPointerException e) {
+            model.setAttribute("frameOffsetTranslation", frameOffsetTransform.getTranslation());
+        }     
     }
     
-    @Override
-    public void render() {
-        
-//        setIsDirty(false);
-
+    protected void preRenderSetup() {
         updateFromModel();
         
         glMatrixMode(GL_MODELVIEW);
@@ -1550,7 +1701,15 @@ public class DefaultView extends View {
             System.out.println("Do transition");
             transition.doTransition(transitionTime);
             doTransition = false;
-        }
+        }        
+    }
+    
+    @Override
+    public void render() {
+        
+//        setIsDirty(false);
+
+        preRenderSetup();
 
         scene.render();
     }
@@ -1558,12 +1717,18 @@ public class DefaultView extends View {
     private static boolean mouseButton1Drag = false;
     private boolean OnMouse(int x, int y, boolean button1down, boolean button2down, int dwheel) {
                 
-        if (dwheel != 0) {
-            scene.setIsDirty(true);
-            dolly.incrementValue(-dwheel/5f); // zoom with mouse wheel
+        if (button2down) {
+            int pickVal = doPick(x, y);
+            System.out.println("*** Picked value: " + pickVal);
         }
+        
         if (!scene.OnMouse(x, y, button1down, button2down, dwheel)) {
             
+            if (dwheel != 0) {
+                scene.setIsDirty(true);
+                dolly.incrementValue(-dwheel/5f); // zoom with mouse wheel
+            }
+
             if (button1down) {
                 this.acquireKeyboardFocus();
             }
@@ -1578,6 +1743,23 @@ public class DefaultView extends View {
                 if (currentMouseMode == mouseMode.SCENE_ROTATE) {
                     trackball.mouseDragged(x, y);
                     return true;
+                }
+                
+                if (currentMouseMode == mouseMode.FRAME_TRANSLATE) {
+                    // image translation in the plane of the screen
+                    Quaternion orient = trackball.getCurrent().negate(null);
+                    Matrix4f mat4 = Trackball.toMatrix4f(orient);
+                    Vector4f offset = new Vector4f((x - mouseStartX) / 5f, -(y - mouseStartY) / 5f, 0f, 0f);
+                    System.out.println("offset = " + offset);
+                    Matrix4f.transform(mat4, offset, offset);
+                    Vector3f translate = new Vector3f(offset);
+                    
+                    Vector3f translateStart = (Vector3f)model.getAttribute("frameTranslateStart");
+                    
+                    frameOffsetTransform.setTranslation(translateStart.x + translate.x, translateStart.y + translate.y, translateStart.z + translate.z);
+                    
+                    model.setAttribute("frameOffsetTranslation", new Vector3f(frameOffsetTransform.getTranslation()));
+                    
                 }
                 
                 if (currentMouseMode == mouseMode.SKULL_ROTATE || currentMouseMode == mouseMode.HEAD_ROTATE) {
@@ -1672,6 +1854,11 @@ public class DefaultView extends View {
                 this.mouseStartX = x;
                 this.mouseStartY = y;
                 
+                if (currentMouseMode == mouseMode.FRAME_TRANSLATE) {
+                    model.setAttribute("frameTranslateStart", new Vector3f(this.frameOffsetTransform.getTranslation()));
+                    return true;
+                }
+                
                 Vector3f startCtImageTranslate = new Vector3f();
                 try {
                         if (model.getCtImage() != null) {
@@ -1759,7 +1946,13 @@ public class DefaultView extends View {
                 //for each MR image in the model
                 for (int i = 0; i < model.getMrImageCount(); i++) {
                     if (model.getMrImage(i) != null) {
-                        Trackball registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
+                        Trackball registerBall = null;
+                        
+                        try {
+                            registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
+                        }
+                        catch(ClassCastException e) {}
+                        
                         if (registerBall == null) {
                             registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
                             model.getMrImage(i).setAttribute("registerBall", registerBall);
@@ -1853,7 +2046,10 @@ public class DefaultView extends View {
         
         this.statusBar.setBounds(Display.getWidth() / 2 - 300, Display.getHeight() / 2 - 15, 600, 30);
 
+        pickLayer.doLayout();
+        
         scene.doLayout();
+        
     }
 
     @Override
@@ -1892,8 +2088,8 @@ public class DefaultView extends View {
         
         if (arg != null && arg instanceof PropertyChangeEvent) {
             PropertyChangeEvent event = (PropertyChangeEvent)arg;
-            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName());
-            System.out.println();
+//            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName());
+//            System.out.println();
             
             switch(this.getFilteredPropertyName(event)) {
                 case "registerMRCT":
@@ -1931,7 +2127,12 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationPower", String.format("%4.1f W", model.getSonication(sonicationIndex).getPower()));
                         model.setAttribute("sonicationDuration", String.format("%4.1f s", model.getSonication(sonicationIndex).getDuration()));
                         model.setAttribute("sonicationFrequency", String.format("%4.1f kHz", model.getSonication(sonicationIndex).getFrequency()/1000f));
-                        model.setAttribute("sonicationDescription", String.format("%s", model.getSonication(sonicationIndex).getAttribute("Description")));
+                        
+                        String desc = (String)model.getSonication(sonicationIndex).getAttribute("Description");
+                        if (desc == null) {
+                            desc = "";
+                        }
+                        model.setAttribute("sonicationDescription", String.format("%s", desc));
                         
                         Vector3f t = Vector3f.add(model.getSonication(sonicationIndex).getFocusSteering(), model.getSonication(sonicationIndex).getNaturalFocusLocation(), null);
                         model.setAttribute("sonicationRLoc", String.format("%4.1f", -t.x));
@@ -2999,6 +3200,12 @@ public class DefaultView extends View {
         String command = e.getActionCommand();
         
         switch(command) {
+            case "openKranionFile":
+                this.loadScene();
+                break;
+            case "saveKranionFile":
+                this.saveScene();
+                break;
             case "saveSkullParams":
                 saveSkullParams();
                 break;

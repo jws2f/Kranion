@@ -61,7 +61,7 @@ void main() {
 
     bool seed = (imgCoord.x == size.x/2 && imgCoord.y == size.y/2 && imgCoord.z == size.z/2);
 
-    float threshold = -250.0;
+    float threshold = -125.0;
     if (ct_rescale_intercept == 0.0) threshold = 5.0;
 
     if ((v>threshold && ((m & 0x01) == 0))) {

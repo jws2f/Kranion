@@ -115,10 +115,11 @@ public abstract class Renderable {
     
     public boolean acquireKeyboardFocus() {
         if (getAcceptsKeyboardFocus()) {
-            if (keyboardFocus != null) {
+            if (keyboardFocus != null && keyboardFocus != this) {
                 keyboardFocus.lostKeyboardFocus();
             }
             keyboardFocus = this;
+//            System.out.println(keyboardFocus + " got keyboard focus.");
             setIsDirty(true);
             return true;
         }
@@ -128,6 +129,7 @@ public abstract class Renderable {
     }
     
     public void lostKeyboardFocus() {
+        keyboardFocus = null;
         setIsDirty(true);
     }
     

@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2016 Focused Ultrasound Foundation.
+ * Copyright 2017 Focused Ultrasound Foundation.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,48 +23,10 @@
  */
 package org.fusfoundation.kranion;
 
-import java.util.Iterator;
-import org.lwjgl.opengl.Display;
-import org.lwjgl.LWJGLException;
-
 /**
  *
  * @author john
  */
-public class Scene extends GUIControl implements Resizeable, Pickable {
-    
-    @Override
-    public void render() {
-        renderChildren();
-        setIsDirty(false);
-    }
-
-    @Override
-    public void release() {
-        Iterator<Renderable> i = children.iterator();
-        while (i.hasNext()) {
-            Renderable child = i.next();
-            child.release();
-        }                
-    }
-
-    @Override
-    public void doLayout() {
-        
-        this.setBounds(0, 0, Display.getWidth(), Display.getHeight());
-        
-        Iterator<Renderable> i = children.iterator();
-        while (i.hasNext()) {
-            Renderable child = i.next();
-            if (child instanceof Resizeable) {
-                ((Resizeable)child).doLayout();//false);
-            }
-        }        
-    }
-
-    @Override
-    public void renderPickable() {
-        this.renderPickableChildren();
-    }
-    
+public interface Pickable {
+    public void renderPickable();
 }

@@ -125,6 +125,8 @@ public class ImageCanvas2D extends GUIControl {
     
     private boolean mouseGrabbed = false;
     private boolean rightMouseButtonDown = false;
+    
+    private boolean displayPosition = false;
 
     /**
      * Creates a new instance of ImageCanvasGL
@@ -1368,7 +1370,18 @@ public class ImageCanvas2D extends GUIControl {
         
         glMatrixMode(GL_MODELVIEW);
 
+        if (CTimage != null && displayPosition) {
+            glEnable(GL_BLEND);
+            glBlendFuncSeparate (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+            Rectangle textRect = new Rectangle(bounds);
+            textRect.x += 25;
+            textRect.y += 2;
+            String positionText = String.format("R %3.1f  A %3.1f  S %3.1f", -centerOfRotation.x, -centerOfRotation.y, centerOfRotation.z);
+            this.renderText(positionText, textRect, stdfont, Color.white, true, VPosFormat.VPOSITION_BOTTOM, HPosFormat.HPOSITION_LEFT);
+        }
+        
         Main.glPopAttrib();
+        
     }
 
     /**
@@ -1566,6 +1579,46 @@ public class ImageCanvas2D extends GUIControl {
             if (super.OnMouse(mouseX, mouseY, button1down, button2down, dwheel)) {
                 return true;
             }
+            
+            if (MouseIsInside(mouseX, mouseY)) {
+                if (!displayPosition) {
+                    displayPosition = true;
+                    setIsDirty(true);
+                }
+            }
+            else if (displayPosition) {
+                displayPosition = false;
+                setIsDirty(false);
+            }
+            
+            if (MouseIsInside(mouseX, mouseY) && dwheel != 0) {
+
+                Vector4f pos = new Vector4f();
+                Vector4f texpos = new Vector4f();
+                
+                float xoff = Vector3f.dot(imagePlaneX, centerOfRotation)/canvasSize;
+                float yoff = Vector3f.dot(imagePlaneY, centerOfRotation);
+                
+                Vector3f imagePlaneZ = new Vector3f();
+                Vector3f.cross(imagePlaneX, imagePlaneY, imagePlaneZ);
+                
+                float wheelIncr = dwheel > 0f ? 1f : -1f;
+                float scaleWheel = 0.1f;  // 0.1mm
+                
+                if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT)) {
+                    scaleWheel *= 10f;
+                }
+                
+                Vector3f zoffset = (Vector3f)imagePlaneZ.scale(wheelIncr * scaleWheel);
+                
+                Vector3f.add(centerOfRotation, zoffset, centerOfRotation);
+                
+                fireActionEvent();
+
+                setIsDirty(true);
+ 
+                return true;
+            }
                        
             if (!mouseGrabbed) {
                 if (mouseX < canvasX ||
@@ -1605,7 +1658,7 @@ public class ImageCanvas2D extends GUIControl {
             Vector4f texpos = new Vector4f();
             pos.x = -(mx/canvasSize - 0.5f);
             pos.y = (my/canvasSize - 0.5f);
-            pos.z = 0f;
+            pos.z = (dwheel * 0.0001f);//0f;
             pos.w = 1f;
             Matrix4f.transform(ctTexMatrix, pos, texpos);
 //            System.out.println("texpos 1: " + texpos);

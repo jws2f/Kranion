@@ -35,17 +35,21 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
+import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Observable;
 import java.util.Observer;
 import static org.fusfoundation.kranion.TextBox.getScreenCoords;
 import static org.fusfoundation.kranion.TextBox.getWorldCoords;
 import org.lwjgl.BufferUtils;
+import static org.lwjgl.opengl.ARBClearTexture.glClearTexImage;
+import org.lwjgl.opengl.Display;
 import static org.lwjgl.opengl.GL11.*;
 import org.lwjgl.util.glu.GLU;
 import org.lwjgl.util.vector.Matrix4f;
@@ -71,7 +75,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     protected GUIControl parent = null;
     protected GUIControl grabbedChild = null; // child control that has grabbed the mouse
     protected float xgrab, ygrab;
-    protected ArrayList<Renderable> children = new ArrayList<>();
+    protected List<Renderable> children = new ArrayList<>();
     protected boolean isTextEditable = false;
     
     protected Thread myThread = Thread.currentThread();
@@ -168,6 +172,19 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
 //}
         }
      }
+    
+    public void renderPickableChildren() {
+        Iterator<Renderable> i = children.iterator();
+        while (i.hasNext()) {
+            Renderable child = i.next();
+            if (child instanceof Pickable) {
+                ((Pickable) child).renderPickable();
+            }
+            else if (child instanceof Trackball) { // TODO: kind of a hack
+                child.render();
+            }
+        }
+    }  
     
     public void setTextEditable(boolean isEditable) {
         this.isTextEditable = isEditable;
@@ -584,7 +601,25 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                 (int)textVPos + metrics.getDescent() - (int)textHeight);
         }
         
-        renderBufferedImage(img, rect);
+        renderBufferedImageViaTexture(img, rect);
+    }
+    
+    public Rectangle getStringBounds(String str, Font font) {
+        BufferedImage img = new BufferedImage(1, 1, BufferedImage.TYPE_4BYTE_ABGR);
+
+        Graphics2D gc = (Graphics2D) img.getGraphics();
+        gc.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        gc.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
+                           RenderingHints.VALUE_FRACTIONALMETRICS_ON);
+                
+        if (font == null) font = stdfont;
+        
+        FontMetrics metrics = gc.getFontMetrics(font);
+        
+        float textWidth = metrics.stringWidth(str);
+        float textHeight = metrics.getHeight();
+    
+        return new Rectangle(0, 0, textWidth, textHeight);
     }
         
     public void renderBufferedImage(BufferedImage img, Rectangle rect) {
@@ -655,6 +690,114 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
 //                    glEnd();
 
             Main.glPopAttrib();
+        }
+    }
+    
+    // This is a scratch texture for displaying Java 2D graphics   
+    private static int backingTextureName = 0;
+    private static int backingTextureWidth = 0;
+    private static int backingTextureHeight = 0;
+    
+    private void createBackingTexture() {
+        if (backingTextureName == 0 || backingTextureWidth != Display.getWidth() || backingTextureHeight != Display.getHeight()) {
+            
+            if (backingTextureName != 0) {
+                glBindTexture(GL_TEXTURE_2D, 0);
+                glDeleteTextures(backingTextureName);
+                backingTextureName = 0;
+            }
+            
+            backingTextureName = glGenTextures();
+
+            backingTextureWidth = Display.getWidth();
+            backingTextureHeight = Display.getHeight();
+
+            glBindTexture(GL_TEXTURE_2D, backingTextureName);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, backingTextureWidth, backingTextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer)null);
+        }
+    }
+        
+    public void renderBufferedImageViaTexture(BufferedImage img, Rectangle rect) {
+
+        // Don't modify the Rectangle passed in
+        Rectangle imgRect = new Rectangle(rect);
+
+        if (img != null) {
+            Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
+
+                    BufferedImage imageToUse = img;
+                    
+                    
+                    byte buf[] = (byte[]) imageToUse.getRaster().getDataElements(0, 0, imageToUse.getWidth(), imageToUse.getHeight(), null);
+
+
+                    glDisable(GL_CLIP_PLANE0);
+                    glDisable(GL_CLIP_PLANE1);
+                    glDisable(GL_DEPTH_TEST);
+
+                    ByteBuffer bbuf = ByteBuffer.allocateDirect(buf.length);
+                    bbuf.put(buf, 0, buf.length);
+                    bbuf.flip();
+                    
+                    createBackingTexture();
+                    
+                    glClearTexImage(backingTextureName, 0, GL_RGBA, GL_UNSIGNED_BYTE, BufferUtil.newByteBuffer(4));
+                    
+                    glBindTexture(GL_TEXTURE_2D, backingTextureName);
+//                int textureName = glGenTextures();
+//                glBindTexture(GL_TEXTURE_2D, textureName);
+//                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+//                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+//                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageToUse.getWidth(), imageToUse.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bbuf);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img.getWidth(), img.getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, bbuf);
+                                       
+//                    glRasterPos2f(Math.max(0f, imgRect.x), Math.max(0f, imgRect.y+imageToUse.getHeight()));
+//                    glDrawPixels(imageToUse.getWidth(), imageToUse.getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, bbuf);
+        glMatrixMode(GL_TEXTURE);
+        glPushMatrix();
+            glLoadIdentity();
+            glMatrixMode(GL_MODELVIEW);
+                                        
+                    Rectangle texRect = new Rectangle(
+                            0,
+                            0,
+                            imgRect.width/backingTextureWidth,
+                            imgRect.height/backingTextureHeight
+                    );
+                    
+                    glColor3f(1, 1, 1);
+                    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                    glEnable(GL_TEXTURE_2D);
+                    glBegin(GL_QUADS);
+                        glTexCoord2f(texRect.x, texRect.y+texRect.height);
+                        glVertex2f(imgRect.x, imgRect.y);
+                        
+                        glTexCoord2f(texRect.x+texRect.width, texRect.y+texRect.height);
+                        glVertex2f(imgRect.x + imageToUse.getWidth(), imgRect.y);
+                        
+                        glTexCoord2f(texRect.x+texRect.width, texRect.y);
+                        glVertex2f(imgRect.x + imageToUse.getWidth(), imgRect.y + imageToUse.getHeight());
+                        
+                        glTexCoord2f(texRect.x, texRect.y);
+                        glVertex2f(imgRect.x, imgRect.y + imageToUse.getHeight());
+                    glEnd();
+                    glDisable(GL_TEXTURE_2D);
+                    
+                glBindTexture(GL_TEXTURE_2D, 0);
+//                glDeleteTextures(textureName);
+
+            glMatrixMode(GL_TEXTURE);
+            glPopMatrix();
+            glMatrixMode(GL_MODELVIEW);
+            
+            Main.glPopAttrib();
+            
         }
     }
     

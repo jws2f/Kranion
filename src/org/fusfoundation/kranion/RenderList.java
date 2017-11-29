@@ -29,7 +29,7 @@ import java.util.*;
  *
  * @author john
  */
-public class RenderList extends Clippable implements Resizeable {
+public class RenderList extends Clippable implements Resizeable, Pickable {
     protected final List<Renderable> renderlist;
     
     private boolean isVisible = true;
@@ -134,6 +134,18 @@ public class RenderList extends Clippable implements Resizeable {
                 ((Resizeable)child).doLayout();//false);
             }
         }        
+    }
+
+    @Override
+    public void renderPickable() {
+        if (!getVisible()) return;
+        
+        for (ListIterator<Renderable> it = renderlist.listIterator(); it.hasNext();) {
+            Renderable r = it.next();
+            if (r instanceof Pickable) {
+                ((Pickable)r).renderPickable();
+            }
+        }
     }
     
 }

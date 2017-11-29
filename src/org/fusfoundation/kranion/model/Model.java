@@ -98,6 +98,22 @@ public class Model extends Observable implements Serializable, Observer {
         selectedSonication = -1;
     }
     
+    // When loading a model from disk we need to alert all observers of all new attribute values
+    // This should update GUI observers
+    public void updateAllAttributes() {
+        Iterator<String> i = getAttributeKeys();
+        
+//        System.out.println("----Model updateAllAttributes-----");
+        while(i.hasNext()) {
+            String key = i.next();
+            setChanged();
+            Object value = getAttribute(key);
+            notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+key+"]", null, value));
+
+//            System.out.println(key + " :: " + value);
+        }
+    }
+    
     
     public int getSelectedMR() { return selectedMR; }
     public void setSelectedMR(int index) {

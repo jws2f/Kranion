@@ -300,7 +300,8 @@ public class Button extends GUIControl {
     @Override
     public void update(Object newValue) {
         try {
-            setIndicator((Boolean)newValue);  
+            setIndicator((Boolean)newValue);
+            System.out.println("Button.update " + getTitle() + ") = " + (Boolean)newValue);
         }
         catch(Exception e) {
             System.out.println(this + "Name=" + this.getTitle() + " command=" + this.getCommand() + " Wrong or NULL new value: " + newValue.toString());

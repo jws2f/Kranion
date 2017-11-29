@@ -72,6 +72,7 @@ public class AttributeList implements Serializable {
         while (iter.hasNext()) {
             String key = iter.next();
             Object obj = attributes.get(key);
+            System.out.println("Out -> Key: " + key);
             
             out.writeUTF(key);
             out.writeObject(translateOut(obj));
@@ -84,6 +85,7 @@ public class AttributeList implements Serializable {
         int size = in.readInt();
         for (int i=0; i<size; i++) {
             String key = (String)in.readUTF();
+            System.out.println("In <- Key: " + key);
             attributes.put(key, translateIn(in.readObject()));
         }
     }

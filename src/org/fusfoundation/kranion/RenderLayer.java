@@ -34,7 +34,7 @@ import static org.lwjgl.opengl.GL11.*;
  *
  * @author john
  */
-public class RenderLayer extends GUIControl implements Resizeable {
+public class RenderLayer extends GUIControl implements Resizeable, Pickable {
 
     private Framebuffer frameBuffer = new Framebuffer();
     private Framebuffer frameBufferMSAA = new Framebuffer();
@@ -169,6 +169,13 @@ public class RenderLayer extends GUIControl implements Resizeable {
             if (r instanceof Resizeable) {
                 ((Resizeable)r).doLayout();
             }
+        }
+    }
+
+    @Override
+    public void renderPickable() {
+        if (!is2D) { // picking is just for 3D renderables
+            renderPickableChildren();
         }
     }
  

@@ -74,7 +74,12 @@ public class TextBox extends GUIControl implements Animator {
     }
     
     public void setText(String text) {
-        this.text = new String(text);
+        if (text == null) {
+            this.text = "";
+        }
+        else {
+            this.text = new String(text);
+        }
     }
     
     public String getText() {
@@ -89,6 +94,7 @@ public class TextBox extends GUIControl implements Animator {
             this.showCaret = true;
             this.cursorPos = this.calculateCaretPos(text, bounds, stdfont, x, y, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, this.cursorPos);
             System.out.println("cursor pos = " + cursorPos);
+            return true;
         }
         return super.OnMouse(x, y, button1down, button2down, dwheel);
     }

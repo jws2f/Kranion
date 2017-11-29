@@ -23,6 +23,7 @@
  */
 package org.fusfoundation.kranion;
 
+import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import org.lwjgl.opengl.Display;
@@ -30,6 +31,7 @@ import static org.lwjgl.opengl.GL11.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.nio.FloatBuffer;
+import java.util.List;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL14.glBlendFuncSeparate;
 
@@ -50,6 +52,7 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
     private AnimatorUtil anim = new AnimatorUtil();
     private static float guiScale = 2f;
     private Button pinButton;
+    private TabbedPanel tabbedPanel;
     
     private long flyinDelay = -1;
     
@@ -64,7 +67,16 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
             pinButton.setIndicatorRadius(8f);
             pinButton.setColor(0,0,0,0);
             
-            addChild(pinButton);
+            addChild(tabbedPanel = new TabbedPanel());
+            addChild(pinButton);            
+    }
+
+    public void addTab(String tabName) {
+        tabbedPanel.addTab(tabName);
+    }
+    
+    public void addChild(String tabName, Renderable child) {
+        tabbedPanel.addChild(tabName, child);
     }
         
     public void setFlyDirection(direction dir) {
@@ -125,6 +137,7 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
     public void doLayout() {
         if (flyDirection == direction.SOUTH) {
             bounds.y = Display.getHeight()-bounds.height;
+            
             if (autoExpand) {
                 bounds.x = 0;
                 bounds.width = Display.getWidth();
@@ -180,7 +193,7 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
             glMatrixMode(GL_MODELVIEW);
             Main.glPushMatrix();
                 glLoadIdentity();
-
+                
                 float nx = bounds.x + (dx)*flyScale - dx;
                 float ny = bounds.y + (dy)*flyScale - dy;
                 float tx = tabRect.x + (dx)*flyScale - dx;
