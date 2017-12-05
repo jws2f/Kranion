@@ -80,8 +80,11 @@ void main()
     uint gid = gl_GlobalInvocationID.x;
     vec3 pos1 = inputv[gid].pos[2].xyz; // point on the outside of the skull
     vec3 pos2 = inputv[gid].pos[3].xyz; // point on the inside of the skull w/ refraction
-//    vec3 v = normalize(inputv[gid].pos[0].xyz - inputv[gid].pos[1].xyz); // no refraction
-    vec3 v = normalize(pos2 - pos1); // with refraction
+
+    vec3 v = normalize(inputv[gid].pos[0].xyz - inputv[gid].pos[1].xyz); // no refraction, this is what insightec does currently
+//    vec3 v = normalize(pos2 - pos1); // with refraction
+
+// This is the length of the refracted beam path through the skull
     float skullThickness = length(pos2 - pos1);
     float finalRaySegmentDistance = d[gid].dist; // -1 indicates ineffective element
 
@@ -120,6 +123,7 @@ void main()
 
             d[gid].sdr = -1; // init to failure
             d[gid].sdr2 = -1; // init to failure
+//            d[gid].skullThickness = -1; // init to failure
 
             sdr[gid].maxVal1 = -1;
             sdr[gid].maxVal2 = -1;
@@ -178,7 +182,10 @@ void main()
 
             if (leftPeakIndex != -1 && rightPeakIndex != -1 && minValueIndex != -1) {
                 if (offsets[x]==0 && offsets[y]==0) {
-                    sdrSum += minValue/((sdr[gid].huSamples[leftPeakIndex] + sdr[gid].huSamples[rightPeakIndex])/2.0); // old insightec method
+                    sdrSum += minValue/((sdr[gid].huSamples[leftPeakIndex])); // + sdr[gid].huSamples[rightPeakIndex])/2.0); // old insightec method
+
+// this is the thickness measured along element->focus line, not sure that is what we want
+//                    d[gid].skullThickness = (rightStartIndex >= leftStartIndex) ? (rightStartIndex - leftStartIndex) * 0.5 : -1.0;
                 }
 
                 if (sdr[gid].huSamples[leftPeakIndex] != 0.0) {

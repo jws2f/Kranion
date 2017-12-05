@@ -57,6 +57,7 @@ struct elemDistance {
                 float incidentAngle;
                 float skullThickness;
                 float sdr2;
+                float normSkullThickness;
 };
 
 layout(std430, binding=0) buffer elements{
@@ -95,7 +96,6 @@ uniform float       waterSpeed;
 uniform float       ct_bone_threshold;
 uniform float       ct_rescale_intercept;
 uniform float       ct_rescale_slope;
-
 
 const float sqr3 = sqrt(3.0)/3;
 const float sqr2 = sqrt(2.0)/2;
@@ -411,7 +411,7 @@ void main()
          float firstIncidenceAngle = -1.0;
 
 //         d[gid].sdr = 0.0;
-        d[gid].incidentAngle = -1;
+//        d[gid].incidentAngle = -1;
 
  //        float critAngle = max(asin(waterSpeed/boneSpeed), M_PI/8);//*0.625;
          float critAngle = min(asin(waterSpeed/boneSpeed), M_PI/4.0);
@@ -429,7 +429,7 @@ void main()
 
          	//Get incidence angle
          	firstIncidenceAngle = abs(acos(clamp(dot(normal,v)/(length(normal)*length(v)), -1, 1)));
-                d[gid].incidentAngle = firstIncidenceAngle / (2.0*M_PI) * 360.0;
+//                d[gid].incidentAngle = firstIncidenceAngle / (2.0*M_PI) * 360.0;
 
                 if (firstIncidenceAngle < critAngle) {
                 
@@ -456,7 +456,7 @@ void main()
                             exitPoint = secondCollision + 15*exitVector;
                             vec3 focalPoint = target;// vec3(0,0,0);
                                 float missDistance = length(cross((exitPoint-secondCollision),(secondCollision-focalPoint)))/length(exitPoint-secondCollision);
-                            d[gid].distance = missDistance;
+//                            d[gid].distance = missDistance;
     //     				outColor = mix(vec4(0, 1, 0, 1), vec4(1, 1, 0, 1), remap(0, M_PI/6, firstIncidenceAngle));
 //                        }
 //                        else {
@@ -470,31 +470,31 @@ void main()
 	                outColor = mix(vec4(0, 1, 0, 1), vec4(1, 1, 0, 1), remap(0, critAngle, firstIncidenceAngle));
 //	            }
          	}
-         	else
-	         {
-	         	//SPOT IS NO GOOD
-                        secondCollision = firstCollision;
-	         	d[gid].distance = -1;
-	         }
+//         	else
+//	         {
+//	         	//SPOT IS NO GOOD
+//                       secondCollision = firstCollision;
+//	         	d[gid].distance = -1;
+//	         }
              }
-             else {
-                        secondCollision = firstCollision;
-	         	d[gid].distance = -1;
-             }
+//             else {
+//                        secondCollision = firstCollision;
+//	         	d[gid].distance = -1;
+//             }
          }
-         else
-         {
-         	//SPOT IS NO GOOD
-         	firstCollision = pos;
-                secondCollision = firstCollision;
-         	d[gid].distance = -1;
-         }
+//         else
+//         {
+//         	//SPOT IS NO GOOD
+//         	firstCollision = pos;
+//                secondCollision = firstCollision;
+//         	d[gid].distance = -1;
+///         }
         
         float exitLength = 50;
-        if (d[gid].distance == -1) {
-            exitLength = 0;
-            outColor = vec4(1,0,0,1);
-        }
+//        if (d[gid].distance == -1) {
+//            exitLength = 0;
+//            outColor = vec4(1,0,0,1);
+//        }
 
         o[gid].pos[0].xyz = firstCollision.xyz;
         o[gid].pos[0].w = 1;
@@ -512,20 +512,20 @@ void main()
         o[gid].pos[4].w = 1;
         
         vec3 finalPoint = secondCollision.xyz;
-        if (d[gid].distance != -1) {
-            finalPoint = GetClosestPoint(secondCollision, secondCollision.xyz+exitVector*15, target); // target = vec3(0,0,0) + steering
-            //finalPoint = secondCollision.xyz+exitVector*15;//exitLength;
-            
-            // check to see if ray is refracted back out of skull
-            if (distance(finalPoint, secondCollision.xyz) == 0) {
-                d[gid].distance = -1;
-                exitLength = 0;
-                outColor = vec4(1,0,0,1);
-            }
-
-            d[gid].skullThickness = distance(firstCollision, secondCollision);
-
-        }
+//        if (d[gid].distance != -1) {
+//            finalPoint = GetClosestPoint(secondCollision, secondCollision.xyz+exitVector*15, target); // target = vec3(0,0,0) + steering
+//            //finalPoint = secondCollision.xyz+exitVector*15;//exitLength;
+//            
+//            // check to see if ray is refracted back out of skull
+//            if (distance(finalPoint, secondCollision.xyz) == 0) {
+//                d[gid].distance = -1;
+//                exitLength = 0;
+//                outColor = vec4(1,0,0,1);
+//            }
+//
+//            d[gid].skullThickness = distance(firstCollision, secondCollision);
+//
+//        }
 	o[gid].pos[5].xyz = finalPoint;
         o[gid].pos[5].w = 1;
         

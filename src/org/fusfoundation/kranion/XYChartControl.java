@@ -99,6 +99,10 @@ public class XYChartControl extends GUIControl {
     }
     
     public void newChart(String xLabel, String yLabel) {
+        newChart(xLabel, yLabel, -1);
+    }
+    
+    public void newChart(String xLabel, String yLabel, int markerSize) {
 
         // Create Chart
         chart = new XYChartBuilder().width((int) bounds.width).height((int) bounds.height).title(getClass().getSimpleName()).xAxisTitle(xLabel).yAxisTitle(yLabel).build();
@@ -116,17 +120,24 @@ public class XYChartControl extends GUIControl {
         chart.getStyler().setPlotBackgroundColor(new java.awt.Color(0.05f, 0.05f, 0.05f, 0.7f));
         chart.getStyler().setAxisTitlesVisible(true);
         chart.getStyler().setAxisTickLabelsColor(new java.awt.Color(1f, 1f, 1f, 1f));
+        if (markerSize > 0) {
+            chart.getStyler().setMarkerSize(markerSize);
+        }
 
     }
 
     public XYChart getChart() {
         return chart;
     }
-
+    
     public void addSeries(String title, double[] xData, double[] yData, Vector4f color) {
+        addSeries(title, xData, yData, color, true);
+    }
+            
+    public void addSeries(String title, double[] xData, double[] yData, Vector4f color, boolean showMarkers) {
         XYSeries series = chart.addSeries(title, xData, yData);
         series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
-        series.setMarker(SeriesMarkers.CIRCLE);
+        series.setMarker( showMarkers ? SeriesMarkers.CIRCLE : SeriesMarkers.NONE );
         series.setShowInLegend(true);
         series.setLineColor(new java.awt.Color(color.x, color.y, color.z, color.w));
         series.setMarkerColor(new java.awt.Color(color.x, color.y, color.z, color.w));

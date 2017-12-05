@@ -400,6 +400,8 @@ public class DefaultView extends View {
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 230, 240, 200, 25, controller).setTitle("Import DICOM CT...").setCommand("loadCT"));
         
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON,230, 205, 200, 25, controller).setTitle("Import DICOM MR...").setCommand("loadMR"));
+        
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 445, 240, 150, 25, this).setTitle("Filter CT").setCommand("filterCT"));
 
         Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 10, 205, 125, 25, this);
         regButton.setTitle("Registration").setCommand("registerMRCT").setTag("registerMRCT");
@@ -482,12 +484,22 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout2.addChild("Transducer", textbox);
         
-        textbox = (TextBox)new TextBox(150, 155, 60, 25, "", this).setTitle("Incident Angle").setCommand("currentTransducerChannelOuterAngle");
+        textbox = (TextBox)new TextBox(150, 155, 60, 25, "", this).setTitle("SDR 5x5 Avg").setCommand("currentTransducerChannelSDRavg");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout2.addChild("Transducer", textbox);
         
-        textbox = (TextBox)new TextBox(150, 120, 60, 25, "", this).setTitle("Skull Thickness").setCommand("currentTransducerChannelSkullThickness");
+        textbox = (TextBox)new TextBox(150, 120, 60, 25, "", this).setTitle("Incident Angle").setCommand("currentTransducerChannelOuterAngle");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        textbox = (TextBox)new TextBox(150, 85, 60, 25, "", this).setTitle("Skull Path Length").setCommand("currentTransducerChannelSkullThickness");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        textbox = (TextBox)new TextBox(150, 50, 60, 25, "", this).setTitle("Skull thickness").setCommand("currentTransducerChannelNormSkullThickness");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout2.addChild("Transducer", textbox);
@@ -873,12 +885,18 @@ public class DefaultView extends View {
         pickLayer.unbind();
         
         result = pickLayer.getPixelRGBasInt(mouseX, mouseY);
-        
+                
         int index = result-5;
         
         if (index >= 0 && index < 1024) { // transducer channel
+            
+            transRayTracer.setSelectedElement(index);
+            
             double angle = transRayTracer.getIncidentAnglesFull().get(index);
-            double sdr = transRayTracer.getSDR2sFull().get(index);
+            double sdr = transRayTracer.getSDRsFull().get(index);
+            double sdrAvg = transRayTracer.getSDR2sFull().get(index);
+            double skullThickness = transRayTracer.getSkullThicknesses().get(index);
+            double normSkullThickness = transRayTracer.getNormSkullThicknesses().get(index);
             float samples[] = transRayTracer.getChannelSkullSamples(index);
             double yData[] = new double[60];
             double xData[] = new double[60];
@@ -890,10 +908,13 @@ public class DefaultView extends View {
             
             model.setAttribute("currentTransducerChannelNum", String.format("%d", result-5));
             model.setAttribute("currentTransducerChannelOuterAngle", String.format("%3.1f", angle));
+            model.setAttribute("currentTransducerChannelSDRavg", String.format("%3.2f", sdrAvg));
             model.setAttribute("currentTransducerChannelSDR", String.format("%3.2f", sdr));
+            model.setAttribute("currentTransducerChannelSkullThickness", String.format("%3.1f", skullThickness));
+            model.setAttribute("currentTransducerChannelNormSkullThickness", String.format("%3.1f", normSkullThickness));
             
-            skullProfileChart.newChart("Depth (mm)", "HU");
-            skullProfileChart.addSeries("HU", xData, yData, new Vector4f(0.7f, 0.7f, 0.7f, 1f));
+            skullProfileChart.newChart("Depth (mm)", "HU", 7);
+            skullProfileChart.addSeries("HU", xData, yData, new Vector4f(0.7f, 0.7f, 0.7f, 1f), false);
             
             xData = new double[1];
             yData = new double[1];
@@ -902,6 +923,8 @@ public class DefaultView extends View {
                 xData[0] = samples[60] * 0.5 - 10d;
                 yData[0] = samples[(int)samples[60]];
                 skullProfileChart.addSeries("L Peak", xData, yData, new Vector4f(0.2f, 0.9f, 0.2f, 1f));
+                
+                System.out.println("L Peak: " + yData[0]);
             }
             
             if (samples[61] >= 0) {
@@ -914,6 +937,7 @@ public class DefaultView extends View {
                 xData[0] = samples[62] * 0.5 - 10d;
                 yData[0] = samples[(int)samples[62]];
                 skullProfileChart.addSeries("Mid", xData, yData, new Vector4f(0.9f, 0.2f, 0.2f, 1f));
+                System.out.println("Mid minima: " + yData[0]);
             }
             
             skullProfileChart.generateChart();

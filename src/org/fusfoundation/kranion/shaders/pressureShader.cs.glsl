@@ -42,6 +42,8 @@ struct elemDistance {
                 float sdr;
                 float incidentAngle;
                 float skullThickness;
+                float sdr2;
+                float normSkullThickness;
 };
 
 struct pressureRecord {

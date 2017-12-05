@@ -91,6 +91,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     public Matrix4f ctTexMatrix = new Matrix4f();
     public FloatBuffer normMatrixBuf = BufferUtils.createFloatBuffer(16);
     
+    private int selectedElement = -1;
+    
     private ImageVolume4D envelopeImage = null;
     
     private boolean showEnvelope = false;
@@ -214,6 +216,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     public float getBoneThreshold() { return boneThreshold; }
     
     public ImageVolume getEnvelopeImage() { return envelopeImage; }
+    
+    public void setSelectedElement(int nelement) {
+        selectedElement = nelement;
+    }
      
     private void initShader() {
         if (refractShader == null) {
@@ -228,7 +234,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         }
         if (sdrShader == null) {
             sdrShader = new ShaderProgram();
-            sdrShader.addShader(GL_COMPUTE_SHADER, "shaders/sdrAreaShader.cs.glsl");
+            sdrShader.addShader(GL_COMPUTE_SHADER, "shaders/sdrAreaShader2.cs.glsl"); // no refraction, only outer skull peak used
             sdrShader.compileShaderProgram();
         }
         if (pressureShader == null) {
@@ -414,7 +420,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         distSSBo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, distSSBo);
-        FloatBuffer distBuffer = ByteBuffer.allocateDirect(1024*4 *5).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        FloatBuffer distBuffer = ByteBuffer.allocateDirect(1024*4 *6).order(ByteOrder.nativeOrder()).asFloatBuffer();
         for (int i=0; i<1024; i++) {
             //distance from focus
             distBuffer.put(0f);
@@ -422,9 +428,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             distBuffer.put(0f);
             // Incident angle value
             distBuffer.put(0f);
-            // Skull thickness value
+            // Skull path length value
             distBuffer.put(0f);
             // SDR 2 value
+            distBuffer.put(0f);
+            // Normal skull thickness value
             distBuffer.put(0f);
         }
         distBuffer.flip();
@@ -493,6 +501,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         int targetLoc = glGetUniformLocation(shaderProgID, "target");
         glUniform3f(targetLoc, steering.x, steering.y, steering.z);
         
+        texLoc = glGetUniformLocation(shaderProgID, "selectedElement");
+        glUniform1i(texLoc, this.selectedElement);
         
 //        int targetLoc = glGetUniformLocation(shaderprogram, "target");
 //        glUniform3f(targetLoc, 0f, 0f, 300f);
@@ -526,7 +536,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private void doPickCalc() {
         pickShader.start();
         
-        int shaderProgID = refractShader.getShaderProgramID();
+        int shaderProgID = pickShader.getShaderProgramID();
         
         int texLoc = glGetUniformLocation(shaderProgID, "ct_tex");
         glUniform1i(texLoc, 0);
@@ -782,7 +792,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 writer.write("NumberOfChannels = 1024");
                 writer.newLine();
                 writer.newLine();
-                writer.write("channel\tsdr\tsdr2\tincidentAngle\tskull thickness\tSOS");
+                writer.write("channel\tsdr\tsdr5x5\tincidentAngle\tskull_thickness\trefracted_skull_path_length\tSOS");
                 writer.newLine();
                 while (floatPhases.hasRemaining()) {
                     float dist = floatPhases.get();
@@ -790,12 +800,14 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
                     float speed = CTSoundSpeed.lookupSpeed(speeds.get(count).floatValue() + 1000f); // add 1000 to get apparent density
 
                     writer.write(count + "\t");
                     writer.write(String.format("%1.3f", sdr) + "\t");
                     writer.write(String.format("%1.3f", sdr2) + "\t");
                     writer.write(String.format("%3.3f", incidentAngle) + "\t");
+                    writer.write(String.format("%3.3f", normSkullThickness) + "\t");
                     writer.write(String.format("%3.3f", skullThickness) + "\t");
                     writer.write(String.format("%3.3f", speed) + "\t");
                     writer.newLine();
@@ -879,6 +891,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
                     
                     if (incidentAngle >= 0f) {
                         result.add((double)incidentAngle);
@@ -906,6 +919,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
                     
                     result.add((double)incidentAngle);
                 }
@@ -932,6 +946,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)sdr);
@@ -943,6 +958,39 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         return result;
     }
+    
+    // include -1 for all inactive elements
+    public List<Double> getSDRsFull() {
+
+        List<Double> result = new ArrayList<>();
+        
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = dists.asFloatBuffer();
+            int count = 0;
+
+                while (floatPhases.hasRemaining()) {
+                    float dist = floatPhases.get();
+                    float sdr = floatPhases.get();
+                    float incidentAngle = floatPhases.get();
+                    float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
+                    
+                    if (dist >= 0f) {
+                        result.add((double)sdr);
+                    }
+                    else {
+                        result.add(-1.0);
+                    }
+                }
+                
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+        
+        return result;
+    }
+
     public List<Double> getSDR2s() {
 
         List<Double> result = new ArrayList<>();
@@ -958,6 +1006,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)sdr2);
@@ -970,6 +1019,67 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         return result;
     }
     
+    public List<Double> getSkullThicknesses() {
+
+        List<Double> result = new ArrayList<>();
+        
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = dists.asFloatBuffer();
+            int count = 0;
+
+                while (floatPhases.hasRemaining()) {
+                    float dist = floatPhases.get();
+                    float sdr = floatPhases.get();
+                    float incidentAngle = floatPhases.get();
+                    float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
+                    
+                    if (dist >= 0f) {
+                        result.add((double)skullThickness);
+                    }
+                    else {
+                        result.add(-1.0);
+                    }
+                }
+                
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+        
+        return result;
+    }
+    public List<Double> getNormSkullThicknesses() {
+
+        List<Double> result = new ArrayList<>();
+        
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = dists.asFloatBuffer();
+            int count = 0;
+
+                while (floatPhases.hasRemaining()) {
+                    float dist = floatPhases.get();
+                    float sdr = floatPhases.get();
+                    float incidentAngle = floatPhases.get();
+                    float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
+                    
+                    if (dist >= 0f) {
+                        result.add((double)normSkullThickness);
+                    }
+                    else {
+                        result.add(-1.0);
+                    }
+                }
+                
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+        
+        return result;
+    }
+        
     // this list will contain sdr = -1 for inactive elements
     public List<Double> getSDR2sFull() {
 
@@ -986,6 +1096,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float incidentAngle = floatPhases.get();
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)sdr2);
@@ -1020,14 +1131,14 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             int right = 59;
             
             for (int x=0; x<59; x++) {
-                if (huOut[x] >= 100f) {
+                if (huOut[x] >= 700f) {
                     left = x;
                     break;
                 }
             }
             
             for (int x=59; x>=0; x--) {
-                if (huOut[x] >= 100f) {
+                if (huOut[x] >= 700f) {
                     right = x;
                     break;
                 }
@@ -1416,6 +1527,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 floatDistances.get(); // skip incidence angle
                 floatDistances.get(); // skip skull thickness
                 float sdr2 = floatDistances.get();
+                float normSkullThickness = floatDistances.get();
         	if (value > 0)
         	{
                     distanceNum++;
@@ -1436,6 +1548,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 floatDistances.get();
                 floatDistances.get();
                 float sdr2 = floatDistances.get();
+                float normSkullThickness = floatDistances.get();
         	if (value > 0)
         	{
         		diffSqSum += (float) Math.pow(value-mean,2);
@@ -1881,6 +1994,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         setupImageTexture(CTimage, 0, centerOfRotation);
         
         doPickCalc();
+        
         
         glActiveTexture(GL_TEXTURE0 + 0);
         glDisable(GL_TEXTURE_3D);

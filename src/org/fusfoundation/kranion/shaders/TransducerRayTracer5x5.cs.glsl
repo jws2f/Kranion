@@ -57,6 +57,7 @@ struct elemDistance {
                 float incidentAngle;
                 float skullThickness;
                 float sdr2;
+                float skullNormThickness;
 };
 
 layout(std430, binding=0) buffer elements{
@@ -95,6 +96,7 @@ uniform float       waterSpeed;
 uniform float       ct_bone_threshold;
 uniform float       ct_rescale_intercept;
 uniform float       ct_rescale_slope;
+uniform int         selectedElement;
 
 
 const float sqr3 = sqrt(3.0)/3;
@@ -387,6 +389,17 @@ vec3 GetClosestPoint(vec3 A, vec3 B, vec3 P)
     return Closest;
 }
 
+float calcNormSkullThickness(vec3 outerSkullPoint, vec3 norm) {
+    vec3 innerSkullPoint = findEdge(outerSkullPoint, norm, false);
+    if (innerSkullPoint == outerSkullPoint) {
+        return -1.0;
+    }
+    else {
+        return distance(innerSkullPoint, outerSkullPoint);
+    }
+
+}
+
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 void main()
@@ -412,6 +425,7 @@ void main()
 
 //         d[gid].sdr = 0.0;
         d[gid].incidentAngle = -1;
+        d[gid].distance = -1;
 
  //        float critAngle = max(asin(waterSpeed/boneSpeed), M_PI/8);//*0.625;
          float critAngle = min(asin(waterSpeed/boneSpeed), M_PI/4.0);
@@ -422,6 +436,8 @@ void main()
          	//First collision found, get normal
          	normal = findNormal(firstCollision);
          	normal = normalize(normal);
+
+                d[gid].skullNormThickness = calcNormSkullThickness(firstCollision, normal);
                 
 //                if (dot(normal, v) < 0) {
 //                    normal = -normal;
@@ -467,28 +483,29 @@ void main()
 //                	outColor = mix(vec4(1, 0, 0, 0.8), vec4(0.5, 0, 0, 0.3), remap(critAngle, critAngle*2, firstIncidenceAngle));
 //	            }
 //	            else {
-	                outColor = mix(vec4(0, 1, 0, 1), vec4(1, 1, 0, 1), remap(0, critAngle, firstIncidenceAngle));
+	                //outColor = (gid == selectedElement) ? vec4(0.3, 0.3, 1, 1) : mix(vec4(0, 1, 0, 1), vec4(1, 1, 0, 1), remap(0, critAngle, firstIncidenceAngle));
+	                outColor =  mix(vec4(0, 1, 0, 1), vec4(1, 1, 0, 1), remap(0, critAngle, firstIncidenceAngle));
 //	            }
          	}
-         	else
+/*         	else
 	         {
 	         	//SPOT IS NO GOOD
                         secondCollision = firstCollision;
 	         	d[gid].distance = -1;
-	         }
+	         } */
              }
-             else {
+/*             else {
                         secondCollision = firstCollision;
 	         	d[gid].distance = -1;
-             }
+             } */
          }
-         else
+/*         else
          {
          	//SPOT IS NO GOOD
          	firstCollision = pos;
                 secondCollision = firstCollision;
          	d[gid].distance = -1;
-         }
+         } */
         
         float exitLength = 50;
         if (d[gid].distance == -1) {
@@ -526,6 +543,14 @@ void main()
             d[gid].skullThickness = distance(firstCollision, secondCollision);
 
         }
+
+        int currentChannel = int(gid);
+        if (currentChannel == selectedElement) {
+            outColor.x = 0.3;
+            outColor.y = 0.3;
+            outColor.z = 1.0;
+        }
+
 	o[gid].pos[5].xyz = finalPoint;
         o[gid].pos[5].w = 1;
         

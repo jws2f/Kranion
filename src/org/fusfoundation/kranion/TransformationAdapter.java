@@ -187,7 +187,6 @@ public class TransformationAdapter extends Renderable implements Pickable {
                 rotationBuffer.flip();
                 glMultMatrix(rotationBuffer);
 
-
                 ((Pickable)child).renderPickable();
 
             Main.glPopMatrix();

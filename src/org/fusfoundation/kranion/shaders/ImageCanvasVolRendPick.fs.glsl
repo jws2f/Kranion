@@ -58,6 +58,10 @@ void main(void)
         color = texture1D(lut_tex, ctTexVal);
 
         float ctsample = ctTexVal * 65535.0  * ct_rescale_slope + ct_rescale_intercept;
+
+        // only pick on bone
+        color.a = ctsample > 650.0 ? color.a : 0.0;
+
         float mrsample = 0;
         float ctval = (ctsample - center)/(window) + 0.5;
         bool noLighting = false;
