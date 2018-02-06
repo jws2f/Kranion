@@ -507,6 +507,22 @@ System.out.println(selectedDicomObj);
 //                    decoder.decodeImageHeader();
 //                    decoder.decodeImageData();                  
 //                    sliceData = bytesOut.toByteArray();
+
+                    int signedPixelRep = 1;
+                    try {
+                        signedPixelRep = obj.getVR("PixelRepresentation").getIntValue();
+                    }
+                    catch(Exception e) {}
+                    
+                    if (signedPixelRep != 1) {
+//                        throw new Exception("Unsupported PixelRepresentation. Only Signed pixel values supported currently;");                                
+                    }
+                    
+                    int pixelPaddingValue = Integer.MIN_VALUE;
+                    try {
+                        pixelPaddingValue = obj.getVR("PixelPaddingValue").getIntValue();
+                    }
+                    catch(Exception e) {}
                     
                     int frameSize = image.getDimension(0).getSize() * image.getDimension(1).getSize();
                     int offset = (s.size() - 1 - i)*frameSize;
@@ -516,7 +532,13 @@ System.out.println(selectedDicomObj);
                     for (int v=0; v<frameSize; v++) {
                         if (!bLosslessJPEG) {
                 //            voxelData[offset + v] = (short)((((int)sliceData[v*2] & 0xff) << 8 | ((int)sliceData[v*2 + 1] & 0xff)) & 0xfffL);
-                            voxelData[offset + v] = (short)((sliceData[v*2] & 0xff) << 8 | (sliceData[v*2 + 1] & 0xff));
+                
+                            // handle pixel padding value if given for CT
+                            short rawValue = (short)((sliceData[v*2] & 0xff) << 8 | (sliceData[v*2 + 1] & 0xff));
+                            if (rawValue == pixelPaddingValue) {
+                                rawValue = 0;
+                            }
+                            voxelData[offset + v] = rawValue;
                             //int val = v%4096;
                             //voxelData[offset + v] = (short)(((int)val & 0xff) << 8 | ((int)val & 0xff));
                             int val = voxelData[offset + v] & 0x0fff;

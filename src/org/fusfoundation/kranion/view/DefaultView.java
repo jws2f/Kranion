@@ -212,6 +212,7 @@ public class DefaultView extends View {
     
     private PullDownSelection sonicationSelector;
     private PullDownSelection mrSeriesSelector;
+    private PullDownSelection transducerPatternSelector;
     
     
     private Scene scene = new Scene();
@@ -328,8 +329,8 @@ public class DefaultView extends View {
         thermometryChart.addActionListener(this);
         flyout1.addChild(thermometryChart);
         
-        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 50, 180, 25, controller).setTitle("Show Thermometry").setCommand("showThermometry"));
-        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 20, 180, 25, controller).setTitle("Show Targets").setCommand("showTargets"));
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 50, 180, 25, controller).setTitle("Show Thermometry").setPropertyPrefix("Model.Attribute").setCommand("showThermometry"));
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 20, 180, 25, controller).setTitle("Show Targets").setPropertyPrefix("Model.Attribute").setCommand("showTargets"));
         
         flyout1.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 100, 25, this).setTitle("Update").setCommand("updateSonication"));
         flyout1.addChild(new Button(Button.ButtonType.BUTTON,10, 50, 100, 25, this).setTitle("Add").setCommand("addSonication"));
@@ -408,7 +409,15 @@ public class DefaultView extends View {
         regButton.setPropertyPrefix("Model.Attribute");
         flyout2.addChild("View", regButton);
         
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 10, 170, 200, 25, this).setTitle("Close").setCommand("close"));
+        
         flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 200, 25, this).setTitle("Exit").setCommand("exit"));
+        
+        Button verButton = new Button(Button.ButtonType.BUTTON, 1450, 0, 200, 25, this);
+        verButton.setTitle("Build " + Main.getRbTok("app.version") + ":" + Main.getRbTok("app.build"));
+        verButton.setDrawBackground(false);
+        verButton.setTextColor(0.5f, 0.5f, 0.5f, 1f);
+        flyout2.addChild(verButton);
                 
 //        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 250, 220, 25, controller).setTitle("Find Fiducials").setCommand("findFiducials"));
         flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 115, 220, 25, this).setTitle("Save Skull Params...").setCommand("saveSkullParams"));
@@ -422,7 +431,7 @@ public class DefaultView extends View {
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.0f m/s");
         slider1.setCurrentValue(2652);
-        flyout2.addChild("View", slider1);
+        flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
         
         slider1 = new Slider(750, 50, 410, 25, controller);
@@ -433,10 +442,10 @@ public class DefaultView extends View {
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.0f m/s");
         slider1.setCurrentValue(2900);
-        flyout2.addChild("View", slider1);
+        flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
         
-        slider1 = new Slider(750, 225, 410, 25, controller);
+        slider1 = new Slider(750, 175, 410, 25, controller);
         slider1.setTitle("Transducer tilt");
         slider1.setCommand("transducerXTilt"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -444,8 +453,14 @@ public class DefaultView extends View {
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.0f degrees");
         slider1.setCurrentValue(0);
-        flyout2.addChild("View", slider1);
+        flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
+        
+        flyout2.addChild("Transducer", transducerPatternSelector = (PullDownSelection)new PullDownSelection(750, 225, 410, 25, this).setTitle("TransducerPattern").setCommand("transducerPattern"));
+        int transducerCount = Transducer.getTransducerDefCount();
+        for (int i=0; i<transducerCount; i++) {
+            transducerPatternSelector.addItem(Transducer.getTransducerDef(i).getName());
+        }
         
                // for the slider of the ellipse function
 //        slider1 = new Slider(720, 200, 450, 25, controller);
@@ -753,10 +768,10 @@ public class DefaultView extends View {
         steeringTransformGroup.add(mrBoreTransform);
         
 //        // testing fiducial marker display
-//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(50f, 50f, 0f).setColor(1f, 0f, 0f));
-//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(-50f, 50f, 0f).setColor(1f, 0f, 0f));
-//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(-50f, -50f, 0f).setColor(0.3f, 0.3f, 1f));
-//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(50f, -50f, 0f).setColor(0.3f, 0.3f, 1f));
+//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(80f, 80f, 3.37f).setColor(1f, 0f, 0f));
+//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(-80f, 80f, 3.37f).setColor(1f, 0f, 0f));
+//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(-80f, -80f, 3.37f).setColor(0.3f, 0.3f, 1f));
+//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(80f, -80f, 3.37f).setColor(0.3f, 0.3f, 1f));
 
         
         globalTransformList.add(transRayTracer);
@@ -888,6 +903,17 @@ public class DefaultView extends View {
                 
         int index = result-5;
         
+        transRayTracer.setSelectedElement(index);
+        
+        updateSelectedChannelData();
+                
+        return result;
+    }
+    
+    private void updateSelectedChannelData() {
+        
+        int index = transRayTracer.getSelectedElement();
+        
         if (index >= 0 && index < 1024) { // transducer channel
             
             transRayTracer.setSelectedElement(index);
@@ -906,7 +932,7 @@ public class DefaultView extends View {
                 yData[i] = (double)samples[i];
             }
             
-            model.setAttribute("currentTransducerChannelNum", String.format("%d", result-5));
+            model.setAttribute("currentTransducerChannelNum", String.format("%d", index));
             model.setAttribute("currentTransducerChannelOuterAngle", String.format("%3.1f", angle));
             model.setAttribute("currentTransducerChannelSDRavg", String.format("%3.2f", sdrAvg));
             model.setAttribute("currentTransducerChannelSDR", String.format("%3.2f", sdr));
@@ -942,8 +968,9 @@ public class DefaultView extends View {
             
             skullProfileChart.generateChart();
         }
-                
-        return result;
+        else {
+            transRayTracer.setSelectedElement(-1);
+        }
     }
         
     // sets flag to do an animated blend transition at next frame update
@@ -957,7 +984,14 @@ public class DefaultView extends View {
     }
     
     public void setDisplayCTimage(ImageVolume image) {
-        if (image == null) return;
+        if (image == null) {
+            canvas.setCTImage(image);
+            canvas1.setCTImage(image);
+            canvas2.setCTImage(image);
+            canvas3.setCTImage(image);
+
+            return;
+        }
         
         float windowWidth;
         float windowCenter;
@@ -1016,7 +1050,14 @@ public class DefaultView extends View {
     
     public void setDisplayMRimage(ImageVolume image) {
         
-        if (image == null) return;
+        if (image == null) {
+            canvas.setMRImage(image);
+            canvas1.setMRImage(image);
+            canvas2.setMRImage(image);
+            canvas3.setMRImage(image);
+
+            return;
+        }
         
         float windowWidth = 4095;
         float windowCenter = 1024;
@@ -1178,30 +1219,40 @@ public class DefaultView extends View {
     
     private void enumSavedClasses(Model model) {
         Iterator<String> keys = model.getAttributeKeys();
-        while (keys.hasNext()) {
+        while (keys != null && keys.hasNext()) {
             String key = keys.next();
             Object obj = model.getAttribute(key);
             System.out.println("Model[" + key + "] = " + obj.getClass().toString());
         }
         
-        keys = model.getCtImage().getAttributeKeys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            Object obj = model.getCtImage().getAttribute(key);
-            System.out.println("Model.CTImage[" + key + "] = " + obj.getClass().toString());
+        try {
+            keys = model.getCtImage().getAttributeKeys();
+            while (keys != null && keys.hasNext()) {
+                String key = keys.next();
+                Object obj = model.getCtImage().getAttribute(key);
+                System.out.println("Model.CTImage[" + key + "] = " + obj.getClass().toString());
+            }
+        } catch (NullPointerException e) {
         }
-        keys = model.getMrImage(0).getAttributeKeys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            Object obj = model.getMrImage(0).getAttribute(key);
-            System.out.println("Model.MRImage[0][" + key + "] = " + obj.getClass().toString());
+
+        try {
+            keys = model.getMrImage(0).getAttributeKeys();
+            while (keys != null && keys.hasNext()) {
+                String key = keys.next();
+                Object obj = model.getMrImage(0).getAttribute(key);
+                System.out.println("Model.MRImage[0][" + key + "] = " + obj.getClass().toString());
+            }
+        } catch (NullPointerException e) {
         }
-        
-        keys = model.getSonication(0).getAttributeKeys();
-        while (keys.hasNext()) {
-            String key = keys.next();
-            Object obj = model.getSonication(0).getAttribute(key);
-            System.out.println("Model.Sonication[0][" + key + "] = " + obj.getClass().toString());
+
+        try {
+            keys = model.getSonication(0).getAttributeKeys();
+            while (keys != null && keys.hasNext()) {
+                String key = keys.next();
+                Object obj = model.getSonication(0).getAttribute(key);
+                System.out.println("Model.Sonication[0][" + key + "] = " + obj.getClass().toString());
+            }
+        } catch (NullPointerException e) {
         }
     }
     
@@ -1810,7 +1861,7 @@ public class DefaultView extends View {
                                 Trackball registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
                                 if (registerBall == null) {
                                     registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
-                                    model.getMrImage(i).setAttribute("registerBall", registerBall);
+                                    model.getMrImage(i).setAttribute("registerBall", registerBall, true);
                                 }
                                 registerBall.mouseDragged(x, y);
                                 mrQnow = new Quaternion(registerBall.getCurrent());
@@ -1897,7 +1948,7 @@ public class DefaultView extends View {
                 }
                 
                 if (model.getCtImage() != null) {
-                    model.getCtImage().setAttribute("startTranslation", new Vector3f(startCtImageTranslate));
+                    model.getCtImage().setAttribute("startTranslation", new Vector3f(startCtImageTranslate), true);
                 }
                 
                 for (int i = 0; i < model.getMrImageCount(); i++) {
@@ -1907,10 +1958,10 @@ public class DefaultView extends View {
                             if (startMrImageTranslate == null) {
                                 startMrImageTranslate = new Vector3f();
                             }
-                            model.getMrImage(i).setAttribute("startTranslation", new Vector3f(startMrImageTranslate));
+                            model.getMrImage(i).setAttribute("startTranslation", new Vector3f(startMrImageTranslate), true);
                         } catch (NullPointerException e) {
                             e.printStackTrace();
-                            model.getMrImage(i).setAttribute("startTranslation", new Vector3f());
+                            model.getMrImage(i).setAttribute("startTranslation", new Vector3f(), true);
                         }
                         
                     }
@@ -1928,7 +1979,7 @@ public class DefaultView extends View {
                     if (model.getCtImage() == null) return false;
                                         
                     Quaternion ctQstart = new Quaternion((Quaternion) model.getCtImage().getAttribute("ImageOrientationQ")).negate(null);
-                    model.getCtImage().setAttribute("startOrientationQ", new Quaternion(ctQstart));
+                    model.getCtImage().setAttribute("startOrientationQ", new Quaternion(ctQstart), true);
                     
                     Quaternion.mul(trackball.getCurrent(), ctQstart, ctQstart);
                     registerBallCT.setCurrent(ctQstart);
@@ -1943,7 +1994,7 @@ public class DefaultView extends View {
                                 registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
                                 if (registerBall == null) {
                                     registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
-                                    model.getMrImage(i).setAttribute("registerBall", registerBall);                                    
+                                    model.getMrImage(i).setAttribute("registerBall", registerBall, true);                                    
                                 }
                             } catch (NullPointerException e) {
                                 e.printStackTrace();
@@ -1954,7 +2005,7 @@ public class DefaultView extends View {
                             registerBall.mousePressed(x, y);
                             
                             Quaternion mrQstart = (Quaternion) model.getMrImage(i).getAttribute("ImageOrientationQ");
-                            model.getMrImage(i).setAttribute("startOrientationQ", new Quaternion(mrQstart));
+                            model.getMrImage(i).setAttribute("startOrientationQ", new Quaternion(mrQstart), true);
                         }
                     }
                 }
@@ -2062,7 +2113,7 @@ public class DefaultView extends View {
                    registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f); 
                 }
                 registerBall.set(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
-                model.getMrImage(i).setAttribute("registerBall", registerBall);
+                model.getMrImage(i).setAttribute("registerBall", registerBall, true);
             }
         }
         catch(NullPointerException e) {
@@ -2145,7 +2196,7 @@ public class DefaultView extends View {
                     break;
                 case "currentSonication":
                     int sonicationIndex = (Integer)model.getAttribute("currentSonication");
-                    if (sonicationIndex>=0) {
+                    if (sonicationIndex>=0 && model.getSonication(sonicationIndex) != null) {
                         model.setAttribute("currentTargetPoint", new Vector3f(model.getSonication(sonicationIndex).getNaturalFocusLocation()));
                         model.setAttribute("currentTargetSteering", new Vector3f(model.getSonication(sonicationIndex).getFocusSteering()));
                         model.setAttribute("sonicationPower", String.format("%4.1f W", model.getSonication(sonicationIndex).getPower()));
@@ -2165,6 +2216,12 @@ public class DefaultView extends View {
                         updateThermometryDisplay(sonicationIndex, true);
                         updateTransducerModel(sonicationIndex);
                         setDoTransition(true);
+                    }
+                    else {
+                        model.setAttribute("sonicationDescription", "");
+                        model.setAttribute("sonicationRLoc", String.format("%4.1f", 0f));
+                        model.setAttribute("sonicationALoc", String.format("%4.1f", 0f));
+                        model.setAttribute("sonicationSLoc", String.format("%4.1f", 0f));
                     }
                     break;
                 case "transducerXTilt":
@@ -2204,6 +2261,8 @@ public class DefaultView extends View {
 
                         incidentAngleChart.newChart();
                         incidentAngleChart.addSeries("Frequency", transRayTracer.getIncidentAngles(), barColor, 35, 0f, 36f);
+                        
+                        updateSelectedChannelData();
                     }
                     return;
                 case "sdrCalc":
@@ -3273,8 +3332,26 @@ public class DefaultView extends View {
                 this.currentMouseMode = mouseMode.FRAME_TRANSLATE;
                 break;
             case "exit":
-                this.release();
-                System.exit(0);
+                int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_OPTION) {
+                    this.release();
+                    System.exit(0);
+                }
+                break;
+            case "close":
+                result = JOptionPane.showConfirmDialog(null, "Close the current plan a lose changes?", "Close Plan", JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_OPTION) {
+                    if (this.model != null) {
+                        this.model.clear();
+                        this.setDisplayCTimage(null);
+                        this.setDisplayMRimage(null);
+                        updateSonicationList();
+                        model.setSelectedSonication(-1); // TODO: SelectedSonication and currentSonication need to be unified
+                        model.setAttribute("currentTargetPoint", new Vector3f());
+                        model.setAttribute("currentTargetSteering", new Vector3f());
+                        model.setAttribute("currentSonication", -1);
+                    }
+                }
                 break;
             case "filterCT":
                 ImageVolume4D image = (ImageVolume4D)model.getCtImage();
@@ -3330,6 +3407,12 @@ public class DefaultView extends View {
                     
                     this.mainLayer.setIsDirty(true);
                 }
+                break;
+            case "transducerPattern":
+                selTrans = this.transducerPatternSelector.getSelectionIndex();
+                transRayTracer.release();
+                setDoTransition(true);
+                transRayTracer.init(transducerModel.buildElements(Transducer.getTransducerDef(selTrans)));
                 break;
         }
     }

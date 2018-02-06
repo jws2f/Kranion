@@ -68,22 +68,15 @@ public class Model extends Observable implements Serializable, Observer {
         sonications = new ArrayList<>(25);
     }
     
+
     public void clear() {
 //        this.deleteObservers();
         
-//        attributes.clear(); // TODO: we might want to sometimes do this?
+        attributes.clear(); // TODO: we might want to sometimes do this?
         
         ImageVolumeUtil.releaseTextures(ct_image);
         this.setCtImage(null);
-        
-        int count = 0;
-        Iterator<ImageVolume4D> i = mr_images.iterator();
-        while(i.hasNext()) {
-            ImageVolume4D img = i.next();
-            ImageVolumeUtil.releaseTextures(img);
-            this.setMrImage(count++, null);
-        }
-        
+                
         mr_images.clear();
         
         selectedMR = -1;
@@ -102,15 +95,11 @@ public class Model extends Observable implements Serializable, Observer {
     // This should update GUI observers
     public void updateAllAttributes() {
         Iterator<String> i = getAttributeKeys();
-        
-//        System.out.println("----Model updateAllAttributes-----");
         while(i.hasNext()) {
             String key = i.next();
             setChanged();
             Object value = getAttribute(key);
             notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+key+"]", null, value));
-
-//            System.out.println(key + " :: " + value);
         }
     }
     
@@ -198,6 +187,13 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public void clearMrImages() {
+        int count = 0;
+        Iterator<ImageVolume4D> i = mr_images.iterator();
+        while(i.hasNext()) {
+            ImageVolume4D img = i.next();
+            ImageVolumeUtil.releaseTextures(img);
+            this.setMrImage(count++, null);
+        }
         mr_images.clear();
     }
     
@@ -256,17 +252,29 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public void removeAttribute(String name) {
-        attributes.remove(name);
+        if (attributes.remove(name) != null) {
+            setChanged();
+            notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+name+"]", null, null));
+        }
     }
     
     public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
+        setAttribute(name, value, false); // attributes are not transient by default
+    }
+    
+    public void setAttribute(String name, Object value, boolean isTransient) {
+        attributes.put(name, value, isTransient);
+        
             //notify
         setChanged();
         notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+name+"]", null, value));
     }
+    
+    public boolean getIsAttributeTransient(String name) {
+        return attributes.getIsAttributeTransient(name);
+    }
         
-    public Iterator getAttributeKeys() {
+    public Iterator getAttributeKeys() {        
         return attributes.keySet().iterator();
     }    
 

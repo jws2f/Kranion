@@ -220,6 +220,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     public void setSelectedElement(int nelement) {
         selectedElement = nelement;
     }
+    
+    public int getSelectedElement() {
+        return selectedElement;
+    }
      
     private void initShader() {
         if (refractShader == null) {
@@ -1398,6 +1402,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             floatDistances.get(); // incidence angle
             floatDistances.get(); // skull thickness
             float sdrval2 = floatDistances.get(); // TODO
+            float normSkullThickness = floatDistances.get();
             if (value > 0) {
                 numberOn++;
 //                sdrSum += sdr;

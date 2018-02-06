@@ -40,6 +40,7 @@ import org.fusfoundation.kranion.model.AttributeList;
  * @author  jsnell
  */
 public class ImageVolume4D extends Observable implements ImageVolume, Serializable {
+    private static final long  serialVersionUID = 371489430528683979L;
     
     private ImageDimension[] dims = new ImageDimension[4];
     private int voxelCount;
@@ -258,7 +259,11 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     }
     
     public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
+        setAttribute(name, value, false);
+    }
+    
+    public void setAttribute(String name, Object value, boolean isTransient) {
+        attributes.put(name, value, isTransient);
             //notify
         setChanged();
         notifyObservers(new PropertyChangeEvent(this, "Attribute["+name+"]", null, value));
@@ -269,6 +274,10 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     
     public Iterator getAttributeKeys() {
         return attributes.keySet().iterator();
-    }    
+    }
+    
+    public boolean getIsAttributeTransient(String name) {
+        return attributes.getIsAttributeTransient(name);
+    }
     
 }

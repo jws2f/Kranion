@@ -288,8 +288,8 @@ public class ImageCanvas2D extends GUIControl {
 
 
 //        theImage.setAttribute("textureName", null); ///////HACK
-        Integer tn = (Integer) CTimage.getAttribute("textureName");
-        System.out.println("texname = " + tn);
+//        Integer tn = (Integer) CTimage.getAttribute("textureName");
+//        System.out.println("texname = " + tn);
         
         
         ImageVolumeUtil.setupImageOrientationInfo(image);
@@ -323,8 +323,8 @@ public class ImageCanvas2D extends GUIControl {
 
 
 //        theImage.setAttribute("textureName", null); ///////HACK
-        Integer tn = (Integer) MRimage.getAttribute("textureName");
-        System.out.println("texname = " + tn);
+//        Integer tn = (Integer) MRimage.getAttribute("textureName");
+//        System.out.println("texname = " + tn);
                 
         ImageVolumeUtil.setupImageOrientationInfo(image);
         
@@ -561,7 +561,13 @@ public class ImageCanvas2D extends GUIControl {
     }
     
     private void setupImageTexture(ImageVolume image, int textureUnit) {
-        if (image == null) return;
+        if (image == null) {
+            glEnable(GL_TEXTURE_3D);
+            glActiveTexture(GL_TEXTURE0 + textureUnit);
+
+            glBindTexture(GL_TEXTURE_3D, 0);
+            return;
+        }
         
         Integer tn = (Integer) image.getAttribute("textureName");
         

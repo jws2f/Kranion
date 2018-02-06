@@ -86,6 +86,8 @@ import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 import javax.imageio.ImageIO;
 import org.lwjgl.opencl.CL10GL;
 import org.lwjgl.opencl.CLCapabilities;
@@ -112,7 +114,7 @@ public class Main implements ProgressListener {
     public static final boolean GL_DEBUG = false;
 
     private float viewportAspect = 1f;
-    
+    private static List<Plugin> plugins;           
     private static List<BackgroundWorker> workers = new ArrayList<>();
     public static void addBackgroundWorker(BackgroundWorker w) {
         workers.add(w);
@@ -152,15 +154,26 @@ public class Main implements ProgressListener {
     
     public static void setModel(Model model) {
         
+        for (int i = 0; i < plugins.size(); i++) {
+            plugins.get(i).release();
+        }
+        
         //disconnect old model if exists
         if (Main.main.model != null) {
             Main.main.model.deleteObservers();
+            Main.main.model.clear();
         }
+        
         
         Main.main.model = model;
         Main.main.controller.setModel(model);
         Main.main.view.setModel(model);
         
+        // reconnect plugins to new model
+        for (int i = 0; i < plugins.size(); i++) {
+            plugins.get(i).init(Main.main.controller);
+        }
+            
         // reconnect observer controls to new model
         Iterator<Renderable> controls = Renderable.iterator();
         while (controls.hasNext()) {
@@ -199,8 +212,11 @@ public class Main implements ProgressListener {
     public static void main(String[] args) {
         try {
             main = new Main();
+            
+            System.out.println("This is build " + getRbTok("app.version") + ":" + getRbTok("app.build"));
 
             main.create();
+            
 
             SplashScreen mySplash = SplashScreen.getSplashScreen();
 
@@ -324,7 +340,7 @@ public class Main implements ProgressListener {
         try {
             PluginFinder pluginFinder = new PluginFinder();
             pluginFinder.search("plugins");
-            List<Plugin> plugins = pluginFinder.getPluginCollection();
+            plugins = pluginFinder.getPluginCollection();
             for (int i = 0; i < plugins.size(); i++) {
                 plugins.get(i).init(controller);
             }
@@ -556,7 +572,7 @@ public class Main implements ProgressListener {
     }
 
     public void run() {
-        while (!Display.isCloseRequested() /*&& !Keyboard.isKeyDown(Keyboard.KEY_ESCAPE)*/) {
+        while (true) {
 
             handleResize();
 
@@ -565,6 +581,13 @@ public class Main implements ProgressListener {
             nextFrame();
 
             Main.checkForGLError();
+            
+            if (Display.isCloseRequested()) {
+                int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
+                if (result == JOptionPane.YES_OPTION) {
+                    break;
+                }
+            }
 
         }
 
@@ -706,5 +729,17 @@ public class Main implements ProgressListener {
             System.out.println("ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
         }
     }
+    
+    final static ResourceBundle appResourceBundle
+            = ResourceBundle.getBundle("version");
 
+    public static final String getRbTok(String propToken) {
+        String msg = "";
+        try {
+            msg = appResourceBundle.getString(propToken);
+        } catch (MissingResourceException e) {
+            System.err.println("Token ".concat(propToken).concat(" not in Propertyfile!"));
+        }
+        return msg;
+    }
 }

@@ -87,7 +87,17 @@ public class TargetRenderer extends DirtyFollower {
         Model model = Main.getModel();
         int targetCount = model.getSonicationCount();
         Integer selectedTarget = (Integer)model.getAttribute("currentSonication");
-        Vector3f currentTarget = new Vector3f((Vector3f)model.getAttribute("currentTargetPoint"));
+        
+        Vector3f vec = (Vector3f)model.getAttribute("currentTargetPoint");
+        Vector3f currentTarget = null;
+        if (vec != null) {
+            currentTarget = new Vector3f(vec);
+        }
+        else {
+            return;
+        }
+        
+        if (currentTarget == null) return;
         
         Vector3f tmp = (Vector3f)model.getAttribute("currentTargetSteering");
         if (tmp == null) tmp = new Vector3f();
@@ -95,7 +105,6 @@ public class TargetRenderer extends DirtyFollower {
         
         Vector3f.add(currentTarget, currentSteering, currentTarget);
         
-        if (currentTarget == null) return;
         
         glPushAttrib(GL_ENABLE_BIT);
         glEnable(GL_BLEND);

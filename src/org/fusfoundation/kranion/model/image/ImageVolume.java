@@ -75,6 +75,8 @@ public interface ImageVolume {
     public ByteBuffer getByteBuffer();
     
     public void setAttribute(String name, Object value);
+    public void setAttribute(String name, Object value, boolean isTransient);
+    public boolean getIsAttributeTransient(String name);
     public Object getAttribute(String name);
     public Iterator getAttributeKeys();
     public void removeAttribute(String name);

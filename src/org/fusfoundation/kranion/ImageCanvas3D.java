@@ -279,8 +279,8 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
         
 
 //        theImage.setAttribute("textureName", null); ///////HACK
-        Integer tn = (Integer) CTimage.getAttribute("textureName");
-        System.out.println("texname = " + tn);
+//        Integer tn = (Integer) CTimage.getAttribute("textureName");
+//        System.out.println("texname = " + tn);
                 
         ImageVolumeUtil.setupImageOrientationInfo(image);
 
@@ -344,8 +344,10 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
         MRimage = image;
         
 //        theImage.setAttribute("textureName", null); ///////HACK
-        Integer tn = (Integer) MRimage.getAttribute("textureName");
-        System.out.println("texname = " + tn);
+        if (MRimage != null) {
+            Integer tn = (Integer) MRimage.getAttribute("textureName");
+            System.out.println("texname = " + tn);
+        }
                 
         ImageVolumeUtil.setupImageOrientationInfo(image);
 

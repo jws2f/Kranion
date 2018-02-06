@@ -389,8 +389,9 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         }
     }
     
-    public void setPropertyPrefix(String name) {
+    public GUIControl setPropertyPrefix(String name) {
         this.propertyPrefix = name;
+        return this;
     }
     
     protected String getFilteredPropertyName(PropertyChangeEvent arg) {

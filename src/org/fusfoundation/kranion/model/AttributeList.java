@@ -28,6 +28,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -36,35 +37,75 @@ import java.util.Set;
  * @author john
  */
 public class AttributeList implements Serializable {
+    
+    private static final long  serialVersionUID =  -3117599764725849715L;
+    
     private HashMap<String, Object> attributes = new HashMap<>();
+    private transient HashMap<String, Object> transient_attributes = new HashMap<>();
     
     public AttributeList() {}
     
     public Object get(String name) {
-        return attributes.get(name);
+        Object retVal = null;
+                              
+        retVal = attributes.get(name);
+        
+        if (retVal == null) {
+            retVal = transient_attributes.get(name);
+        }
+        
+        return retVal;
     }
     
-    public void remove(String name) {
-        attributes.remove(name);
+    public Object remove(String name) {
+        Object retVal = null;
+                
+        Object a = attributes.remove(name);
+        Object b = transient_attributes.remove(name);
+        
+        if (a != null) retVal = a;
+        if (retVal == null && b != null) retVal = b;
+        
+        return retVal;
     }
     
     public Set keySet() {
-        return attributes.keySet();
+        Set<String> mergedKeys = new HashSet<>();
+        
+        mergedKeys.addAll(attributes.keySet());
+        mergedKeys.addAll(transient_attributes.keySet());
+        
+        return mergedKeys;
     }
     
     public void put(String name, Object value) {
+        put(name, value, false);
+    }
+    
+    public void put(String name, Object value, boolean isTransient) {
         if (name != null && name.length()>0 && value != null) {
-            attributes.put(name, value);
+            if (isTransient) {
+                transient_attributes.put(name, value);
+                attributes.remove(name);
+            }
+            else {
+                attributes.put(name, value);
+                transient_attributes.remove(name);
+            }
         }
+    }
+    
+    public boolean getIsAttributeTransient(String name) {
+        return transient_attributes.get(name) != null;
     }
     
     public void clear() {
         attributes.clear();
+        transient_attributes.clear();
     }
     
     // Need to do some custom filtering
     private void writeObject(ObjectOutputStream out)throws IOException {
-        out.defaultWriteObject();
 
         // Write filtered attribute list
         out.writeInt(attributes.size());
@@ -80,7 +121,8 @@ public class AttributeList implements Serializable {
     }
     
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
+        attributes = new HashMap<String, Object>();
+        transient_attributes = new HashMap<String, Object>();
         
         int size = in.readInt();
         for (int i=0; i<size; i++) {
@@ -90,20 +132,40 @@ public class AttributeList implements Serializable {
         }
     }
 
+    // translateIn and translateOut are an effort to future proof the representation of
+    // vector,matrix,quaternion objects in serialized storage. So these entities' values are stored
+    // in a simple proxy class that we know will be supported, even if functionally we use
+    // a different vector/matrix class library later. This will definitely happen on the transition
+    // form lwjgl 2.9 to lwjgl 3.x in the near future. Don't want to orphan the stored files people
+    // have saved. Downside of using native Java serialization, but simple and fast.
     private Object translateOut(Object obj) {
         
         if (obj == null) return null;
         
+        // So defensively only serializing object classes that we know will
+        // be supportted either natively or by Kranion classes in the future.
+        // Otherwise somebody could add custom attributes with class types
+        // that might not be on the classpath in the future and make loading
+        // the model impossible in the future. Unknown objects get stored as
+        // their .toString() values, for lack of anything better to do.
         switch (obj.getClass().getName()) {
             // Built in things we support, pass through
             case "java.lang.Float":
             case "java.lang.Double":
             case "java.lang.Integer":
+            case "java.lang.Short":
+            case "java.lang.Byte":
+            case "java.lang.Character":
             case "java.lang.Boolean":
             case "java.lang.String":
-            case "[F":
+            case "[F": // one dimension arrays of built in types
             case "[D":
             case "[I":
+            case "[S":
+            case "[J":
+            case "[Z":
+            case "[B":
+            case "[C":
             case "org.fusfoundation.dicom.DicomDate":
             case "org.fusfoundation.dicom.DicomString":
             case "org.fusfoundation.dicom.PersonName":
@@ -154,6 +216,10 @@ public class AttributeList implements Serializable {
         
         if (obj == null) return null;
         
+        // If we encounter any built in vector/matrix/quaternion classes,
+        // then translate them to whatever vector/matrix/quaternion class library
+        // we are really using. Again, just trying to make the transition from
+        // lwjgl2 -> lwjgl3 forward compatible.
         switch (obj.getClass().getName()) {
             // Vector types that we need to translate: our archival format->LWJGL (JOML in future version)
             case "org.fusfoundation.kranion.model.Vector2f": {

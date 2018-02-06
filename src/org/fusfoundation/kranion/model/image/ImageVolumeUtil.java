@@ -249,6 +249,9 @@ public class ImageVolumeUtil {
     }
 
     public static void setupImageOrientationInfo(ImageVolume image) {
+        
+        if (image == null) return;
+        
         float[] imageOrientationV = (float[]) image.getAttribute("ImageOrientation");
         if (imageOrientationV == null) {
             return;

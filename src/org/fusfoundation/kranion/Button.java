@@ -53,6 +53,7 @@ import java.util.Observable;
  */
 public class Button extends GUIControl {
     private Vector4f color = new Vector4f(0.35f, 0.35f, 0.35f, 1f);
+    private Vector4f textcolor = new Vector4f(1f, 1f, 1f, 1f);
     private BufferedImage labelImage;
     private int fontSize = 16;
     private float labelScale = 1f;
@@ -147,6 +148,17 @@ public class Button extends GUIControl {
         }
     }
     
+    public void setTextColor(float red, float green, float blue, float alpha) {
+        if (red   != textcolor.x ||
+            green != textcolor.y ||
+            blue  != textcolor.z ||
+            alpha != textcolor.w) {
+            
+            textcolor.set(red, green, blue, alpha);
+            setIsDirty(true);
+        }
+    }
+    
     public void setOpacity(float alpha) {
         if (alpha != color.w) {
             color.w = alpha;
@@ -204,10 +216,10 @@ public class Button extends GUIControl {
                 if (type != ButtonType.BUTTON) {
                     textBounds.x += this.indicatorRadius * 3;
                    //textBounds.width -= this.indicatorRadius * 3;
-                    renderText(getTitle(), textBounds, null, new Color(1f, 1f, 1f, 1f), true, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT);
+                    renderText(getTitle(), textBounds, null, new Color(textcolor.x, textcolor.y, textcolor.z, textcolor.w), true, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT);
                 }
                 else {
-                    renderText(getTitle(), textBounds, null, new Color(1f, 1f, 1f, 1f), true, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_CENTER);
+                    renderText(getTitle(), textBounds, null, new Color(textcolor.x, textcolor.y, textcolor.z, textcolor.w), true, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_CENTER);
                 }
                 
                 if (type != ButtonType.BUTTON) {
@@ -300,6 +312,9 @@ public class Button extends GUIControl {
     @Override
     public void update(Object newValue) {
         try {
+            if (newValue == null) {
+                newValue = new Boolean(false);
+            }
             setIndicator((Boolean)newValue);
             System.out.println("Button.update " + getTitle() + ") = " + (Boolean)newValue);
         }

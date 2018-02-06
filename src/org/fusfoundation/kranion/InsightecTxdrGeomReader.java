@@ -31,10 +31,12 @@ public class InsightecTxdrGeomReader {
 
     private Vector4f[] channels;
     private boolean[] channelActive;
+    private String name;
 
     public InsightecTxdrGeomReader(String filename) throws IOException {
         channels = null;
         channelActive = null;
+        name = new String(filename);
 
         InputStream rstm = this.getClass().getResourceAsStream(filename);
         BufferedReader in = new BufferedReader(new InputStreamReader(rstm));
@@ -47,6 +49,7 @@ public class InsightecTxdrGeomReader {
     public InsightecTxdrGeomReader(File file) throws IOException {
         channels = null;
         channelActive = null;
+        name = new String(file.getName());
 
         InputStream rstm = new FileInputStream(file);
         BufferedReader in = new BufferedReader(new InputStreamReader(rstm));
@@ -128,6 +131,10 @@ public class InsightecTxdrGeomReader {
             return 0;
         }
         return (channels.length);
+    }
+    
+    public String getName() {
+        return name;
     }
 
     public static void main(String[] args) {
