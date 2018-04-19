@@ -97,10 +97,13 @@ import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 public class Main implements ProgressListener {
 
-    @Override
-    public void percentDone(String msg, int percent) {
-        System.out.println(msg + " - " + percent + "%");
-    }
+    private Model model;
+    private Controller controller;
+    private View view;
+
+    private int currentBuffer = 0;
+    private boolean bufferNeedsRendering[] = new boolean[3];
+
 
     public static final int DISPLAY_HEIGHT = 1024;
     public static final int DISPLAY_WIDTH = 1680;
@@ -190,13 +193,15 @@ public class Main implements ProgressListener {
             w.setModel(model);
         }
     }
-
-    private Model model;
-    private Controller controller;
-    private View view;
-
-    private int currentBuffer = 0;
-    private boolean bufferNeedsRendering[] = new boolean[3];
+    
+    public static View getView() { return Main.main.view; }
+    public static void setView(View view) {
+        if (Main.main.view != null) {
+            Main.main.view.setModel(null);
+        }
+        view.setModel(Main.main.model);
+        Main.main.view = view;
+    }
 
     static {
         try {
@@ -260,14 +265,14 @@ public class Main implements ProgressListener {
         controller.setModel(model);
 
         view = new DefaultView();
-
+        
         view.setModel(model);
         view.setPropertyPrefix("Model.Attribute");
         view.setController(controller);
         view.setTag("DefaultView");
 
         controller.setView(view);
-
+        
         //Display
         DisplayMode[] modes = Display.getAvailableDisplayModes();
 
@@ -568,7 +573,7 @@ public class Main implements ProgressListener {
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
-        view.doLayout();
+        view.doLayout();        
     }
 
     public void run() {
@@ -637,10 +642,6 @@ public class Main implements ProgressListener {
         currentBuffer = (currentBuffer + 1) % 3; // keep track of front/back buffers        
     }
     
-    public static View getView() {
-        return Main.main.view;
-    }
-
     public static void checkForGLErrorAndThrow() {
         int error = checkForGLError();
         if (error != GL_NO_ERROR) {
@@ -688,6 +689,11 @@ public class Main implements ProgressListener {
             printStackTrace();
         }
         return error;
+    }
+    
+    @Override
+    public void percentDone(String msg, int percent) {
+        System.out.println(msg + " - " + percent + "%");
     }
 
     public static void glPushMatrix() {

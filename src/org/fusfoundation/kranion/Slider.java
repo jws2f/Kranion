@@ -39,6 +39,7 @@ import java.beans.PropertyChangeEvent;
 import java.nio.FloatBuffer;
 import java.nio.DoubleBuffer;
 import java.util.Observable;
+import org.fusfoundation.kranion.model.Model;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.opengl.Display;
@@ -47,8 +48,9 @@ import org.lwjgl.opengl.Display;
  *
  * @author john
  */
-public class Slider extends GUIControl {
+public class Slider extends GUIControl implements GUIControlModelBinding {
     private Vector4f color = new Vector4f(0.35f, 0.35f, 0.35f, 1f);
+
     public enum SliderState {DISABLED, ENABLED};  
     private SliderState state = SliderState.ENABLED;
     private BufferedImage labelImage;
@@ -428,5 +430,13 @@ glDisable(GL_CULL_FACE);
         this.handle_hemisphere.release();
         super.release(); //To change body of generated methods, choose Tools | Templates.
     }
+    
+    @Override
+    public void doBinding(Model model) {
+        if (model != null) {
+            model.setAttribute(this.getCommand(), this.getCurrentValue());
+        }
+    }
+    
     
 }

@@ -45,6 +45,10 @@ public class RenderList extends Clippable implements Resizeable, Pickable {
         renderlist.remove(obj);
     }
     
+    public Iterator<Renderable> getChildIterator() {
+        return renderlist.iterator();
+    }
+    
     @Override
     public void setClipped(boolean clipped) {
         super.setClipped(clipped);
@@ -100,6 +104,7 @@ public class RenderList extends Clippable implements Resizeable, Pickable {
         for (ListIterator<Renderable> it = renderlist.listIterator(); it.hasNext();) {
             it.next().release();
         }
+        renderlist.clear();
     }
     
     @Override

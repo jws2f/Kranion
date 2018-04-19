@@ -31,7 +31,7 @@ import java.util.*;
  */
 public abstract class Renderable {
     private static int renderableCount = 0;
-    private static ArrayList<Renderable> renderableMap = new ArrayList<>(256);
+    private static HashSet<Renderable> renderableMap = new HashSet<>(256);
     
     private int id = renderableCount++;
     private String tag = new String("renderable"+id);
@@ -44,11 +44,22 @@ public abstract class Renderable {
     private boolean acceptsKeyboardFocus = false;
     
     public Renderable() {
-        renderableMap.add(id, this);
+        renderableMap.add(this); // TODO: Slightly dangerous, not thread safe. The Rebderable Set is private, so shouldn't publish "this" outside the constructor.
+    }
+    
+    public void removeFromSet() {
+        renderableMap.remove(this);
     }
     
     public static Renderable lookupByID(int id) {
-        return renderableMap.get(id);
+        Iterator<Renderable> i = renderableMap.iterator();
+        while(i.hasNext()) {
+            Renderable r = i.next();
+            if (r.getID() == id) {
+                return r;
+            }
+        }
+        return null;
     }
     
     public static Renderable lookupByTag(String tag) {

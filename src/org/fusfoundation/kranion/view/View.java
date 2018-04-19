@@ -27,6 +27,7 @@ import org.fusfoundation.kranion.controller.Controller;
 import java.beans.PropertyChangeEvent;
 import java.util.Observer;
 import java.awt.event.ActionListener;
+import org.fusfoundation.kranion.GUIControl;
 import org.fusfoundation.kranion.Renderable;
 import org.fusfoundation.kranion.ProgressListener;
 import org.fusfoundation.kranion.Resizeable;
@@ -41,7 +42,7 @@ import org.lwjgl.input.Keyboard;
  */
 public abstract class View extends Renderable implements Observer, ActionListener, ProgressListener, Resizeable{
     protected Model model;
-    protected Controller controller;
+    protected Controller controller;    
     private String propertyPrefix;
     
     protected Thread myThread;
@@ -90,4 +91,5 @@ public abstract class View extends Renderable implements Observer, ActionListene
     }
     
     public abstract void processInput();
+
 }

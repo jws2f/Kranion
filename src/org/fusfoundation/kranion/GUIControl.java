@@ -88,6 +88,10 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         children.add(child);
     }
     
+    public void removeChild(Renderable child) {
+        children.remove(child);
+    }
+    
     @Override
     public boolean getIsDirty() {
         
@@ -180,7 +184,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
             if (child instanceof Pickable) {
                 ((Pickable) child).renderPickable();
             }
-            else if (child instanceof Trackball) { // TODO: kind of a hack
+            else if (child instanceof Trackball) { // TODO: kind of a hack, if Trackball doesn't render then orientation isn't correct
                 child.render();
             }
         }
@@ -199,6 +203,8 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
             Renderable child = i.next();
             child.release();
         }
+        
+       this.removeFromSet();
         
         listeners.clear();        
     }

@@ -156,9 +156,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     public void setTextureRotatation(Vector3f rotationOffset, Trackball tb) {
-//        if (trackball == null || !centerOfRotation.equals(rotationOffset) || trackball.getCurrent() != tb.getCurrent()) {
+        if (trackball == null || !centerOfRotation.equals(rotationOffset) || trackball.getCurrent() != tb.getCurrent()) {
             setIsDirty(true);
-//        }
+        }
         centerOfRotation = rotationOffset;
         trackball = tb;
     }

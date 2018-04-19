@@ -39,6 +39,7 @@ import org.fusfoundation.kranion.ProgressListener;
 import org.fusfoundation.kranion.ImageCanvas2D;
 import org.fusfoundation.kranion.Renderable;
 import org.fusfoundation.kranion.Canvas2DLayoutManager;
+import org.fusfoundation.kranion.GUIControlModelBinding;
 import org.fusfoundation.kranion.ProgressBar;
 
 
@@ -74,71 +75,11 @@ public class DefaultController extends Controller {
         
         // propagate to any other registerd listeners (plugins, etc)
         super.actionPerformed(e);
-        
-        if (e.getActionCommand().equals("currentSonication")) {
-                org.fusfoundation.kranion.PullDownSelection pulldown = (org.fusfoundation.kranion.PullDownSelection)e.getSource();
-                model.setAttribute("currentSonication", pulldown.getSelectionIndex());
-        }
-        else if (e.getActionCommand().equals("transducerXTilt")) {
-                org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-                model.setAttribute("transducerXTilt", slider.getCurrentValue());
-        }
-        else if (e.getActionCommand().equals("selectMRSeries")) {
-                org.fusfoundation.kranion.PullDownSelection pulldown = (org.fusfoundation.kranion.PullDownSelection)e.getSource();
-                model.setAttribute("currentMRSeries", pulldown.getSelectionIndex());
-        }
-        else if (e.getActionCommand().equals("showRayTracer")) {
-            if (model != null) {
-                org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
-                model.setAttribute("showRayTracer", button.getIndicator());
-            }
-        }
-        else if (e.getActionCommand().equals("showThermometry")) {
-            if (model != null) {
-                org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
-                model.setAttribute("showThermometry", button.getIndicator());
-            }
-        }
-        else if (e.getActionCommand().equals("showTargets")) {
-            if (model != null) {
-                org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
-                model.setAttribute("showTargets", button.getIndicator());
-            }
-        }
-        else if (e.getActionCommand().equals("doClip")) {
-            if (model != null) {
-                org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
-                model.setAttribute("doClip", button.getIndicator());
-            }
-        }
-        else if (e.getActionCommand().equals("doMRI")) {
-            if (model != null) {
-                org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
-                model.setAttribute("doMRI", button.getIndicator());
-            }
-        }
-        else if (e.getActionCommand().equals("doFrame")) {
-            if (model != null) {
-                org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
-                model.setAttribute("doFrame", button.getIndicator());
-            }
-        }
-        else if (e.getActionCommand().equals("boneSOS")) {
-            org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-            model.setAttribute("boneSOS", (float)Math.round(slider.getCurrentValue()));
-        }
-        else if (e.getActionCommand().equals("boneRefractionSOS")) {
-            org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-            model.setAttribute("boneRefractionSOS", (float)Math.round(slider.getCurrentValue()));
-        }
-        else if (e.getActionCommand().equals("foregroundVolumeSlices")) {
-            org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-            model.setAttribute("foregroundVolumeSlices", slider.getCurrentValue());
-        }        
-        else if (e.getActionCommand().equals("MRwindow")) {
+              
+        if (e.getActionCommand().equals("MRwindow")) {
             try {
                 org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-                model.setAttribute("MRwindow", slider.getCurrentValue());
+                slider.doBinding(model);
                 int currentMRindex = 0;
                 try {
                     currentMRindex = ((Integer)model.getAttribute("currentMRSeries")).intValue();
@@ -155,7 +96,8 @@ public class DefaultController extends Controller {
         else if (e.getActionCommand().equals("MRcenter")) {
             try {
                 org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-                model.setAttribute("MRcenter", slider.getCurrentValue());
+                slider.doBinding(model);
+                
                 int currentMRindex = 0;
                 try {
                     currentMRindex = ((Integer)model.getAttribute("currentMRSeries")).intValue();
@@ -168,18 +110,6 @@ public class DefaultController extends Controller {
             catch(NullPointerException npe) {
                 npe.printStackTrace();
             }
-        }        
-        else if (e.getActionCommand().equals("MRthresh")) {
-            org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-            model.setAttribute("MRthresh", slider.getCurrentValue());
-        }        
-        else if (e.getActionCommand().equals("CTwindow")) {
-            org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-            model.setAttribute("CTwindow", slider.getCurrentValue());
-        }        
-        else if (e.getActionCommand().equals("CTcenter")) {
-            org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
-            model.setAttribute("CTcenter", slider.getCurrentValue());
         }        
         else if (e.getActionCommand().equals("loadCT")) {
             JFileChooser fileChooser = new JFileChooser();
@@ -243,40 +173,12 @@ public class DefaultController extends Controller {
                 Quaternion orient = canvas.getPlaneQuaternion();
                 model.setAttribute("currentSceneOrienation", orient);
             }
+        }        
+        // Else call the model binding code of the control if it supports it
+        else if (e.getSource() instanceof GUIControlModelBinding) {
+            ((GUIControlModelBinding)e.getSource()).doBinding(model);
+            return;
         }
-
-        
-        // new added C.J         
-        else if (e.getActionCommand().equals("AttenuationTerm")) {
-            org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
-            model.setAttribute("AttenuationTerm", button.getIndicator());
-      
-//              Renderable r = Renderable.lookupByTag("Raytracer");
-//              if (r != null && r instanceof TransducerRayTracer) {
-//                  ((TransducerRayTracer)r).calcEnvelope();
-//              }
-
-        }
-        
-        else if (e.getActionCommand().equals("TransmissionLossTerm")) {
- 
-            org.fusfoundation.kranion.Button button = (org.fusfoundation.kranion.Button)e.getSource();
-            model.setAttribute("TransmissionLossTerm", button.getIndicator());
-         
-        }
-       
-        else if (e.getActionCommand().equals("PressureCompute")) {
-            
-            System.out.println("** check here");
-            
-             Object r = e.getSource();
-              if (r != null && r instanceof Button) {
-                  ((DefaultView)view).pressureCalCalledByButton();
-                  System.out.println("** pressure button pressed");
-              }
-//                System.out.println("pressure button pressed");
-        }
-                
                 
                          
             

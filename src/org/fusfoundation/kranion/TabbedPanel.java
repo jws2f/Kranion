@@ -55,12 +55,13 @@ public class TabbedPanel extends GUIControl implements ActionListener, Animator,
         public int id;
         public int width;
         public RenderList children = new RenderList();
+        public String viewTagName = null;
         
         public Tab(int id, String label) {
             this.id = id;
             this.label = label;
             this.width = 100;
-        }
+        }        
     }
     
     private int selectedTab = 0;
@@ -72,12 +73,13 @@ public class TabbedPanel extends GUIControl implements ActionListener, Animator,
 //            addTab("Transducer");        
     }
     
-    public int addTab(String label) {
+    public int addTab(String label, String viewNameToLink) {
         int id = tabs.size();
         
         Rectangle stringBounds = getStringBounds(label, null);
         
         Tab tab = new Tab(id, label);
+        tab.viewTagName = viewNameToLink;
         tab.width = (int)(stringBounds.width) + 40;
         
         tabs.add(tab);
@@ -89,6 +91,10 @@ public class TabbedPanel extends GUIControl implements ActionListener, Animator,
         }
         
         return id;
+    }
+    
+    public int addTab(String label) {
+        return addTab(label, null);
     }
     
     public void addChild(String tabLabel, Renderable child) {

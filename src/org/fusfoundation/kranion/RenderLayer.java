@@ -95,6 +95,8 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
         advanceChildren();
         
         if (getIsDirty()) {
+//            System.out.println("Render Layer Dirty " + this.getTag());
+
 //            glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT);
         
             if (is2D) {

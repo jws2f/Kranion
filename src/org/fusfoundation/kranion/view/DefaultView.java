@@ -92,6 +92,7 @@ import java.util.Observable;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import org.fusfoundation.kranion.Framebuffer;
+import org.fusfoundation.kranion.GUIControl;
 import org.fusfoundation.kranion.MRCTRegister;
 import org.fusfoundation.kranion.RegionGrow;
 import org.fusfoundation.kranion.Renderable;
@@ -485,6 +486,11 @@ public class DefaultView extends View {
         flyout2.addChild("View", slider1);
         model.addObserver(slider1);
         
+        Button envelopeCalcButton = new Button(Button.ButtonType.BUTTON, 1250, 175, 150, 25, this);
+        envelopeCalcButton.setTitle("Calc Envelope");
+        envelopeCalcButton.setCommand("calcEnvelope");
+        flyout2.addChild("Transducer", envelopeCalcButton);
+        
         
         skullProfileChart = new XYChartControl(250, 10, 500, 250);
         flyout2.addChild("Transducer", skullProfileChart);
@@ -636,8 +642,10 @@ public class DefaultView extends View {
                 
                 flyout2.addChild("View", buttonGrp1);
 
-        
-        flyout3.addChild("MR", mrSeriesSelector = (PullDownSelection)new PullDownSelection(10, 210, 380, 25, controller).setTitle("MR Series").setCommand("selectMRSeries"));
+        mrSeriesSelector = (PullDownSelection)new PullDownSelection(10, 210, 380, 25, controller).setTitle("MR Series").setCommand("currentMRSeries");
+        mrSeriesSelector.setPropertyPrefix("Model.Attribute");
+        model.addObserver(mrSeriesSelector);
+        flyout3.addChild("MR", mrSeriesSelector);
         
         mrBore = new Cylinder(300.0f, 50.0f, -25.0f, -1f);
         mrBoreOuter = new Cylinder(310.0f, 50.0f, -25.0f, 1f);
@@ -726,6 +734,8 @@ public class DefaultView extends View {
         steeringTransform.rotate(new Vector3f(0f, 1f, 0f), 180);
         
         RenderList boreTransformGroup = new RenderList();
+        boreTransformGroup.setTag("BoreTransformGroup");
+        
         mrBoreTransform = new TransformationAdapter(boreTransformGroup);
 //        mrBoreTransform.rotate(new Vector3f(1f, 0f, 0f), 180);
 //        mrBoreTransform.rotate(new Vector3f(0f, 1f, 0f), 180);
@@ -767,12 +777,6 @@ public class DefaultView extends View {
         steeringTransformGroup.add(transducerModel);
         steeringTransformGroup.add(mrBoreTransform);
         
-//        // testing fiducial marker display
-//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(80f, 80f, 3.37f).setColor(1f, 0f, 0f));
-//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(-80f, 80f, 3.37f).setColor(1f, 0f, 0f));
-//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(-80f, -80f, 3.37f).setColor(0.3f, 0.3f, 1f));
-//        boreTransformGroup.add(new org.fusfoundation.kranion.Sphere(2f).setLocation(80f, -80f, 3.37f).setColor(0.3f, 0.3f, 1f));
-
         
         globalTransformList.add(transRayTracer);
         
@@ -2189,6 +2193,7 @@ public class DefaultView extends View {
                 case "doClip":
                 case "showRayTracer":
                     setDoTransition(true);
+                    this.setIsDirty(true);
                     return;
                 case "currentMRSeries":
                     this.setDisplayMRimage(model.getMrImage( ((Integer)model.getAttribute("currentMRSeries")).intValue()));
@@ -2520,8 +2525,9 @@ public class DefaultView extends View {
 
     @Override
     public void processInput() {
+        
         while (Mouse.next()) {
-            OnMouse(Mouse.getEventX(), Mouse.getEventY(), Mouse.isButtonDown(0), Mouse.isButtonDown(1), Mouse.getEventDWheel());
+                OnMouse(Mouse.getEventX(), Mouse.getEventY(), Mouse.isButtonDown(0), Mouse.isButtonDown(1), Mouse.getEventDWheel());
         }
         
         if (!hasKeyboardFocus()) {
@@ -2870,40 +2876,7 @@ public class DefaultView extends View {
             }
             if (Keyboard.getEventKeyState()) {
                 if (Keyboard.getEventKey() == Keyboard.KEY_P) {
-//                    boolean doEnv = !transRayTracer.getShowEnvelope();
-                    transRayTracer.setShowEnvelope(false);
-
-//                    if (doEnv) {
-                    Vector3f CofR = new Vector3f(currentTarget.getXpos(), currentTarget.getYpos(), currentTarget.getZpos());
-                    
-                    canvas.setShowPressure(false);
-                    canvas.setTextureRotatation(CofR.translate(currentSteering.getXpos(), currentSteering.getYpos(), currentSteering.getZpos()), trackball);
-
-                    transRayTracer.setTextureRotatation(CofR, trackball);
-                    transRayTracer.calcEnvelope(this.controller);
-
-                    canvas.setOverlayImage(transRayTracer.getEnvelopeImage());
-                    canvas1.setOverlayImage(transRayTracer.getEnvelopeImage());
-                    canvas2.setOverlayImage(transRayTracer.getEnvelopeImage());
-                    canvas3.setOverlayImage(transRayTracer.getEnvelopeImage());
-//                    }
-                    //System.out.println("P Key Pressed");
-//                      MRCTRegister regObj = new MRCTRegister();
-//                      Quaternion transform = regObj.register(this.ctImage, this.mrImage);
-//                      
-//                      this.ctImage.setAttribute("ImageOrientationQ", transform);
-//                      
-//                      Vector3f trans = regObj.getTranslation();
-//                      
-//                      this.ctImage.setAttribute("ImageTranslation", new Vector3f(trans));
-//                      
-//                    needsRendering = true;
-
-//                    ctHistogram.calculate();                    
-//                    transFuncDisplay.setHistogram(ctHistogram.getData());
-//                    ctHistogram.release();
-//                    needsRendering = true;
-                    setDoTransition(true);
+                    calcTreatmentEnvelope();
                 }
             }
             if (Keyboard.getEventKeyState()) {
@@ -3021,6 +2994,10 @@ public class DefaultView extends View {
         File outFile = null;
         if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
             outFile = fileChooser.getSelectedFile();
+            
+            model.setAttribute("showRayTracer", true); // turn raytracer on
+            Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
+            
             this.transRayTracer.writeSkullMeasuresFile(outFile);
 
 
@@ -3050,17 +3027,10 @@ public class DefaultView extends View {
         File outFile = null;
         if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
             outFile = fileChooser.getSelectedFile();
-            
-            Vector3f steering = transRayTracer.getTargetSteering();
-            
-            Vector3f naturalFocusPosition = new Vector3f(currentTarget.getXpos(), currentTarget.getYpos(), currentTarget.getZpos());
-            Vector3f spotPosition = Vector3f.add(naturalFocusPosition, steering, null);
-            
-            canvas.setTextureRotatation(spotPosition, trackball);
-            
-            this.transRayTracer.setTextureRotatation(naturalFocusPosition, trackball);
-            
-            this.transRayTracer.calcPressureEnvelope();
+
+            model.setAttribute("showRayTracer", true); // turn raytracer on
+            Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
+
             this.transRayTracer.writeACTFile(outFile);
 
 
@@ -3414,7 +3384,29 @@ public class DefaultView extends View {
                 setDoTransition(true);
                 transRayTracer.init(transducerModel.buildElements(Transducer.getTransducerDef(selTrans)));
                 break;
+            case "calcEnvelope":
+                calcTreatmentEnvelope();
+                break;
         }
+    }
+    
+    private void calcTreatmentEnvelope() {
+        transRayTracer.setShowEnvelope(false);
+
+        Vector3f CofR = new Vector3f(currentTarget.getXpos(), currentTarget.getYpos(), currentTarget.getZpos());
+
+        canvas.setShowPressure(false);
+        canvas.setTextureRotatation(CofR.translate(currentSteering.getXpos(), currentSteering.getYpos(), currentSteering.getZpos()), trackball);
+
+        transRayTracer.setTextureRotatation(CofR, trackball);
+        transRayTracer.calcEnvelope(this.controller);
+
+        canvas.setOverlayImage(transRayTracer.getEnvelopeImage());
+        canvas1.setOverlayImage(transRayTracer.getEnvelopeImage());
+        canvas2.setOverlayImage(transRayTracer.getEnvelopeImage());
+        canvas3.setOverlayImage(transRayTracer.getEnvelopeImage());
+
+        setDoTransition(true);
     }
     
     private float parseTextBoxFloat(String textboxTagName) {

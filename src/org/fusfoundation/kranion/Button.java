@@ -45,13 +45,14 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.Rectangle2D;
 import java.beans.PropertyChangeEvent;
 import java.util.Observable;
+import org.fusfoundation.kranion.model.Model;
 
 
 /**
  *
  * @author John Snell
  */
-public class Button extends GUIControl {
+public class Button extends GUIControl implements GUIControlModelBinding  {
     private Vector4f color = new Vector4f(0.35f, 0.35f, 0.35f, 1f);
     private Vector4f textcolor = new Vector4f(1f, 1f, 1f, 1f);
     private BufferedImage labelImage;
@@ -61,7 +62,7 @@ public class Button extends GUIControl {
     private float indicatorRadius = 10f;
     private boolean indicatorOn = false; // for radio and checkboxes
     private boolean drawBackground = true;
-    
+
     private enum ButtonState {DISABLED, ENABLED, ARMED, FIRED};
     private ButtonState state = ButtonState.ENABLED;
     
@@ -322,4 +323,12 @@ public class Button extends GUIControl {
             System.out.println(this + "Name=" + this.getTitle() + " command=" + this.getCommand() + " Wrong or NULL new value: " + newValue.toString());
         }
     }
+    
+    @Override
+    public void doBinding(Model model) {
+        if (model != null && (type == ButtonType.TOGGLE_BUTTON || type == ButtonType.RADIO_BUTTON)) {
+            model.setAttribute(this.getCommand(), this.getIndicator());
+        }
+    }
+    
 }

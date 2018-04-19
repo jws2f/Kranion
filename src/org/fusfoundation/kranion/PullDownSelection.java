@@ -34,6 +34,7 @@ import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import org.fusfoundation.kranion.model.Model;
 import org.lwjgl.opengl.Display;
 import static org.lwjgl.opengl.GL11.*;
 import org.lwjgl.util.glu.GLU;
@@ -43,7 +44,7 @@ import org.lwjgl.util.vector.Vector4f;
  *
  * @author john
  */
-public class PullDownSelection extends GUIControl implements Animator {
+public class PullDownSelection extends GUIControl implements Animator, GUIControlModelBinding {
     private BufferedImage labelImage, itemImage;
     private Vector4f color = new Vector4f(0.35f, 0.35f, 0.35f, 1f);
     private int fontSize = 16;
@@ -351,6 +352,13 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
     @Override
     public boolean getIsDirty() {
         return super.getIsDirty() || !isAnimationDone();
+    }
+
+    @Override
+    public void doBinding(Model model) {
+        if (model != null) {
+            model.setAttribute(this.getCommand(), this.getSelectionIndex());
+        }
     }
     
 }
