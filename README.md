@@ -15,3 +15,5 @@ System requirements:
 - Java 1.8 or later, 64 bit version installed
 - Latest NVidia driver installed (version 388.59 or later)
 - NVidia GPU with 2 GB or more of dedicated memory, with support for OpenGL 4.5
+
+You can watch a tutorial here: https://www.youtube.com/watch?v=tbfp_qUErT4
