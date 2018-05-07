@@ -746,6 +746,57 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         calcEnvelope(null);
     }
     
+    
+    public void calcSkullFloorDensity() {
+        if (this.CTimage == null) return;
+
+        int xsize = CTimage.getDimension(0).getSize() / 2;
+        int ysize = CTimage.getDimension(1).getSize() / 2;
+        int zsize = CTimage.getDimension(2).getSize() / 2;
+
+        float xres = CTimage.getDimension(0).getSampleWidth(0) * 2f;
+        float yres = CTimage.getDimension(1).getSampleWidth(1) * 2f;
+        float zres = CTimage.getDimension(2).getSampleWidth(2) * 2f;
+
+        Vector3f imageTranslation = (Vector3f)CTimage.getAttribute("ImageTranslation");
+        Quaternion imageRotation = (Quaternion)CTimage.getAttribute("ImageOrientationQ");
+
+        if (envelopeImage != null) {
+            ImageVolumeUtil.releaseTexture(envelopeImage);
+        }
+
+        envelopeImage = new ImageVolume4D(ImageVolume.FLOAT_VOXEL, xsize, ysize, zsize, 1);
+        envelopeImage.getDimension(0).setSampleWidth(xres);
+        envelopeImage.getDimension(1).setSampleWidth(yres);
+        envelopeImage.getDimension(2).setSampleWidth(zres);
+
+        envelopeImage.getDimension(0).setSampleSpacing(xres);
+        envelopeImage.getDimension(1).setSampleSpacing(yres);
+        envelopeImage.getDimension(2).setSampleSpacing(zres);
+
+        envelopeImage.setAttribute("ImageTranslation", new Vector3f(imageTranslation));
+        envelopeImage.setAttribute("ImageOrientationQ", new Quaternion(imageRotation));
+        
+        // setup textures
+        
+        // need to compile shader in init
+        
+            shader.start();
+
+            int uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_intercept");
+            glUniform1f(uloc, this.rescaleIntercept);
+            uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_slope");
+            glUniform1f(uloc, this.rescaleSlope);
+
+            // run compute shader
+            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+            org.lwjgl.opengl.GL43.glDispatchCompute((xsize+7)/8, (ysize+7)/8, (zsize+7)/8);
+            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+
+            // Clean up
+            shader.stop();
+    }
+    
     public void calcEnvelope(ProgressListener listener) {
         
 //        if (envelopeImage == null) {
@@ -829,6 +880,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         }
 
         envFloats.flip();
+        
+        if (envSSBo != 0) {
+            org.lwjgl.opengl.GL15.glDeleteBuffers(envSSBo);
+            envSSBo = glGenBuffers();
+        }
         
         glBindBuffer(GL_ARRAY_BUFFER, envSSBo);
         glBufferData(GL_ARRAY_BUFFER, envFloats, GL_DYNAMIC_DRAW);

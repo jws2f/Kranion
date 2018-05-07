@@ -28,6 +28,17 @@ package org.fusfoundation.kranion;
  *
  * @author john
  */
+
+/*
+
+The following code to estimate speed of sound in skull bone from CT HU data is based on:
+
+A unified model for the speed of sound in cranial bone based on genetic algorithm optimization
+December 2002 Physics in Medicine and Biology 47(22):3925-44
+DOI10.1088/0031-9155/47/22/302
+
+*/
+
 public class CTSoundSpeed {
     private final static float[][] densityToSpeed = {
         {1000f,	1852.7f},
