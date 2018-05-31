@@ -780,21 +780,22 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         // setup textures
         
         // need to compile shader in init
-        
-            shader.start();
 
-            int uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_intercept");
-            glUniform1f(uloc, this.rescaleIntercept);
-            uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_slope");
-            glUniform1f(uloc, this.rescaleSlope);
-
-            // run compute shader
-            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
-            org.lwjgl.opengl.GL43.glDispatchCompute((xsize+7)/8, (ysize+7)/8, (zsize+7)/8);
-            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
-
-            // Clean up
-            shader.stop();
+// TODO: work on integration of skull floor footprints        
+//            shader.start();
+//
+//            int uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_intercept");
+//            glUniform1f(uloc, this.rescaleIntercept);
+//            uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_slope");
+//            glUniform1f(uloc, this.rescaleSlope);
+//
+//            // run compute shader
+//            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+//            org.lwjgl.opengl.GL43.glDispatchCompute((xsize+7)/8, (ysize+7)/8, (zsize+7)/8);
+//            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+//
+//            // Clean up
+//            shader.stop();
     }
     
     public void calcEnvelope(ProgressListener listener) {
