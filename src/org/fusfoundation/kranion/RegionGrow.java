@@ -53,6 +53,8 @@ public class RegionGrow {
     
     private static ShaderProgram shader, shader2, shader3;  
     
+    private boolean useGpuAcceleration = true;
+    
     private class Seed {
         public int x, y, z;
         public Seed(int x, int y, int z) {
@@ -70,6 +72,13 @@ public class RegionGrow {
         setSourceImage(image);
     }
     
+    public void setUseGPUAcceleration(boolean value) {
+        useGpuAcceleration = value;
+    }
+    public boolean getUseGPUAcceleration() {
+        return useGpuAcceleration;
+    }
+    
     public void setSourceImage(ImageVolume4D image) {
         src = image;
         
@@ -84,9 +93,10 @@ public class RegionGrow {
     
     public void grow(int x, int y, int z) {
         
-        gpu_calculate();
-        
-        if (true) return;
+        if (useGpuAcceleration) {
+            gpu_calculate();        
+            return;
+        }
         
         growQ.addLast(new Seed(x, y, z));
          
@@ -198,8 +208,12 @@ public class RegionGrow {
             }
         }
                 
+        // clean up
         ImageVolumeUtil.releaseTexture(src);
-
+        
+        growQ.clear();
+        
+        src.freeChannel(maskChannel);
         
         System.out.println("RegionGrow: done");
     }

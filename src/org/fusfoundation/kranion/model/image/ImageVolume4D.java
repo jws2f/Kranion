@@ -132,6 +132,10 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         System.out.println("alloc: channel " + channel);
     }
     
+    @Override
+    public void freeChannel(int channel) {
+        voxelData.set(channel, null);
+    }
     
     private int getDataSize() { return getDataSize(0); }
     

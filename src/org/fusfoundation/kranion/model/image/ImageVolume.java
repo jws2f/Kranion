@@ -58,6 +58,7 @@ public interface ImageVolume {
         
     public ImageVolume createMatchingVolume(int voxtype);
     public int addChannel(int voxtype);
+    public void freeChannel(int channel);
 
     public int getDimensionality();
     public ImageDimension getDimension(int dimension);

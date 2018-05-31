@@ -116,6 +116,8 @@ import static org.lwjgl.opengl.GL20.glUniform1f;
 import static org.lwjgl.opengl.GL20.glUniform3f;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
+import java.util.prefs.Preferences;
+
 
 
 
@@ -130,6 +132,8 @@ public class DefaultView extends View {
                     Main.update();
         }
     }
+    
+    private Preferences prefs;
 
     public static final int DISPLAY_HEIGHT = 1024;
     public static final int DISPLAY_WIDTH = 1680;
@@ -250,6 +254,8 @@ public class DefaultView extends View {
         Renderable.setDefaultKeyboardFocus(this);
         this.acquireKeyboardFocus();
         
+        // For storing any persistent preference values
+        prefs = Preferences.userRoot().node(this.getClass().getName());
     }
 
     @Override
@@ -646,6 +652,14 @@ public class DefaultView extends View {
         mrSeriesSelector.setPropertyPrefix("Model.Attribute");
         model.addObserver(mrSeriesSelector);
         flyout3.addChild("MR", mrSeriesSelector);
+        
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 50, 160, 240, 25, this);
+        button.setTitle("CT Filter GPU Acceleration");
+        button.setCommand("CTFilterGpuAcceleration");
+        button.setIndicator(this.prefs.getBoolean(button.getCommand(), true));
+        button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(button);
+        flyout2.addChild("Preferences", button);
         
         mrBore = new Cylinder(300.0f, 50.0f, -25.0f, -1f);
         mrBoreOuter = new Cylinder(310.0f, 50.0f, -25.0f, 1f);
@@ -3323,10 +3337,21 @@ public class DefaultView extends View {
                     }
                 }
                 break;
+            case "CTFilterGpuAcceleration": // This is a preference, update preference key
+                boolean checked = true;
+                try {
+                    checked = ((Button)e.getSource()).getIndicator();
+                }
+                catch(Exception ex) {}
+                prefs.putBoolean("CTFilterGpuAcceleration", checked);
+                break;
             case "filterCT":
                 ImageVolume4D image = (ImageVolume4D)model.getCtImage();
                 if (image != null) {
                     RegionGrow rg = new RegionGrow(image);
+
+                    rg.setUseGPUAcceleration(prefs.getBoolean("CTFilterGpuAcceleration", true));
+                    
                     rg.grow(image.getDimension(0).getSize()/2, image.getDimension(1).getSize()/2, image.getDimension(2).getSize()/2);
                     this.setDisplayCTimage(image);
                     this.mainLayer.setIsDirty(true);
