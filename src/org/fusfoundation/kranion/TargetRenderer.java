@@ -72,9 +72,10 @@ public class TargetRenderer extends DirtyFollower {
     
     private Vector3f getColor(int index) {
         Vector3f color = new Vector3f(
-            colors[index%colors.length].getRed()/255f,
-            colors[index%colors.length].getGreen()/255f,
-            colors[index%colors.length].getBlue()/255f
+//            colors[index%colors.length].getRed()/255f,
+//            colors[index%colors.length].getGreen()/255f,
+//            colors[index%colors.length].getBlue()/255f
+              0f, 0.9f, 0.9f
         );
         return color;
     }
@@ -122,9 +123,9 @@ public class TargetRenderer extends DirtyFollower {
             glMatrixMode(GL_MODELVIEW);
             glPushMatrix();
                 glTranslatef(target.x-currentTarget.x, target.y-currentTarget.y, target.z-currentTarget.z);
-//                sphere.setColor(1f, 0f, 0f, 1f);
-                Vector3f color = getColor(selectedTarget);
-                sphere.setColor(color.x, color.y, color.z, 1f);
+                sphere.setColor(1f, 1f, 0.3f, 1f);
+//                Vector3f color = getColor(selectedTarget);
+//                sphere.setColor(color.x, color.y, color.z, 1f);
                 sphere.render();
             glPopMatrix();
         }
@@ -142,7 +143,7 @@ public class TargetRenderer extends DirtyFollower {
                 if (selectedTarget == null || (selectedTarget != null && i!=selectedTarget)) {
                     //sphere.setColor(0.5f, 0.2f, 0.2f, 0.8f);
                     Vector3f color = getColor(i);
-                    sphere.setColor(color.x, color.y, color.z, 0.8f);
+                    sphere.setColor(color.x, color.y, color.z, 0.6f);
                 }
                 sphere.render();
             glPopMatrix();

@@ -165,7 +165,11 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
 //                glEnable(GL_SCISSOR_TEST);
                 
             glStencilMask(0xff);
+            
+glDisable(GL_SCISSOR_TEST);
+
 glEnable(GL_STENCIL_TEST);
+
 glStencilFunc(GL_ALWAYS, 1, 0xff);
 glStencilOp(GL_ZERO, GL_REPLACE, GL_REPLACE);
                     glDisable(GL_LIGHTING);

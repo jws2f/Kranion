@@ -64,7 +64,7 @@ public class Model extends Observable implements Serializable, Observer {
     public Model() {
         selectedMR = -1;
         selectedSonication = -1;
-        mr_images = new ArrayList<>(3); // initial array size
+        mr_images = new ArrayList<>(10); // initial array size
         sonications = new ArrayList<>(25);
     }
     

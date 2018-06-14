@@ -234,7 +234,9 @@ public class DefaultView extends View {
         SKULL_ROTATE,
         SKULL_TRANSLATE,
         FRAME_ROTATE,
-        FRAME_TRANSLATE
+        FRAME_TRANSLATE,
+        MRI_ROTATE,
+        MRI_TRANSLATE
     }
     
     private mouseMode currentMouseMode = mouseMode.SCENE_ROTATE;
@@ -283,10 +285,17 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 490, 265, 25, "", controller).setTitle("Description").setCommand("sonicationDescription");
+        textbox = (TextBox)new TextBox(100, 505, 265, 25, "", controller).setTitle("Description").setCommand("sonicationDescription");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
         textbox.setTag("tbSonicationDescription");
+        model.addObserver(textbox);
+        flyout1.addChild(textbox);
+        
+        textbox = (TextBox)new TextBox(100, 475, 265, 25, "", controller).setTitle("Timestamp").setCommand("sonicationTimestamp");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTextEditable(true);
+        textbox.setTag("tbSonicationTimestamp");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
@@ -316,17 +325,17 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 450, 60, 25, "", controller).setTitle("R").setCommand("sonicationRLoc");
+        textbox = (TextBox)new TextBox(100, 445, 60, 25, "", controller).setTitle("R").setCommand("sonicationRLoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(200, 450, 60, 25, "", controller).setTitle("A").setCommand("sonicationALoc");
+        textbox = (TextBox)new TextBox(200, 445, 60, 25, "", controller).setTitle("A").setCommand("sonicationALoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(300, 450, 60, 25, "", controller).setTitle("S").setCommand("sonicationSLoc");
+        textbox = (TextBox)new TextBox(300, 445, 60, 25, "", controller).setTitle("S").setCommand("sonicationSLoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
@@ -628,6 +637,14 @@ public class DefaultView extends View {
                 radio7.setTitle("Translate Frame");
                 radio7.setCommand("translateFrame");
                 
+                Button radio8 = new Button(Button.ButtonType.RADIO_BUTTON, 350, 90, 150, 25, this);
+                radio8.setTitle("Rotate MRI");
+                radio8.setCommand("rotateMRI");
+                
+                Button radio9 = new Button(Button.ButtonType.RADIO_BUTTON, 500, 90, 150, 25, this);
+                radio9.setTitle("Translate MRI");
+                radio9.setCommand("translateMRI");
+                
 
 
                 radio1.setDrawBackground(false);
@@ -637,6 +654,8 @@ public class DefaultView extends View {
                 radio5.setDrawBackground(false);
                 radio6.setDrawBackground(false);
                 radio7.setDrawBackground(false);
+                radio8.setDrawBackground(false);
+                radio9.setDrawBackground(false);
                 
                 buttonGrp1.addChild(radio1);
                 buttonGrp1.addChild(radio2);
@@ -645,6 +664,8 @@ public class DefaultView extends View {
                 buttonGrp1.addChild(radio5);
                 buttonGrp1.addChild(radio6);
                 buttonGrp1.addChild(radio7);
+                buttonGrp1.addChild(radio8);
+                buttonGrp1.addChild(radio9);
                 
                 flyout2.addChild("View", buttonGrp1);
 
@@ -1087,9 +1108,9 @@ public class DefaultView extends View {
               e.printStackTrace();
         }
         
-        Float mrThreshold = (Float)model.getAttribute("MRthresh");
+        Float mrThreshold = (Float)image.getAttribute("Threshold");
         if (mrThreshold == null) {
-            mrThreshold = new Float(125f);
+            mrThreshold = 125f;
         }
         
         //            float rescaleSlope = (Float)mrImage.getAttribute("RescaleSlope");
@@ -1103,7 +1124,7 @@ public class DefaultView extends View {
         if (model != null) {
             model.setAttribute("MRwindow", (float)this.mr_window);
             model.setAttribute("MRcenter", (float)this.mr_center);
-//            model.setAttribute("MRthresh", 125f);
+            model.setAttribute("MRthresh", mrThreshold);
         }
         
 
@@ -1304,7 +1325,12 @@ public class DefaultView extends View {
             Main.setModel(newModel); // should update M,V,C
                         
             ImageVolumeUtil.releaseTextures(model.getCtImage());
-            ImageVolumeUtil.releaseTextures(model.getMrImage(0));
+            
+            // make sure any texture name attributes that exist are removed
+            // this is a holdover from before we had transient attributes
+            for (int i=0; i<model.getMrImageCount(); i++) {
+                ImageVolumeUtil.releaseTextures(model.getMrImage(i));
+            }
             
             this.setDisplayCTimage(model.getCtImage());
             this.setDisplayMRimage(model.getMrImage(0));
@@ -1938,6 +1964,66 @@ public class DefaultView extends View {
                     }
                     return true;
                 }
+                else if (currentMouseMode == mouseMode.MRI_ROTATE) {
+                        // Rotate current MR volume
+                        try {
+                            Quaternion mrQnow = new Quaternion().setIdentity();
+
+                            int i = model.getSelectedMR();
+                            
+                            if (i==-1 && model.getMrImageCount() > 0) {
+                                i = 0;
+                            }
+                            
+                                Trackball registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
+                                if (registerBall == null) {
+                                    registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
+                                    model.getMrImage(i).setAttribute("registerBall", registerBall, true);
+                                }
+                                registerBall.mouseDragged(x, y);
+                                mrQnow = new Quaternion(registerBall.getCurrent());
+                                Quaternion.mul(trackball.getCurrent().negate(null), mrQnow, mrQnow);
+                                model.getMrImage(i).setAttribute("ImageOrientationQ", mrQnow.negate(null));
+
+                            
+                                fixTranslationToRotateAboutImage(model.getMrImage(i), model.getMrImage(0));
+                                        
+                            fixTranslationToRotateAboutImage(model.getCtImage(), model.getMrImage(0));
+
+                            this.setIsDirty(true);
+
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                        }
+                }
+                else if (currentMouseMode == mouseMode.MRI_TRANSLATE) {
+                        System.out.println("*** MRI translate");
+                        try {
+                            int i = model.getSelectedMR();
+                            
+                            if (i==-1 && model.getMrImageCount() > 0) {
+                                i = 0;
+                            }
+                            
+                                // image translation in the plane of the screen
+                                Quaternion orient = trackball.getCurrent().negate(null);
+                                Matrix4f mat4 = Trackball.toMatrix4f(orient);
+                                Vector4f offset = new Vector4f((x - mouseStartX) / 5f, -(y - mouseStartY) / 5f, 0f, 0f);
+                                System.out.println("offset = " + offset);
+                                Matrix4f.transform(mat4, offset, offset);
+                                Vector3f translate = new Vector3f(offset);
+                    
+                                Vector3f startMrImageTranslate = (Vector3f) model.getMrImage(i).getAttribute("startTranslation");
+                                if (startMrImageTranslate == null) {
+                                    startMrImageTranslate = new Vector3f();
+                                }
+                                System.out.println("startMRImageTranslate = " + startMrImageTranslate);
+                                model.getMrImage(i).setAttribute("ImageTranslation", Vector3f.add(startMrImageTranslate, translate.negate(null), null)); //TEMP CHANGE
+                        } catch (NullPointerException e) {
+                            e.printStackTrace();
+                        }
+                        this.setIsDirty(true);                    
+                }
             }
             // Mouse pressed, init drag
             else if (button1down && !mouseButton1Drag) {
@@ -1991,7 +2077,8 @@ public class DefaultView extends View {
                     return true;
                 }
                 else if (this.currentMouseMode == mouseMode.HEAD_ROTATE
-                        || this.currentMouseMode == mouseMode.SKULL_ROTATE) {
+                        || this.currentMouseMode == mouseMode.SKULL_ROTATE
+                        || this.currentMouseMode == mouseMode.MRI_ROTATE) {
                     
                     
                     if (model.getCtImage() == null) return false;
@@ -2003,7 +2090,7 @@ public class DefaultView extends View {
                     registerBallCT.setCurrent(ctQstart);
                     registerBallCT.mousePressed(x, y);
 
-                    if (this.currentMouseMode == mouseMode.HEAD_ROTATE) {
+                    if (this.currentMouseMode == mouseMode.HEAD_ROTATE || this.currentMouseMode == mouseMode.MRI_ROTATE) {
                         for (int i = 0; i < model.getMrImageCount(); i++) {
                             Quaternion mrQstartTmp = ((Quaternion) model.getMrImage(i).getAttribute("ImageOrientationQ")).negate(null);
 
@@ -2210,7 +2297,9 @@ public class DefaultView extends View {
                     this.setIsDirty(true);
                     return;
                 case "currentMRSeries":
-                    this.setDisplayMRimage(model.getMrImage( ((Integer)model.getAttribute("currentMRSeries")).intValue()));
+                    int currentMRseries = ((Integer)model.getAttribute("currentMRSeries")).intValue();
+                    model.setSelectedMR(currentMRseries);
+                    this.setDisplayMRimage(model.getMrImage(currentMRseries));
                     setDoTransition(true);
                     break;
                 case "currentSonication":
@@ -2221,6 +2310,7 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationPower", String.format("%4.1f W", model.getSonication(sonicationIndex).getPower()));
                         model.setAttribute("sonicationDuration", String.format("%4.1f s", model.getSonication(sonicationIndex).getDuration()));
                         model.setAttribute("sonicationFrequency", String.format("%4.1f kHz", model.getSonication(sonicationIndex).getFrequency()/1000f));
+                        model.setAttribute("sonicationTimestamp", model.getSonication(sonicationIndex).getAttribute("timestamp"));
                         
                         String desc = (String)model.getSonication(sonicationIndex).getAttribute("Description");
                         if (desc == null) {
@@ -3314,6 +3404,12 @@ public class DefaultView extends View {
                 break;
             case "translateFrame":
                 this.currentMouseMode = mouseMode.FRAME_TRANSLATE;
+                break;
+            case "rotateMRI":
+                this.currentMouseMode = mouseMode.MRI_ROTATE;
+                break;
+            case "translateMRI":
+                this.currentMouseMode = mouseMode.MRI_TRANSLATE;
                 break;
             case "exit":
                 int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);

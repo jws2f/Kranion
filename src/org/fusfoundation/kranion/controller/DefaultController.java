@@ -111,6 +111,24 @@ public class DefaultController extends Controller {
                 npe.printStackTrace();
             }
         }        
+        else if (e.getActionCommand().equals("MRthresh")) {
+            try {
+                org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
+                slider.doBinding(model);
+                
+                int currentMRindex = 0;
+                try {
+                    currentMRindex = ((Integer)model.getAttribute("currentMRSeries")).intValue();
+                }
+                catch(Exception e1) {}
+                if (model.getMrImageCount() > currentMRindex) {
+                    model.getMrImage(currentMRindex).setAttribute("Threshold", slider.getCurrentValue());
+                }
+            }
+            catch(NullPointerException npe) {
+                npe.printStackTrace();
+            }
+        }        
         else if (e.getActionCommand().equals("loadCT")) {
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setDialogTitle(new String("Choose CT file..."));
@@ -152,8 +170,9 @@ public class DefaultController extends Controller {
             ImageVolume4D image = (ImageVolume4D) loader.getLoadedImage();
             System.out.println("MAIN: setImage #1 MR");
 
-            model.clearMrImages();
-            model.setMrImage(0, image);
+//            model.clearMrImages();
+            int mrImageCount = model.getMrImageCount();
+            model.setMrImage(mrImageCount, image);
         }
         else if (e.getActionCommand().equals("currentTargetPoint")) {
             Object source = e.getSource();

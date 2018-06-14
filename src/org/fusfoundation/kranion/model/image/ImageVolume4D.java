@@ -159,7 +159,11 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     
     public ByteBuffer getByteBuffer(int channel) {
         
-        int datasize = getDataSize();
+        if (channel < 0 || channel >= this.voxelData.size()) {
+            return null;
+        }
+        
+        int datasize = getDataSize(channel);
         
         ByteBuffer buf = ByteBuffer.allocateDirect(datasize);
         buf.order(ByteOrder.nativeOrder());
@@ -184,7 +188,7 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
             default:
                 throw new RuntimeException("Undefined voxel data type");            
         }
-          
+                          
         return buf;
     }
     

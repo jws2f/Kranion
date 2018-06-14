@@ -109,7 +109,7 @@ public class ImageVolumeUtil {
 
                 glBindTexture(GL_TEXTURE_3D, textureName);
 
-                image.setAttribute("textureName", new Integer(textureName));
+                image.setAttribute("textureName", new Integer(textureName), true); // mark texture name as transient
 
                 glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
                 glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);

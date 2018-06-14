@@ -385,7 +385,7 @@ vec3 GetClosestPoint(vec3 A, vec3 B, vec3 P)
 
     t = clamp(t, 0, t);
 
-    vec3 Closest = A + AB * t;
+    vec3 Closest = A + AB * t; // - 5*normalize(AB) /* to pull back from the focus */;
     return Closest;
 }
 
