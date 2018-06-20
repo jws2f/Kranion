@@ -110,18 +110,20 @@ public class Button extends GUIControl implements GUIControlModelBinding  {
         return indicatorOn;
     }
     
-    public void setIndicatorRadius(float radius) {
+    public Button setIndicatorRadius(float radius) {
         if (radius != indicatorRadius) {
             indicatorRadius = radius;
             setIsDirty(true);
         }
+        return this;
     }
     
-    public void setDrawBackground(boolean drawbg) {
+    public Button setDrawBackground(boolean drawbg) {
         if (drawbg != drawBackground) {
             drawBackground = drawbg;
             setIsDirty(true);
         }                
+        return this;
     }
     
     public Button setType(ButtonType type) {

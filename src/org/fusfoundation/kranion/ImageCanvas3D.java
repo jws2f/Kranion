@@ -121,7 +121,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     private static int mr_thresholdUniform = 0, ct_thresholdUniform = 0;
 //    private static int shaderprogram = 0;
 //    private static int shaderprogram2D = 0;
-    private ShaderProgram shader, pressureShader, thermometryShader, shader2D, pickShader;
+    private ShaderProgram shader, pressureShader, thermometryShader, thermometryDoseShader, shader2D, pickShader;
     
     private boolean doVolumeRender = false;
     private boolean showMR = true;
@@ -129,6 +129,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     
     private boolean showPressure = false;
     private boolean showThermometry = false;
+    private boolean showDose = false;
     private boolean doPicking = false;
 
     private int orientation = 0; // temp hack for now, playing with tex matrix ops
@@ -243,10 +244,15 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     }
     
     public void setShowThermometry(boolean bShow) {
-        if (showThermometry != bShow) {
+        setShowThermometry(bShow, showDose);
+    }
+    
+    public void setShowThermometry(boolean bShow, boolean bShowDose) {
+        if (showThermometry != bShow || showDose != bShowDose) {
             setIsDirty(true);
         }
         showThermometry = bShow;
+        showDose = bShowDose;
         if (showThermometry) {
             showPressure = false;
         }
@@ -258,6 +264,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     
     public boolean getShowPressure() { return showPressure; }
     public boolean getShowThermometry() { return showThermometry; }
+    public boolean getShowDose() { return showDose; }
     
     public void setForegroundVolumeSlices(int fgs) {
         if (fgVolSlices != fgs) {
@@ -1054,8 +1061,14 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             ShaderProgram shaderToUse = null;
             
             if (doVolumeRender) {
-                if (showThermometry && (this.OverlayImage != null)) {
-                    shaderToUse = thermometryShader;
+                shaderToUse = shader;
+                if (showThermometry ) {
+                    if (this.showDose) {
+                        shaderToUse = this.thermometryDoseShader;
+                    }
+                    else {
+                        shaderToUse = thermometryShader;
+                    }
                 }
                 else if (showPressure) {
                     shaderToUse = pressureShader;
@@ -1658,6 +1671,9 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         Shader fragShaderThermometry = new Shader();
         fragShaderThermometry.addShaderSource(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRendThermometry.fs.glsl");
         
+        Shader fragShaderThermometryDose = new Shader();
+        fragShaderThermometryDose.addShaderSource(GL_FRAGMENT_SHADER, "/org/fusfoundation/kranion/shaders/ImageCanvasVolRendThermalDose.fs.glsl");
+        
         Shader fragShader2D = new Shader();
         fragShader2D.addShaderSourceString(GL_FRAGMENT_SHADER, fsrc2D);
         
@@ -1680,6 +1696,11 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         thermometryShader.addShader(vertexShader);
         thermometryShader.addShader(fragShaderThermometry);
         thermometryShader.compileShaderProgram();
+        
+        thermometryDoseShader = new ShaderProgram();
+        thermometryDoseShader.addShader(vertexShader);
+        thermometryDoseShader.addShader(fragShaderThermometryDose);
+        thermometryDoseShader.compileShaderProgram();
         
         shader2D = new ShaderProgram();
         shader2D.addShader(vertexShader);

@@ -110,28 +110,38 @@ public class TargetRenderer extends DirtyFollower {
         glPushAttrib(GL_ENABLE_BIT);
         glEnable(GL_BLEND);
         
-        // Render the selected target opaque first
+
+        // Render the selected target opaque yello first (if set visible)
         if (selectedTarget != null && selectedTarget >=0 && selectedTarget < targetCount) {
-            Vector3f target = new Vector3f(model.getSonication(selectedTarget).getNaturalFocusLocation());
-            
-            tmp = (Vector3f)model.getAttribute("currentTargetSteering");
-            if (tmp == null) tmp = new Vector3f();
-            Vector3f steering = new Vector3f(tmp);
-            
-            Vector3f.add(target, steering, target);
-            
-            glMatrixMode(GL_MODELVIEW);
-            glPushMatrix();
-                glTranslatef(target.x-currentTarget.x, target.y-currentTarget.y, target.z-currentTarget.z);
-                sphere.setColor(1f, 1f, 0.3f, 1f);
-//                Vector3f color = getColor(selectedTarget);
-//                sphere.setColor(color.x, color.y, color.z, 1f);
-                sphere.render();
-            glPopMatrix();
+            Boolean bVisible = (Boolean)model.getSonication(selectedTarget).getAttribute("targetVisible");
+            if (bVisible != null && bVisible) {
+                Vector3f target = new Vector3f(model.getSonication(selectedTarget).getNaturalFocusLocation());
+
+                tmp = (Vector3f)model.getAttribute("currentTargetSteering");
+                if (tmp == null) tmp = new Vector3f();
+                Vector3f steering = new Vector3f(tmp);
+
+                Vector3f.add(target, steering, target);
+
+                glMatrixMode(GL_MODELVIEW);
+                glPushMatrix();
+                    glTranslatef(target.x-currentTarget.x, target.y-currentTarget.y, target.z-currentTarget.z);
+                    sphere.setColor(1f, 1f, 0.3f, 1f);
+    //                Vector3f color = getColor(selectedTarget);
+    //                sphere.setColor(color.x, color.y, color.z, 1f);
+                    sphere.render();
+                glPopMatrix();
+            }
         }
         
-        // Render other targets with transparency
+        // Render other targets with transparency (if set visible)
         for (int i=0; i<targetCount; i++) {
+            
+            Boolean bVisible = (Boolean)model.getSonication(i).getAttribute("targetVisible");
+                if (bVisible==null || bVisible==false) {
+                    continue;
+                }
+            
             Vector3f target = new Vector3f(model.getSonication(i).getNaturalFocusLocation());
             Vector3f steering = new Vector3f(model.getSonication(i).getFocusSteering());
             Vector3f.add(target, steering, target);

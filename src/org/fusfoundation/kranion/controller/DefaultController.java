@@ -75,6 +75,11 @@ public class DefaultController extends Controller {
         
         // propagate to any other registerd listeners (plugins, etc)
         super.actionPerformed(e);
+        
+// TODO: not sure if we should have default model binding come first always by default
+//        if (e.getSource() instanceof GUIControlModelBinding) {
+//            ((GUIControlModelBinding)e.getSource()).doBinding(model);
+//        }
               
         if (e.getActionCommand().equals("MRwindow")) {
             try {

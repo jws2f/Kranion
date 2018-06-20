@@ -46,6 +46,8 @@ public class OrientationAnimator extends Renderable implements Animator {
     
     public void set(Quaternion start, Quaternion end, float durationSecs)
     {
+       if (start==null || end==null) return;
+       
        anim.set(0, 1, durationSecs);
        startQ.set(start.x, start.y, start.z, start.w);
        currentQ.set(start.x, start.y, start.z, start.w);

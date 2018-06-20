@@ -117,6 +117,7 @@ import static org.lwjgl.opengl.GL20.glUniform3f;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 import java.util.prefs.Preferences;
+import org.fusfoundation.kranion.GUIControlModelBinding;
 
 
 
@@ -292,12 +293,14 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 475, 265, 25, "", controller).setTitle("Timestamp").setCommand("sonicationTimestamp");
+        textbox = (TextBox)new TextBox(100, 475, 150, 25, "", controller).setTitle("Timestamp").setCommand("sonicationTimestamp");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
         textbox.setTag("tbSonicationTimestamp");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
+        
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 275, 475, 50, 25, this).setDrawBackground(false).setTitle("Visible").setPropertyPrefix("Model.Attribute").setCommand("targetVisible"));
         
         textbox = (TextBox)new TextBox(225, 370, 100, 25, "", controller).setTitle("Duration").setCommand("sonicationDuration");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -345,8 +348,9 @@ public class DefaultView extends View {
         thermometryChart.addActionListener(this);
         flyout1.addChild(thermometryChart);
         
-        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 50, 180, 25, controller).setTitle("Show Thermometry").setPropertyPrefix("Model.Attribute").setCommand("showThermometry"));
-        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 20, 180, 25, controller).setTitle("Show Targets").setPropertyPrefix("Model.Attribute").setCommand("showTargets"));
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 70, 180, 25, this).setTitle("Show Thermometry").setPropertyPrefix("Model.Attribute").setCommand("showThermometry"));
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 215, 40, 165, 25, this).setDrawBackground(false).setTitle("as Dose").setPropertyPrefix("Model.Attribute").setCommand("showDose"));
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 10, 180, 25, controller).setTitle("Show Targets").setPropertyPrefix("Model.Attribute").setCommand("showTargets"));
         
         flyout1.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 100, 25, this).setTitle("Update").setCommand("updateSonication"));
         flyout1.addChild(new Button(Button.ButtonType.BUTTON,10, 50, 100, 25, this).setTitle("Add").setCommand("addSonication"));
@@ -852,7 +856,7 @@ public class DefaultView extends View {
         // the volume rendering into the main layer with the standard render() method and the
         // demographics into the overlay layer.
         overlay.setIs2d(true);
-        overlay.addChild(new RenderableAdapter(canvas, "renderDemographics"));
+        overlay.addChild(new RenderableAdapter(canvas, "renderDemographics").setVisible(false));
         
         overlay.addChild(mprLayout);
         overlay.addChild(canvas1);
@@ -1455,7 +1459,19 @@ public class DefaultView extends View {
         
         if (model.getAttribute("showThermometry") != null) {
             boolean bShow = (Boolean)model.getAttribute("showThermometry");
-            canvas.setShowThermometry(bShow);
+            canvas.setShowThermometry(bShow, /*as dose?*/false);
+
+            if (bShow && model.getAttribute("showDose") != null) {
+                Boolean bShowDose = (Boolean) model.getAttribute("showDose");
+                if (bShowDose) {
+                    image = this.calcThermalDoseImage(sonicationIndex);
+                    currentFrame = 0;
+                }
+                canvas.setShowThermometry(bShow, /*as dose?*/(bShowDose==null)?false:bShowDose);
+            }
+            else {
+                canvas.setShowThermometry(false);            
+            }
         }
         else {
             canvas.setShowThermometry(false);            
@@ -1588,10 +1604,17 @@ public class DefaultView extends View {
         
         try {
             boolean old = canvas.getShowThermometry();
-            boolean bShow = (Boolean)model.getAttribute("showThermometry");
-            canvas.setShowThermometry(bShow);
+            boolean oldShowDose = canvas.getShowDose();
             
-            if (old != bShow) {
+            Boolean bShow = (Boolean)model.getAttribute("showThermometry");
+            Boolean bShowDose = (Boolean)model.getAttribute("showDose");
+            
+            if (bShow == null) bShow = new Boolean(false);
+            if (bShowDose == null) bShowDose = new Boolean(false);
+            
+            canvas.setShowThermometry(bShow, bShowDose);
+                        
+            if (old != bShow || oldShowDose != bShowDose) {
                 this.setDoTransition(true);
             }
         }
@@ -2311,6 +2334,7 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationDuration", String.format("%4.1f s", model.getSonication(sonicationIndex).getDuration()));
                         model.setAttribute("sonicationFrequency", String.format("%4.1f kHz", model.getSonication(sonicationIndex).getFrequency()/1000f));
                         model.setAttribute("sonicationTimestamp", model.getSonication(sonicationIndex).getAttribute("timestamp"));
+                        model.setAttribute("targetVisible", model.getSonication(sonicationIndex).getAttribute("targetVisible"));
                         
                         String desc = (String)model.getSonication(sonicationIndex).getAttribute("Description");
                         if (desc == null) {
@@ -2447,7 +2471,11 @@ public class DefaultView extends View {
     
     private void updateThermometryDisplay(int sonicationIndex, boolean setToMax) {
         System.out.println("DefaultView::updateThermometryDisplay");
-        ImageVolume thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
+        Sonication sonication = model.getSonication(sonicationIndex);
+        ImageVolume thermometry = null;
+        if (sonication != null) {
+            thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
+        }
         
         if (thermometry != null) {
             float data[] = (float[])thermometry.getData();
@@ -2589,6 +2617,60 @@ public class DefaultView extends View {
         }
         
         return maxTemp;
+    }
+    
+    private ImageVolume4D calcThermalDoseImage(int sonicationIndex) {
+        Vector2f maxTemp = new Vector2f(-1f, 0f);
+        Vector2f maxPoint = new Vector2f();
+        
+        ImageVolume4D result = null;
+        
+        ImageVolume thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
+        
+        if (thermometry != null) {
+            float data[] = (float[])thermometry.getData();
+
+            int cols = thermometry.getDimension(0).getSize();
+            int rows = thermometry.getDimension(1).getSize();
+            int timepoints = thermometry.getDimension(3).getSize();
+            
+            // Create a one slice volume of same size and resolution to hold dose
+            result = new ImageVolume4D(ImageVolume.FLOAT_VOXEL, cols, rows, 1, 1);
+            for (int d=0; d<4; d++) {
+                result.getDimension(d).setSampleWidth(thermometry.getDimension(d).getSampleWidth());
+            }
+            
+            result.setAttribute("ImageOrientationQ", (Quaternion)thermometry.getAttribute("ImageOrientationQ"));
+            result.setAttribute("ImageTranslation", (Vector3f)thermometry.getAttribute("ImageTranslation"));
+            result.setAttribute("ImagePosition", (float[])thermometry.getAttribute("ImagePosition"));
+            
+            float deltaT = thermometry.getDimension(3).getSampleWidth();
+
+
+            float[] resultData = (float[])(result.getData());
+            for (int y=0; y<rows; y++) {
+                for (int x=0; x<cols; x++) {
+                    float dose = 0f;
+                    for (int i=1; i<timepoints; i++) {
+                        // trapezoidal rule integration
+                        float tempVal = data[thermometry.getVoxelOffset(x, y, i)];
+                        tempVal += data[thermometry.getVoxelOffset(x, y, i-1)];
+                        tempVal /= 2f;
+
+                        if (tempVal < 43f) {
+                            dose += Math.pow(0.25f, (43f - tempVal))*(deltaT/60f);
+                        }
+                        else {
+                            dose += Math.pow(0.5f, (43f - tempVal))*(deltaT/60f);
+                        }
+                        
+                    }                    
+                    resultData[result.getVoxelOffset(x, y, 0)] = dose;
+                }
+            }
+        }
+        
+        return result;
     }
     
     private void updateMRlist() {
@@ -3499,6 +3581,14 @@ public class DefaultView extends View {
                     this.mainLayer.setIsDirty(true);
                 }
                 break;
+            case "targetVisible":
+                sIndex = this.sonicationSelector.getSelectionIndex();
+                selSonication = model.getSonication(sIndex);
+                if (selSonication != null) {
+                    selSonication.setAttribute("targetVisible", ((Button)(e.getSource())).getIndicator());                    
+                    this.mainLayer.setIsDirty(true);
+                }
+                break;
             case "transducerPattern":
                 selTrans = this.transducerPatternSelector.getSelectionIndex();
                 transRayTracer.release();
@@ -3507,6 +3597,21 @@ public class DefaultView extends View {
                 break;
             case "calcEnvelope":
                 calcTreatmentEnvelope();
+                break;
+            case "showThermometry":
+            case "showDose":
+                //TODO: need to decide if model binding should always be done before event handling
+                // we need this here to make sure the model is updated before the following code runs
+                if (e.getSource() instanceof GUIControlModelBinding) {
+                    ((GUIControlModelBinding) e.getSource()).doBinding(model);
+                }
+                sonicationIndex = (Integer) model.getAttribute("currentSonication");
+                if (sonicationIndex == null) {
+                    sonicationIndex = 0;
+                }
+                updateThermometryDisplay(sonicationIndex, false);
+                doTransition = true;
+                
                 break;
         }
     }
