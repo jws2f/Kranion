@@ -23,7 +23,6 @@
  */
 package org.fusfoundation.kranion;
 
-import com.sun.prism.impl.BufferUtil;
 import static org.lwjgl.opengl.GL11.*;
 
 //import static org.lwjgl.opengl.GL12.*;
@@ -632,7 +631,8 @@ public class Transducer extends Clippable {
 //            glRotatef(transducerTilt, 1, 0, 0);
 //            glTranslatef(0, 0, -150);
 
-                FloatBuffer matBuf = BufferUtil.newFloatBuffer(16);
+
+                FloatBuffer matBuf = BufferUtils.createFloatBuffer(16);//.newFloatBuffer(16);
 		transducerRot.store(matBuf);
 		matBuf.flip();
 		glMultMatrix(matBuf);

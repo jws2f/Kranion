@@ -161,9 +161,9 @@ System.out.println(selectedDicomObj);
             if (selectedDicomObj != null && selectedSeriesUID != null) {
             
  
-                List slicePositions = new ArrayList();
-                List sliceFiles = new ArrayList();
-                TreeMap positionsFiles = new TreeMap();
+                List<Float> slicePositions = new ArrayList<>();
+                List<String> sliceFiles = new ArrayList<>();
+                TreeMap<Float, File> positionsFiles = new TreeMap<>();
                                 
                 File parentDir = new File(file.getParent());
                 File[] listOfFiles = parentDir.listFiles();

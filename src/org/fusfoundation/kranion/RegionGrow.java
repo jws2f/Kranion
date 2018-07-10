@@ -50,7 +50,7 @@ public class RegionGrow {
     private ImageVolume4D src;
     private int maskVolumeTexture = 0;
     
-    private LinkedList growQ = new LinkedList();
+    private LinkedList<Seed> growQ = new LinkedList<>();
     
     private static ShaderProgram shader, shader2, shader3;  
     

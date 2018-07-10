@@ -79,7 +79,7 @@ public static void main(String[] args) {
                         scanner.skip("=");
 //                        pw.print("=");
                         float amplitude = Float.parseFloat(scanner.next());
-                        if (amplitude > 0f) amplitude = 1f;
+//////                        if (amplitude > 0f) amplitude = 1f; // if you want the amplitude thresheld ///////
  //                       pw.printf("%3.1f", amplitude);
                         
                         float phase = Float.parseFloat(scanner.next());
@@ -92,7 +92,7 @@ public static void main(String[] args) {
 
                 br.close();
                 pw.close();
-            } catch (FileNotFoundException e) {
+            } catch (FileNotFoundException  e) {
             } catch (IOException e) {
             }
 

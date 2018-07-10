@@ -44,8 +44,8 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     
     private ImageDimension[] dims = new ImageDimension[4];
     private int voxelCount;
-    private Vector voxelData = new Vector();
-    private Vector<Integer> voxelType = new Vector();
+    private Vector<Object> voxelData = new Vector<>();
+    private Vector<Integer> voxelType = new Vector<>();
     private AttributeList attributes = new AttributeList();
     
     /** Creates a new instance of ImageVolume4D */
@@ -280,7 +280,7 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     public int getVoxelType() { return voxelType.get(0); }
     public int getVoxelType(int channel) { return voxelType.get(channel); }
     
-    public Iterator getAttributeKeys() {
+    public Iterator<String> getAttributeKeys() {
         return attributes.keySet().iterator();
     }
     

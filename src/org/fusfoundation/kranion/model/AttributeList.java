@@ -69,7 +69,7 @@ public class AttributeList implements Serializable {
         return retVal;
     }
     
-    public Set keySet() {
+    public Set<String> keySet() {
         Set<String> mergedKeys = new HashSet<>();
         
         mergedKeys.addAll(attributes.keySet());

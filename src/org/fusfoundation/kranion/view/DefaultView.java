@@ -316,6 +316,14 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
+        textbox = (TextBox)new TextBox(10, 340, 100, 25, "ABORTED", controller);
+        textbox.setTag("tbSonicationAborted");
+        textbox.setColor(0.3f, 0.15f, 0.15f, 1f);
+        textbox.setTextColor(1f, 0.1f, 0.1f, 1f);
+        textbox.setTextEditable(false);
+        textbox.setVisible(false);
+        flyout1.addChild(textbox);
+        
         textbox = (TextBox)new TextBox(100, 300, 70, 25, "", controller).setTitle("Max Temp").setCommand("sonicationMaxTemp");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(false);
@@ -686,6 +694,22 @@ public class DefaultView extends View {
         model.addObserver(button);
         flyout2.addChild("Preferences", button);
         
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 50, 130, 240, 25, this);
+        button.setTitle("Show demographics");
+        button.setCommand("prefShowDemographics");
+        button.setIndicator(this.prefs.getBoolean(button.getCommand(), true));
+        button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(button);
+        flyout2.addChild("Preferences", button);
+        
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 50, 100, 240, 25, this);
+        button.setTitle("Show logo");
+        button.setCommand("prefShowLogo");
+        button.setIndicator(this.prefs.getBoolean(button.getCommand(), true));
+        button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(button);
+        flyout2.addChild("Preferences", button);
+        
         mrBore = new Cylinder(300.0f, 50.0f, -25.0f, -1f);
         mrBoreOuter = new Cylinder(310.0f, 50.0f, -25.0f, 1f);
         mrBoreFront = new Ring(310.0f, 10.0f, -25.0f, -1f);
@@ -856,7 +880,7 @@ public class DefaultView extends View {
         // the volume rendering into the main layer with the standard render() method and the
         // demographics into the overlay layer.
         overlay.setIs2d(true);
-        overlay.addChild(new RenderableAdapter(canvas, "renderDemographics").setVisible(false));
+        overlay.addChild(new RenderableAdapter(canvas, "renderDemographics").setTag("demographics").setVisible(prefs.getBoolean("prefShowDemographics", true)));
         
         overlay.addChild(mprLayout);
         overlay.addChild(canvas1);
@@ -906,6 +930,8 @@ public class DefaultView extends View {
         model.addObserver(canvas3);
         
         ImageLabel logoLabel = new ImageLabel("images/KranionMed.png", 10, 0, 500, 200);
+        logoLabel.setTag("logo");
+        logoLabel.setVisible(prefs.getBoolean("prefShowLogo", true));
         //ImageLabel logoLabel = new ImageLabel("images/KranionSm.png", 110, 0, 500, 200);
         //logoLabel.setBounds(0, 0, logoLabel.getBounds().width/1.8f, logoLabel.getBounds().height/1.8f);
         //logoLabel.setVisible(false);
@@ -2473,8 +2499,10 @@ public class DefaultView extends View {
         System.out.println("DefaultView::updateThermometryDisplay");
         Sonication sonication = model.getSonication(sonicationIndex);
         ImageVolume thermometry = null;
+        Boolean sonicationWasAborted = null;
         if (sonication != null) {
             thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
+            sonicationWasAborted = (Boolean)(model.getSonication(sonicationIndex).getAttribute("aborted"));
         }
         
         if (thermometry != null) {
@@ -2527,6 +2555,14 @@ public class DefaultView extends View {
             model.getSonication(sonicationIndex).setAttribute("maxFrame", maxTimePoint);
             if (setToMax) {
                 model.getSonication(sonicationIndex).setAttribute("currentFrame", maxTimePoint);
+            }
+            
+            Renderable abortText = Renderable.lookupByTag("tbSonicationAborted");
+            if (sonicationWasAborted != null && sonicationWasAborted == true) {
+                abortText.setVisible(true);
+            }
+            else {
+                abortText.setVisible(false);
             }
 
             thermometryChart.newChart();
@@ -3376,7 +3412,7 @@ public class DefaultView extends View {
 
         // Find constructor (class is package private, so we can't access it directly)
         Constructor<net.java.games.input.ControllerEnvironment> constructor = (Constructor<net.java.games.input.ControllerEnvironment>)
-            Class.forName("net.java.games.input.DefaultControllerEnvironment").getDeclaredConstructors()[0];
+            (Class.forName("net.java.games.input.DefaultControllerEnvironment").getDeclaredConstructors()[0]);
 
         // Constructor is package private, so we have to deactivate access control checks
         constructor.setAccessible(true);
@@ -3522,6 +3558,26 @@ public class DefaultView extends View {
                 }
                 catch(Exception ex) {}
                 prefs.putBoolean("CTFilterGpuAcceleration", checked);
+                break;
+            case "prefShowLogo": // This is a preference, update preference key
+                checked = true;
+                try {
+                    checked = ((Button)e.getSource()).getIndicator();
+                }
+                catch(Exception ex) {}
+                prefs.putBoolean("prefShowLogo", checked);
+                Renderable.lookupByTag("logo").setVisible(checked);
+                setDoTransition(true);
+                break;
+            case "prefShowDemographics": // This is a preference, update preference key
+                checked = true;
+                try {
+                    checked = ((Button)e.getSource()).getIndicator();
+                }
+                catch(Exception ex) {}
+                prefs.putBoolean("prefShowDemographics", checked);
+                Renderable.lookupByTag("demographics").setVisible(checked);
+                setDoTransition(true);
                 break;
             case "filterCT":
                 ImageVolume4D image = (ImageVolume4D)model.getCtImage();

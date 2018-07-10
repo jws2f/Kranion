@@ -144,7 +144,7 @@ public class Sonication extends Observable implements Serializable{
         return attributes.get(name);
     }
     
-    public Iterator getAttributeKeys() {
+    public Iterator<String> getAttributeKeys() {
         return attributes.keySet().iterator();
     }
     

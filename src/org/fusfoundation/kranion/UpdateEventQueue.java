@@ -31,7 +31,7 @@ import java.util.Observable;
  * @author John Snell
  */
 public class UpdateEventQueue {
-    private final java.util.Queue<updateEvent> updateEventQueue = new java.util.LinkedList();
+    private final java.util.Queue<updateEvent> updateEventQueue = new java.util.LinkedList<>();
 
     public UpdateEventQueue() {
         

@@ -274,7 +274,7 @@ public class Model extends Observable implements Serializable, Observer {
         return attributes.getIsAttributeTransient(name);
     }
         
-    public Iterator getAttributeKeys() {        
+    public Iterator<String> getAttributeKeys() {        
         return attributes.keySet().iterator();
     }    
 

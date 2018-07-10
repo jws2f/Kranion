@@ -39,7 +39,7 @@ public class PluginFinder {
     List<Plugin> pluginCollection;
 
     public PluginFinder() {
-        pluginCollection = new ArrayList<Plugin>(5);
+        pluginCollection = new ArrayList<>(5);
     }
 
     public void search(String directory) throws Exception {
@@ -56,7 +56,7 @@ public class PluginFinder {
                 Class clazz = getClass(f, name);
                 Class[] interfaces = clazz.getInterfaces();
                 for (Class c : interfaces) {
-// Implement the IPlugin interface
+// Implements the IPlugin interface?
                     if (c.getName().equals("org.fusfoundation.kranion.plugin.Plugin")) {
                         pluginCollection.add((Plugin) clazz.newInstance());
                     }
@@ -66,7 +66,7 @@ public class PluginFinder {
     }
 
     protected List<String> getClassNames(String jarName) throws IOException {
-        ArrayList<String> classes = new ArrayList<String>(10);
+        ArrayList<String> classes = new ArrayList<>(10);
         JarInputStream jarFile = new JarInputStream(new FileInputStream(jarName));
         JarEntry jarEntry;
         while (true) {
@@ -83,26 +83,26 @@ public class PluginFinder {
     }
 
     public Class getClass(File file, String name) throws Exception {
-        addURL(file.toURL());
+        addURL(file.toURI().toURL());
 
         URLClassLoader clazzLoader;
         Class clazz;
         String filePath = file.getAbsolutePath();
         filePath = "jar:file://" + filePath + "!/";
-        URL url = new File(filePath).toURL();
+        URL url = new File(filePath).toURI().toURL();
         clazzLoader = new URLClassLoader(new URL[]{url});
         clazz = clazzLoader.loadClass(name);
         return clazz;
 
     }
     
-    private static final Class<?>[] PARAMS = new Class[] { URL.class };
+    private static final Class<?>[] PARAMS = new Class<?>[] { URL.class };
     
     public void addURL(URL u) throws IOException {
         URLClassLoader sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
         URL urls[] = sysLoader.getURLs();
-        for (int i = 0; i < urls.length; i++) {
-            if (urls[i].toString().equalsIgnoreCase(u.toString())) {
+        for (URL url : urls) {
+            if (url.toString().equalsIgnoreCase(u.toString())) {
                 return;
             }
         }
@@ -111,8 +111,8 @@ public class PluginFinder {
             Method method = sysclass.getDeclaredMethod("addURL", PARAMS);
             method.setAccessible(true);
             method.invoke(sysLoader, new Object[]{u});
-        } catch (Throwable t) {
-            t.printStackTrace();
+        } catch (IllegalAccessException | IllegalArgumentException | NoSuchMethodException | SecurityException | InvocationTargetException t) {
+            //t.printStackTrace();
             throw new IOException("Error, could not add URL to system classloader");
         }
     }

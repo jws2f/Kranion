@@ -55,7 +55,10 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
     private float dx = 300f, dy = 10 * itemHeight;
     private int hoverItem = -1;
     private int selectedItem = -1;
-    private long flyinDelay = -1;                
+    private long flyinDelay = -1;
+    
+    private boolean button1pressed = false;
+    private boolean button1released = false;
 
     private ArrayList<String> items = new ArrayList<String>();
     
@@ -125,6 +128,7 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
             labelScale = scale;
         }
         
+        dx = this.bounds.width;
         dy = items.size() * itemHeight * labelScale;
         
         Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_COLOR_BUFFER_BIT);
@@ -278,11 +282,25 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
             return true;
         }
         
+        if (button1down) {
+            if (!button1pressed) {
+                button1pressed = true;
+                button1released = false;
+            }
+        }
+        else {
+            if (button1pressed) {
+                button1pressed = false;
+                button1released = true;
+            }
+        }
+        
         if (MouseIsInside(x, y)) {
             
             flyinDelay = -1;
             
-            if (flyScale == 0f) {
+            if (flyScale == 0f && button1released) {
+                button1released = false;
                 flyout();
             }
             else {
@@ -293,7 +311,7 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
                 }
             }
  
-            if (button1down) {
+            if (flyScale == 1f && button1pressed) {
                 grabMouse(x, y);
                 if (selectedItem != hoverItem &&
                     hoverItem >=0 && hoverItem < items.size()) {
@@ -306,19 +324,21 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
                 
                 return true;
             }
-            else if (hasGrabbed()) {
+            else if (button1released) {
                 ungrabMouse();
                 flyin();
                 this.fireActionEvent();
             }
         }
-        else if (!MouseIsInside(x, y) && !hasGrabbed() && grabbedChild == null) {
+        else if (!hasGrabbed() && grabbedChild == null) {
             if (flyScale == 1f) {
-                //flyin();
+//                flyin();
                 flyinDelay = System.currentTimeMillis() + 400;
             }
         }
         
+        // reset this so we dont trigger more than once
+        button1released = false;
         
         return false;
     }

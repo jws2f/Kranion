@@ -79,7 +79,7 @@ public interface ImageVolume {
     public void setAttribute(String name, Object value, boolean isTransient);
     public boolean getIsAttributeTransient(String name);
     public Object getAttribute(String name);
-    public Iterator getAttributeKeys();
+    public Iterator<String> getAttributeKeys();
     public void removeAttribute(String name);
         
     /** Return a BufferedImage representation of the selected 2D image volume slice.

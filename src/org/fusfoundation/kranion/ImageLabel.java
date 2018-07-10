@@ -53,7 +53,9 @@ public class ImageLabel extends GUIControl {
     
     @Override
     public void render() {
-        if (!this.getVisible()) return;
+        if (!this.getVisible()) {
+            return;
+        }
         
         setIsDirty(false);
         

@@ -47,6 +47,7 @@ public class TextBox extends GUIControl implements Animator {
     
     private String text;
     private Vector4f color = new Vector4f(0.25f, 0.25f, 0.25f, 1f);
+    private Vector4f textColor = new Vector4f(1f, 01f, 1f, 1f);
     private BufferedImage labelImage;
     private int fontSize = 16;
     private float labelScale = 1f;
@@ -79,6 +80,28 @@ public class TextBox extends GUIControl implements Animator {
         }
         else {
             this.text = new String(text);
+        }
+    }
+    
+    public void setColor(float red, float green, float blue, float alpha) {
+        if (red   != color.x ||
+            green != color.y ||
+            blue  != color.z ||
+            alpha != color.w) {
+            
+            color.set(red, green, blue, alpha);
+            setIsDirty(true);
+        }
+    }
+    
+    public void setTextColor(float red, float green, float blue, float alpha) {
+        if (red   != color.x ||
+            green != color.y ||
+            blue  != color.z ||
+            alpha != color.w) {
+            
+            textColor.set(red, green, blue, alpha);
+            setIsDirty(true);
         }
     }
     
@@ -158,6 +181,8 @@ public class TextBox extends GUIControl implements Animator {
     @Override
     public void render() {
         
+        if (!this.getVisible()) return;
+        
         float scale = getGuiScale();
         if (scale != labelScale) {
             labelScale = scale;
@@ -227,7 +252,7 @@ public class TextBox extends GUIControl implements Animator {
     }
         
     private void renderText(String str, Rectangle rect, HPosFormat hpos, boolean showCaret, int cursPos) {
-        renderText(str, rect.shrinkHorz(8f), null, new Color(1.0f, 1.0f, 1.0f, 1.0f), true, VPosFormat.VPOSITION_CENTER, hpos, showCaret, cursPos);
+        renderText(str, rect.shrinkHorz(8f), null, new Color(textColor.x, textColor.y, textColor.z, textColor.w), true, VPosFormat.VPOSITION_CENTER, hpos, showCaret, cursPos);
     }
         
 //    private void generateLabel() {

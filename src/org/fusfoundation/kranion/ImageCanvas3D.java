@@ -28,7 +28,6 @@ package org.fusfoundation.kranion;
  *
  * Copyright 2005, John W. Snell
  */
-//import com.sun.prism.impl.BufferUtil;
 
 import java.io.*;
 import java.nio.*;

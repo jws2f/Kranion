@@ -281,6 +281,10 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
     public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
 //        if (!anim.isAnimationDone()) return false;
         
+        if (flyScale == 1 && super.OnMouse((int)((x-bounds.x)/guiScale + bounds.x), (int)((y-bounds.y)/guiScale + bounds.y), button1down, button2down, dwheel)) {
+            return true;
+        };
+
         if (MouseIsInside(x, y, true)) {
             
             flyinDelay = -1;
