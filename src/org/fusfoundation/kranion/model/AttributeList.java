@@ -57,6 +57,17 @@ public class AttributeList implements Serializable {
         return retVal;
     }
     
+    public Object get(String name, Object defaultValue) {
+        Object result = get(name);
+        if (result == null) {
+            put(name, defaultValue);
+            return defaultValue;
+        }
+        else {
+            return result;
+        }
+    }
+    
     public Object remove(String name) {
         Object retVal = null;
                 

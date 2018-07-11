@@ -78,6 +78,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private int outDiscSSBo = 0; // buffer of triangle vertices for 'discs' on skull surface
     private int outRaysSSBo = 0; // buffer of lines from element start point to outside of skull
     
+    // skull floor strike data
+    private int skullFloorRaysSSBo = 0;
+    private int skullFloorDiscSSBo = 0;
+    
     private int envSSBo = 0; // buffer for treatment envelope data (21x21x21 volume of active element counts)
     
     private int sdrSSBo = 0; // buffer of houdsfield values along the path between outside and inside of skull per element
@@ -96,6 +100,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private ImageVolume4D envelopeImage = null;
     
     private boolean showEnvelope = false;
+    private boolean showSkullFloorStrikes = false;
     
     private int elementCount = 0;
     private int activeElementCount = 0;
@@ -128,6 +133,14 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             setIsDirty(true);
         }
         showEnvelope = f;
+    }
+    
+    public boolean getShowSkullFloorStrikes() { return showEnvelope; }
+    public void setShowSkullFloorStrikes(boolean f) {
+        if (showSkullFloorStrikes != f) {
+            setIsDirty(true);
+        }
+        showSkullFloorStrikes = f;
     }
     
     private boolean clipRays = true;
@@ -228,7 +241,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private void initShader() {
         if (refractShader == null) {
             refractShader = new ShaderProgram();
-            refractShader.addShader(GL_COMPUTE_SHADER, "shaders/TransducerRayTracer5x5.cs.glsl");
+            refractShader.addShader(GL_COMPUTE_SHADER, "shaders/TransducerRayTracer5x5skullfloor.cs.glsl");
             refractShader.compileShaderProgram();
         }
         if (pickShader == null) {
@@ -478,6 +491,69 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         phaseBuffer.flip();
         glBufferData(GL_ARRAY_BUFFER,phaseBuffer, GL_STATIC_DRAW);        
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+
+        // Skull floor strike geometry data
+        /////
+        floatPosBuffer = ByteBuffer.allocateDirect(1024 * 4*12 * 20*3).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        
+        for (int i=0; i<1024*3*20; i++) {
+            
+            //positions
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(1f);
+            
+            Vector3f norm = new Vector3f(1f, 1f, 1f);
+            norm.normalise();
+            
+            //normals
+            floatPosBuffer.put(norm.x);
+            floatPosBuffer.put(norm.y);
+            floatPosBuffer.put(norm.z);
+            floatPosBuffer.put(0f);
+            
+            //colors
+            floatPosBuffer.put(1f);
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(1f);
+            
+        }
+        floatPosBuffer.flip();
+        
+        
+        skullFloorDiscSSBo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, skullFloorDiscSSBo);
+        glBufferData(GL_ARRAY_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
+ 
+        // Rays between final beam point and skull floor
+        floatPosBuffer = ByteBuffer.allocateDirect(1024 * 4*8 * 2).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        
+        for (int i=0; i<1024*2; i++) {
+            
+            //positions
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(1f);
+            
+            //colors
+            floatPosBuffer.put(1f);
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(0f);
+            floatPosBuffer.put(1f);
+            
+        }
+        floatPosBuffer.flip();
+        
+        
+        this.skullFloorRaysSSBo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, skullFloorRaysSSBo);
+        glBufferData(GL_ARRAY_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     
     private void doCalc() {
@@ -518,6 +594,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, outDiscSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, outRaysSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, phaseSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, skullFloorRaysSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, skullFloorDiscSSBo);
         
         // run compute shader
         org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
@@ -531,6 +609,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, 0);
 
         
         refractShader.stop();
@@ -573,6 +653,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, outDiscSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, outRaysSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, phaseSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, skullFloorRaysSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, skullFloorDiscSSBo);
         
         // run compute shader
         org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
@@ -586,6 +668,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, 0);
 
         
         pickShader.stop();
@@ -671,6 +755,58 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         calcEnvelope(null);
     }
     
+    
+    public void calcSkullFloorDensity() {
+        if (this.CTimage == null) return;
+
+        int xsize = CTimage.getDimension(0).getSize() / 2;
+        int ysize = CTimage.getDimension(1).getSize() / 2;
+        int zsize = CTimage.getDimension(2).getSize() / 2;
+
+        float xres = CTimage.getDimension(0).getSampleWidth(0) * 2f;
+        float yres = CTimage.getDimension(1).getSampleWidth(1) * 2f;
+        float zres = CTimage.getDimension(2).getSampleWidth(2) * 2f;
+
+        Vector3f imageTranslation = (Vector3f)CTimage.getAttribute("ImageTranslation");
+        Quaternion imageRotation = (Quaternion)CTimage.getAttribute("ImageOrientationQ");
+
+        if (envelopeImage != null) {
+            ImageVolumeUtil.releaseTexture(envelopeImage);
+        }
+
+        envelopeImage = new ImageVolume4D(ImageVolume.FLOAT_VOXEL, xsize, ysize, zsize, 1);
+        envelopeImage.getDimension(0).setSampleWidth(xres);
+        envelopeImage.getDimension(1).setSampleWidth(yres);
+        envelopeImage.getDimension(2).setSampleWidth(zres);
+
+        envelopeImage.getDimension(0).setSampleSpacing(xres);
+        envelopeImage.getDimension(1).setSampleSpacing(yres);
+        envelopeImage.getDimension(2).setSampleSpacing(zres);
+
+        envelopeImage.setAttribute("ImageTranslation", new Vector3f(imageTranslation));
+        envelopeImage.setAttribute("ImageOrientationQ", new Quaternion(imageRotation));
+        
+        // setup textures
+        
+        // need to compile shader in init
+
+// TODO: work on integration of skull floor footprints        
+//            shader.start();
+//
+//            int uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_intercept");
+//            glUniform1f(uloc, this.rescaleIntercept);
+//            uloc = glGetUniformLocation(shader.getShaderProgramID(), "ct_rescale_slope");
+//            glUniform1f(uloc, this.rescaleSlope);
+//
+//            // run compute shader
+//            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+//            org.lwjgl.opengl.GL43.glDispatchCompute((xsize+7)/8, (ysize+7)/8, (zsize+7)/8);
+//            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+//
+//            // Clean up
+//            shader.stop();
+    }
+    
     public void calcEnvelope(ProgressListener listener) {
         
 //        if (envelopeImage == null) {
@@ -754,6 +890,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         }
 
         envFloats.flip();
+        
+        if (envSSBo != 0) {
+            org.lwjgl.opengl.GL15.glDeleteBuffers(envSSBo);
+            envSSBo = glGenBuffers();
+        }
         
         glBindBuffer(GL_ARRAY_BUFFER, envSSBo);
         glBufferData(GL_ARRAY_BUFFER, envFloats, GL_DYNAMIC_DRAW);
@@ -1676,7 +1817,25 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 glEnableClientState(GL_NORMAL_ARRAY);
                 glDrawArrays(GL_TRIANGLES, 0, 1024*3*20);
                 
-            Main.glPopAttrib();
+                
+                // skull floor normal discs
+                if (showSkullFloorStrikes) {
+                    glBindBuffer(GL_ARRAY_BUFFER, skullFloorDiscSSBo);
+                    glVertexPointer(4, GL_FLOAT, 12*4, 0);
+
+                    glBindBuffer(GL_ARRAY_BUFFER, skullFloorDiscSSBo);
+                    glNormalPointer(GL_FLOAT, 12*4, 16);
+
+                    glBindBuffer(GL_ARRAY_BUFFER, skullFloorDiscSSBo);
+                    glColorPointer(4, GL_FLOAT, 12*4, 32);
+
+                    glEnableClientState(GL_VERTEX_ARRAY);
+                    glEnableClientState(GL_COLOR_ARRAY);
+                    glEnableClientState(GL_NORMAL_ARRAY);
+                    glDrawArrays(GL_TRIANGLES, 0, 1024*3*20);
+                }
+                
+                Main.glPopAttrib();
             
             
             }
@@ -1698,6 +1857,23 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
                     glDrawArrays(GL_LINES, 0, 1024*2);
                 
+                if (showSkullFloorStrikes) {
+                    // skull floor strike rays
+                    ////////
+                    glBindBuffer(GL_ARRAY_BUFFER, this.skullFloorRaysSSBo);
+                    glVertexPointer(4, GL_FLOAT, 8*4, 0);
+
+                    glBindBuffer(GL_ARRAY_BUFFER, skullFloorRaysSSBo);
+                    glColorPointer(4, GL_FLOAT, 8*4, 16);
+
+                    glEnableClientState(GL_VERTEX_ARRAY);
+                    glEnableClientState(GL_COLOR_ARRAY);
+
+                    glEnable(GL_BLEND);
+                    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+                    glDrawArrays(GL_LINES, 0, 1024*2);
+                }
+                    
                 Main.glPopAttrib();
 
             }
@@ -1971,6 +2147,14 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         if (phaseSSBo != 0) {
             org.lwjgl.opengl.GL15.glDeleteBuffers(phaseSSBo);
             phaseSSBo = 0;
+        }
+        if (skullFloorDiscSSBo != 0) {
+            org.lwjgl.opengl.GL15.glDeleteBuffers(skullFloorDiscSSBo);
+            skullFloorDiscSSBo = 0;
+        }
+        if (skullFloorRaysSSBo != 0) {
+            org.lwjgl.opengl.GL15.glDeleteBuffers(skullFloorRaysSSBo);
+            skullFloorRaysSSBo = 0;
         }
         
         if (refractShader != null) {

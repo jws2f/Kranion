@@ -42,12 +42,12 @@ struct unlitVertex{
 };
 
 struct elemEnd{
-         vec4 pos[8];
+         vec4 pos[6];
 //         vec4 pos2;
 };
 
 struct elemColor {
-         vec4 color[8];
+         vec4 color[6];
 //         vec4 color2;
 };
 
@@ -86,6 +86,14 @@ layout(std430, binding=5) buffer outputRays{
 
 layout(std430, binding=6) buffer outputPhase{
 		float outPhase[];
+};
+
+layout(std430, binding=7) buffer skullFloorRays{
+		unlitVertex sfRays[];
+};
+
+layout(std430, binding=8) buffer skullFloorDiscs{
+		vertex sfDiscTris[];
 };
 
 uniform vec3        target; // no steering = vec3(0,0,0);
@@ -417,6 +425,7 @@ void main()
          vec3 secondCollision = firstCollision;
          vec3 refractedVector = vec3(0);
          vec3 normal = vec3(0);
+         vec3 sfnormal = vec3(0);
          vec3 exitVector = vec3(0);
          vec3 exitPoint = vec3(0);
          vec3 secondNormal = vec3(0);
@@ -569,25 +578,37 @@ void main()
             c[gid].color[i].w = outColor.w;
         }
 
-        if (skullFloorPoint == finalPoint) {
-            o[gid].pos[6].xyz = pos;
-            o[gid].pos[6].w = 1;
+        float skullFloorIncidenceAngle = 0.0;
+        vec4 sfOutColor = vec4(0);
 
-            o[gid].pos[7].xyz = pos;
-            o[gid].pos[7].w = 1;
+        if (d[gid].distance == -1 || skullFloorPoint == pos) {
+            sfRays[gid*2].pos.xyz = pos;
+            sfRays[gid*2].pos.w = 1;
 
-            c[gid].color[6] = vec4(0, 0, 0, 0);
-            c[gid].color[7] = vec4(0, 0, 0, 0);
+            sfRays[gid*2+1].pos.xyz = pos;
+            sfRays[gid*2+1].pos.w = 1;
+
+            sfRays[gid*2].col = vec4(0, 0, 0, 0);
+            sfRays[gid*2+1].col = vec4(0, 0, 0, 0);
+
+            sfOutColor = vec4(0);
         }
         else {
-            o[gid].pos[6].xyz = finalPoint;
-            o[gid].pos[6].w = 1;
 
-            o[gid].pos[7].xyz = skullFloorPoint.xyz;
-            o[gid].pos[7].w = 1;
+            sfRays[gid*2].pos.xyz = finalPoint;
+            sfRays[gid*2].pos.w = 1;
 
-            c[gid].color[6] = vec4(1, 0.3, 0.3, 1);
-            c[gid].color[7] = vec4(1, 0.3, 0.3, 1);
+            sfRays[gid*2+1].pos.xyz = skullFloorPoint.xyz;
+            sfRays[gid*2+1].pos.w = 1;
+
+            sfRays[gid*2].col = vec4(1, 0.3, 0.3, 1);
+            sfRays[gid*2+1].col = vec4(1, 0.3, 0.3, 1);
+
+            sfnormal = findNormal(skullFloorPoint);
+            sfnormal = normalize(sfnormal);
+
+            skullFloorIncidenceAngle = abs(acos(clamp(dot(sfnormal,exitVector)/(length(sfnormal)*length(exitVector)), -1, 1))) / (2.0*M_PI) * 360.0;
+            sfOutColor =  mix(vec4(1, 0, 0, 1), vec4(0.2, 0.2, 1, 1), remap(10, 45, skullFloorIncidenceAngle));
         }
 
         outRays[gid*2].pos.xyz = pos.xyz;
@@ -603,6 +624,10 @@ void main()
         // discs normal to outer skull surface
         vec3 xvec = normalize(cross(normal, vec3(0, 0, 1)));
         vec3 yvec = normalize(cross(normal, xvec));
+
+        // discs normal to skull floor
+        vec3 sfxvec = normalize(cross(sfnormal, vec3(0, 0, 1)));
+        vec3 sfyvec = normalize(cross(sfnormal, sfxvec));
 
  //HACK - just mapping sdr to disc color for now
 //outColor = mix(vec4(1, 0, 0, 1), vec4(0, 1, 0, 1), clamp(remap(0.3, 1.0, d[gid].sdr), 0, 1));
@@ -642,5 +667,32 @@ void main()
             outDiscTris[startIndex+2].norm.w = 0.0;
             outDiscTris[startIndex+2].col.xyz = outColor.xyz * 0.8;
             outDiscTris[startIndex+2].col.a = 1.0;
+            outDiscTris[startIndex].pos.xyz = firstCollision.xyz - normal * 1.0; // lifting them 1mm so they don't clip with the skull surface
+            outDiscTris[startIndex].pos.w = 1.0;
+
+
+// skull floor normal discs
+            sfDiscTris[startIndex].pos.xyz = skullFloorPoint.xyz - sfnormal * 1.0; // lifting them 1mm so they don't clip with the skull surface
+            sfDiscTris[startIndex].pos.w = 1.0;
+            sfDiscTris[startIndex].norm.xyz = sfnormal;
+            sfDiscTris[startIndex].norm.w = 0.0;
+            sfDiscTris[startIndex].col.xyz = sfOutColor.xyz * 0.8;
+            sfDiscTris[startIndex].col.a = 1.0;
+
+            sfDiscTris[startIndex+1].pos.xyz = skullFloorPoint.xyz - sfnormal + 1.0 *(cos(angle1)*sfxvec + sin(angle1)*sfyvec);
+            sfDiscTris[startIndex+1].pos.w = 1.0;
+            sfDiscTris[startIndex+1].norm.xyz = sfnormal;
+            sfDiscTris[startIndex+1].norm.w = 0.0;
+            sfDiscTris[startIndex+1].col.xyz = sfOutColor.xyz * 0.8;
+            sfDiscTris[startIndex+1].col.a = 1.0;
+
+            sfDiscTris[startIndex+2].pos.xyz = skullFloorPoint.xyz - sfnormal + 1.0 *(cos(angle2)*sfxvec + sin(angle2)*sfyvec);
+            sfDiscTris[startIndex+2].pos.w = 1.0;
+            sfDiscTris[startIndex+2].norm.xyz = sfnormal;
+            sfDiscTris[startIndex+2].norm.w = 0.0;
+            sfDiscTris[startIndex+2].col.xyz = sfOutColor.xyz * 0.8;
+            sfDiscTris[startIndex+2].col.a = 1.0;
+            sfDiscTris[startIndex].pos.xyz = skullFloorPoint.xyz - sfnormal * 1.0; // lifting them 1mm so they don't clip with the skull surface
+            sfDiscTris[startIndex].pos.w = 1.0;
         }
 }

@@ -251,6 +251,10 @@ public class Model extends Observable implements Serializable, Observer {
         return attributes.get(name);
     }
     
+    public Object getAttribute(String name, Object defaultValue) {
+        return attributes.get(name, defaultValue);
+    }
+    
     public void removeAttribute(String name) {
         if (attributes.remove(name) != null) {
             setChanged();

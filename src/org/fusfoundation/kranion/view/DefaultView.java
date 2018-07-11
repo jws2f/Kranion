@@ -401,6 +401,14 @@ public class DefaultView extends View {
         button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(button);
         flyout2.addChild("View", button);
+        
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 750, 115, 410, 25, controller);
+        button.setTitle("Show skull floor strikes");
+        button.setCommand("showSkullFloorStrikes");
+        button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        button.setDrawBackground(false);
+        model.addObserver(button);
+        flyout2.addChild("View", button);
 
 //        // new added part
 //         button = new Button(Button.ButtonType.TOGGLE_BUTTON, 400, 205, 240, 25, controller);
@@ -1565,23 +1573,18 @@ public class DefaultView extends View {
     private void updateFromModel() {
 
         
-        try {
-            this.showRayTracer = (Boolean)model.getAttribute("showRayTracer");
-            
-            if (!this.showRayTracer) {
-                activeElementsBar.setValue(-1f);
-                sdrBar.setValue(-1f);
-                incidentAngleChart.setVisible(false);
-                sdrChart.setVisible(false);
-            }
-            else {
-               incidentAngleChart.setVisible(true);
-               sdrChart.setVisible(true);                
-            }
-        }
-        catch (NullPointerException e) {
-            this.showRayTracer = false;
-            model.setAttribute("showRayTracer", showRayTracer); //TODO: need a better way to make sure defaults update model
+        this.showRayTracer = (Boolean) model.getAttribute("showRayTracer", false);
+
+        if (!this.showRayTracer) {
+            activeElementsBar.setValue(-1f);
+            sdrBar.setValue(-1f);
+            incidentAngleChart.setVisible(false);
+            sdrChart.setVisible(false);
+        } else {
+            incidentAngleChart.setVisible(true);
+            sdrChart.setVisible(true);
+            boolean showSkullFloor = (Boolean) model.getAttribute("showSkullFloorStrikes", false);
+            this.transRayTracer.setShowSkullFloorStrikes(showSkullFloor);
         }
         
         try {
@@ -2342,6 +2345,7 @@ public class DefaultView extends View {
                 case "doMRI":
                 case "doClip":
                 case "showRayTracer":
+                case "showSkullFloorStrikes":
                     setDoTransition(true);
                     this.setIsDirty(true);
                     return;
