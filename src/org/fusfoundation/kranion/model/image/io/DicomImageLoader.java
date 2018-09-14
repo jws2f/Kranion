@@ -254,6 +254,13 @@ System.out.println(selectedDicomObj);
                     }
                 }
                 
+                Iterator<String> fileNamesIter = sliceFiles.iterator();
+                System.out.println("Selected series file names:");
+                while(fileNamesIter.hasNext()) {
+                    System.out.println(fileNamesIter.next());
+                }
+                System.out.println("/n");
+                
                 Object[] positions = slicePositions.toArray();
                 
                 Set s = positionsFiles.entrySet();
@@ -534,10 +541,21 @@ System.out.println(selectedDicomObj);
                 //            voxelData[offset + v] = (short)((((int)sliceData[v*2] & 0xff) << 8 | ((int)sliceData[v*2 + 1] & 0xff)) & 0xfffL);
                 
                             // handle pixel padding value if given for CT
-                            short rawValue = (short)((sliceData[v*2] & 0xff) << 8 | (sliceData[v*2 + 1] & 0xff));
+                            short rawValue;
+                            if (signedPixelRep == 1) {
+                                rawValue = (short)((sliceData[v*2] & 0xff) << 8 | (sliceData[v*2 + 1] & 0xff));
+                                if (rawValue<0) {
+                                    rawValue = 0; // in the signed case, we don't handle negative pixel values. Typically zero will get rescaled to -1024:Air
+                                }
+                            }
+                            else {
+                                rawValue = (short)((sliceData[v*2] & 0xff) << 8 | (sliceData[v*2 + 1] & 0xff));
+                            }
+                            
                             if (rawValue == pixelPaddingValue) {
                                 rawValue = 0;
                             }
+//                            if (rawValue < 0) rawValue = 0;
                             voxelData[offset + v] = rawValue;
                             //int val = v%4096;
                             //voxelData[offset + v] = (short)(((int)val & 0xff) << 8 | ((int)val & 0xff));
