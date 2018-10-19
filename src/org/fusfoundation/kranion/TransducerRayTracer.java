@@ -105,6 +105,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private int elementCount = 0;
     private int activeElementCount = 0;
     private float sdr = 0f;
+    private float avgTransmitCoeff = 0f;
     
     // Observable pattern
     private List<Observer> observers = new ArrayList<Observer>();
@@ -177,6 +178,17 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     public float getSDR() { return sdr; }
+    public float getAvgTransmitCoeff() { return this.avgTransmitCoeff; }
+    public float getBEAMvalue() {
+        // from Dylan Beam @ Ohio State
+        // These scaling values are derived from the min and max
+        // penetration coefficients calculated from the Ohio State
+        // patient cohort
+        float MinPen = 0.0120f;
+        float MaxPen = 0.1049f;
+        float BeamValue = (avgTransmitCoeff-MinPen)*(99/(MaxPen-MinPen))+1;
+        return BeamValue;
+    }
     
     private float transducerTilt = 0f;
 
@@ -437,7 +449,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         distSSBo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, distSSBo);
-        FloatBuffer distBuffer = ByteBuffer.allocateDirect(1024*4 *6).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        FloatBuffer distBuffer = ByteBuffer.allocateDirect(1024*4 *7).order(ByteOrder.nativeOrder()).asFloatBuffer();
         for (int i=0; i<1024; i++) {
             //distance from focus
             distBuffer.put(0f);
@@ -450,6 +462,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             // SDR 2 value
             distBuffer.put(0f);
             // Normal skull thickness value
+            distBuffer.put(0f);
+            // transmission coeff
             distBuffer.put(0f);
         }
         distBuffer.flip();
@@ -937,7 +951,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 writer.write("NumberOfChannels = 1024");
                 writer.newLine();
                 writer.newLine();
-                writer.write("channel\tsdr\tsdr5x5\tincidentAngle\tskull_thickness\trefracted_skull_path_length\tSOS");
+                writer.write("channel\tsdr\tsdr5x5\tincidentAngle\tskull_thickness\trefracted_skull_path_length\tSOS\ttransCoeff");
                 writer.newLine();
                 while (floatPhases.hasRemaining()) {
                     float dist = floatPhases.get();
@@ -946,6 +960,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     float speed = CTSoundSpeed.lookupSpeed(speeds.get(count).floatValue() + 1000f); // add 1000 to get apparent density
 
                     writer.write(count + "\t");
@@ -955,6 +970,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     writer.write(String.format("%3.3f", normSkullThickness) + "\t");
                     writer.write(String.format("%3.3f", skullThickness) + "\t");
                     writer.write(String.format("%3.3f", speed) + "\t");
+                    writer.write(String.format("%3.6f", transmCoeff) + "\t");
                     writer.newLine();
                     count++;
                 }
@@ -1037,6 +1053,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     
                     if (incidentAngle >= 0f) {
                         result.add((double)incidentAngle);
@@ -1065,6 +1082,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     
                     result.add((double)incidentAngle);
                 }
@@ -1092,6 +1110,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)sdr);
@@ -1121,6 +1140,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)sdr);
@@ -1152,6 +1172,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)sdr2);
@@ -1180,6 +1201,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)skullThickness);
@@ -1210,6 +1232,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)normSkullThickness);
@@ -1242,9 +1265,42 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float skullThickness = floatPhases.get();
                     float sdr2 = floatPhases.get();
                     float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
                     
                     if (dist >= 0f) {
                         result.add((double)sdr2);
+                    }
+                    else {
+                        result.add(-1.0);
+                    }
+                }
+                
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+        
+        return result;
+    }
+    // this list will contain sdr = -1 for inactive elements
+    public List<Double> getTransmissionCoeff() {
+
+        List<Double> result = new ArrayList<>();
+        
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = dists.asFloatBuffer();
+            int count = 0;
+
+                while (floatPhases.hasRemaining()) {
+                    float dist = floatPhases.get();
+                    float sdr = floatPhases.get();
+                    float incidentAngle = floatPhases.get();
+                    float skullThickness = floatPhases.get();
+                    float sdr2 = floatPhases.get();
+                    float normSkullThickness = floatPhases.get();
+                    float transmCoeff = floatPhases.get();
+                    
+                    if (dist >= 0f) {
+                        result.add((double)transmCoeff);
                     }
                     else {
                         result.add(-1.0);
@@ -1674,6 +1730,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 floatDistances.get(); // skip skull thickness
                 float sdr2 = floatDistances.get();
                 float normSkullThickness = floatDistances.get();
+                float transmCoeff = floatDistances.get();
         	if (value > 0)
         	{
                     distanceNum++;
@@ -1687,24 +1744,36 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         float diffSqSum = 0.0f;
         float sdrSum = 0.0f;
         float sdrCount = 0.0f;
+        float   transmitCoeffSum = 0f;
+        int     transmitCoeffCount = 0;
         while (floatDistances.hasRemaining())
         {
+
         	float value = floatDistances.get();
                 float sdr = floatDistances.get();
-                floatDistances.get();
-                floatDistances.get();
+                float incidentAngle = floatDistances.get();
+                float skullThickness = floatDistances.get();
                 float sdr2 = floatDistances.get();
                 float normSkullThickness = floatDistances.get();
+                float transmitCoeff = floatDistances.get();
         	if (value > 0)
         	{
         		diffSqSum += (float) Math.pow(value-mean,2);
                         sdrSum += sdr2;
                         sdrCount += 1.0f;
         	}
+                if (value > 0 && incidentAngle < 20f) {
+                    transmitCoeffCount++;
+                    transmitCoeffSum += transmitCoeff;
+                }
+                else {
+                    transmitCoeffCount++; // transmitCoeff is zero for this element
+                }
         }
         activeElementCount = numberOn;
         
         this.sdr = sdrSum/sdrCount; //distanceNum;
+        this.avgTransmitCoeff = transmitCoeffSum/(float)transmitCoeffCount;
         float stDev = (float)Math.sqrt(diffSqSum/distanceNum);
 //        System.out.println("Average: "+mean);
 //        System.out.println("Std Dev: "+stDev);

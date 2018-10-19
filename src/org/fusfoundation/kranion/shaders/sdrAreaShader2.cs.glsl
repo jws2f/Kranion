@@ -38,6 +38,7 @@ struct elemDistance {
                 float skullThickness;
                 float sdr2;
                 float normSkullThickness;
+                float skullTransmissionCoeff;
 };
 
 struct sdrRecord {

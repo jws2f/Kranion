@@ -58,6 +58,7 @@ struct elemDistance {
                 float skullThickness;
                 float sdr2;
                 float normSkullThickness;
+                float skullTransmissionCoeff;
 };
 
 layout(std430, binding=0) buffer elements{

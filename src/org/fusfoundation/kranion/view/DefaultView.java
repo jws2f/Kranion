@@ -192,6 +192,8 @@ public class DefaultView extends View {
     private ProgressBar statusBar = new ProgressBar();
     private ProgressBar activeElementsBar = new ProgressBar();
     private ProgressBar sdrBar = new ProgressBar();
+    private ProgressBar beamBar = new ProgressBar();
+    private TextBox tempPredictionIndicator = new TextBox();
     private TransferFunctionDisplay transFuncDisplay = new TransferFunctionDisplay();
     private DirtyFollower transFuncDisplayProxy = new DirtyFollower(transFuncDisplay);
     private ImageHistogram ctHistogram = new ImageHistogram();
@@ -789,6 +791,17 @@ public class DefaultView extends View {
         sdrBar.setGreenLevel(0.45f);
         sdrBar.setYellowLevel(0.4f);
         
+        beamBar.setMinMax(0f, 100f);
+        beamBar.setBounds(300, 225, 500, 20);
+        beamBar.setFormatString("BEAM: %1.2f");
+        
+        beamBar.setFontSize(14);
+        beamBar.setGreenLevel(0.5f);
+        beamBar.setYellowLevel(0.4f);
+        
+        tempPredictionIndicator.setBounds(300, 250, 140, 20);
+        tempPredictionIndicator.setVisible(false);
+        
        incidentAngleChart = new HistogramChartControl("Incident Angle", "Element Count", 300, 50, 500, 150);
        incidentAngleChart.setXAxisFormat("##");
        incidentAngleChart.setVisible(false);
@@ -899,8 +912,10 @@ public class DefaultView extends View {
         overlay.addChild(flyout3);
         overlay.addChild(activeElementsBar);
         overlay.addChild(sdrBar);
+        overlay.addChild(beamBar);
         overlay.addChild(statusBar);
         overlay.addChild(transFuncDisplay);
+        overlay.addChild(tempPredictionIndicator);
         
         overlay.addChild(incidentAngleChart);
         overlay.addChild(sdrChart);
@@ -1373,6 +1388,16 @@ public class DefaultView extends View {
             this.setDisplayCTimage(model.getCtImage());
             this.setDisplayMRimage(model.getMrImage(0));
             
+            try {
+                System.out.println("CT registration stored:");
+                System.out.println(model.getCtImage().getAttribute("ImageOrientationQ"));
+                System.out.println(model.getCtImage().getAttribute("ImageTranslation"));
+                System.out.println("MR registration stored:");
+                System.out.println(model.getMrImage(0).getAttribute("ImageOrientationQ"));
+                System.out.println(model.getMrImage(0).getAttribute("ImageTranslation"));
+            }
+            catch(Exception e) {}
+            
 //                    model.setAttribute("doMRI", true);
                     model.updateAllAttributes();
                     canvas.setVolumeRender(true);
@@ -1578,6 +1603,7 @@ public class DefaultView extends View {
         if (!this.showRayTracer) {
             activeElementsBar.setValue(-1f);
             sdrBar.setValue(-1f);
+            beamBar.setValue(-1f);
             incidentAngleChart.setVisible(false);
             sdrChart.setVisible(false);
         } else {
@@ -1839,9 +1865,50 @@ public class DefaultView extends View {
 
             activeElementsBar.setValue(transRayTracer.getActiveElementCount());
             sdrBar.setValue(transRayTracer.getSDR());
+            
+            try {
+                int sonicationIndex = (Integer) model.getAttribute("currentSonication");
+                if (sonicationIndex >= 0 && model.getSonication(sonicationIndex) != null) {
+                    float sonicationEnergy = model.getSonication(sonicationIndex).getPower() * model.getSonication(sonicationIndex).getDuration();
+                    float predictedTemp = 37f + 17.2638f - 2.5318f + 0.0000073749f * transRayTracer.getBEAMvalue() * sonicationEnergy;
+
+                    if (sonicationEnergy < 500f) {
+                        predictedTemp = 37f;
+                    }
+
+                    if (predictedTemp > 62.920f) {
+                        tempPredictionIndicator.setText(">=55C (97%tile)");
+                        tempPredictionIndicator.setColor(0.1f, 0.6f, 0.1f, 1f);
+                        tempPredictionIndicator.setVisible(true);
+                    } else if (predictedTemp > 58.780f) {
+                        tempPredictionIndicator.setText(">=55C (75%tile)");
+                        tempPredictionIndicator.setColor(0.75f, 0.75f, 0.1f, 1f);
+                        tempPredictionIndicator.setVisible(true);
+                    } else if (predictedTemp > 55.72f) {
+                        tempPredictionIndicator.setText(">=50C (97%tile)");
+                        tempPredictionIndicator.setColor(0.1f, 0.6f, 0.1f, 1f);
+                        tempPredictionIndicator.setVisible(true);
+                    } else if (predictedTemp > 52.730f) {
+                        tempPredictionIndicator.setText(">=50C (75%tile)");
+                        tempPredictionIndicator.setColor(0.75f, 0.75f, 0.1f, 1f);
+                        tempPredictionIndicator.setVisible(true);
+                    } else {
+                        tempPredictionIndicator.setVisible(false);
+                    }
+
+                    beamBar.setValue(transRayTracer.getBEAMvalue());
+                } else {
+                    beamBar.setValue(-1);
+                    tempPredictionIndicator.setVisible(false);
+                }
+            } catch (Exception e) {
+                beamBar.setValue(-1);
+                tempPredictionIndicator.setVisible(false);
+            }
 
         } else {
             transRayTracer.setVisible(false);
+            tempPredictionIndicator.setVisible(false);
         }
 
         if (!showScanner) {
@@ -2385,6 +2452,11 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationRLoc", String.format("%4.1f", 0f));
                         model.setAttribute("sonicationALoc", String.format("%4.1f", 0f));
                         model.setAttribute("sonicationSLoc", String.format("%4.1f", 0f));
+                        model.setAttribute("sonicationPower", String.format("%4.1f", 0f));
+                        model.setAttribute("sonicationDuration", String.format("%4.1f", 0f));
+                        model.setAttribute("sonicationFrequency", String.format("%4.1f", 0f));
+                        model.setAttribute("sonicationTimestamp", "");
+                        model.setAttribute("targetVisible", false);
                     }
                     break;
                 case "transducerXTilt":
@@ -2735,7 +2807,13 @@ public class DefaultView extends View {
         System.out.println("updateSonicationList");
         
         this.sonicationSelector.clear();
-        sonicationSelector.setTitle("Sonication 1");
+        if (model.getSonicationCount() <= 0) {
+            sonicationSelector.setTitle("Sonications");
+        }
+        else {
+            sonicationSelector.setTitle("Sonication 1");
+        }
+        
         for (int i=0; i<model.getSonicationCount(); i++) {
             String desc = (String)model.getSonication(i).getAttribute("Description");
             if (desc == null) desc = "";
@@ -3547,11 +3625,11 @@ public class DefaultView extends View {
                         this.model.clear();
                         this.setDisplayCTimage(null);
                         this.setDisplayMRimage(null);
-                        updateSonicationList();
                         model.setSelectedSonication(-1); // TODO: SelectedSonication and currentSonication need to be unified
                         model.setAttribute("currentTargetPoint", new Vector3f());
                         model.setAttribute("currentTargetSteering", new Vector3f());
                         model.setAttribute("currentSonication", -1);
+                        updateSonicationList();
                     }
                 }
                 break;
@@ -3612,14 +3690,15 @@ public class DefaultView extends View {
                 newSonication.setFocusSteering(new Vector3f(this.currentSteering.getLocation()));
                 newSonication.setAttribute("Description", ((TextBox)Renderable.lookupByTag("tbSonicationDescription")).getText());
                 newSonication.setPower(parseTextBoxFloat("tbSonicationAcousticPower"));
-                newSonication.setDuration(parseTextBoxFloat("tbSonicationAcousticPower"));
+                newSonication.setDuration(parseTextBoxFloat("tbSonicationDuration"));
                 newSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency"));
 
                 model.addSonication(newSonication);
                 
                 this.updateSonicationList();
                 sonicationSelector.setSelectionIndex(model.getSonicationCount()-1);
-                
+                model.setAttribute("currentSonication", model.getSonicationCount()-1);
+            
                 this.mainLayer.setIsDirty(true);
                 
                 break;

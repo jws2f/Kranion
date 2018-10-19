@@ -58,6 +58,7 @@ struct elemDistance {
                 float skullThickness;
                 float sdr2;
                 float skullNormThickness;
+                float skullTransmissionCoeff;
 };
 
 layout(std430, binding=0) buffer elements{
@@ -410,6 +411,20 @@ float calcNormSkullThickness(vec3 outerSkullPoint, vec3 norm) {
 
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
+const float WATER_DENSITY = 993; // kg/m^3
+const float SKULL_OUTER_TABLE_DENSITY = 1879; // kg/m^3
+const float SKULL_DIPLOE_DENSITY = 1738; // kg/m^3
+const float BRAIN_DENSITY = 1081; //kg/m^3
+
+const float TRABECULAR_BONE_SPEED = 2500; // m/s
+const float BRAIN_SPEED = 1540; // m/s
+
+const float OUTER_TABLE_THICKNESS = 1.3; // mm
+const float INNER_TABLE_THICKNESS = 1.5; // mm
+
+const float CORTICAL_BONE_ATTENUATION = 152.28; // m^-1
+const float TRABECULAR_BONE_ATTENUATION = 148.28; // m^-1
+
 void main()
 {
          uint gid = gl_GlobalInvocationID.x;
@@ -431,6 +446,11 @@ void main()
          vec3 secondNormal = vec3(0);
          vec4 outColor = vec4(0);
          float firstIncidenceAngle = -1.0;
+
+         float thetai = 0f;
+         float thetat = 0f;
+         float thetai2 = 0f;
+         float thetat2 = 0f;
 
 //         d[gid].sdr = 0.0;
         d[gid].incidentAngle = -1;
@@ -456,9 +476,14 @@ void main()
          	firstIncidenceAngle = abs(acos(clamp(dot(normal,v)/(length(normal)*length(v)), -1, 1)));
                 d[gid].incidentAngle = firstIncidenceAngle / (2.0*M_PI) * 360.0;
 
+                // we will use later for transmission coeff calc;
+                thetai = firstIncidenceAngle;
+
                 if (firstIncidenceAngle < critAngle) {
                 
-                refractedVector = normalize(refract(v, -normal, boneSpeed/waterSpeed)); 
+                refractedVector = normalize(refract(v, -normal, boneSpeed/waterSpeed));
+
+                thetat = asin(boneSpeed/waterSpeed * sin(thetai));
 
      		secondCollision = findEdge(firstCollision,refractedVector,false);
      		if(secondCollision != firstCollision)
@@ -474,6 +499,9 @@ void main()
 		        
      			//find second incidence angle
                         float secondIncidenceAngle = abs(acos(clamp(dot(secondNormal,refractedVector)/(length(secondNormal)*length(refractedVector)), -1, 1)));
+                        
+                        thetai2 = secondIncidenceAngle;
+                        thetat2 = asin(waterSpeed/boneSpeed * sin(thetai2));
 
 //                        if (secondIncidenceAngle < critAngle) {
                             exitVector = normalize(refract(refractedVector, -secondNormal, waterSpeed/boneSpeed));
@@ -561,6 +589,23 @@ void main()
                 skullFloorPoint = pos;
             }
         }
+
+        float term1 = SKULL_OUTER_TABLE_DENSITY*boneSpeed*cos(thetai);
+        float term2 = WATER_DENSITY*waterSpeed*cos(thetat);
+        float outerTransmissionCoeff = 1.0 - (term1-term2)/(term1+term2);
+
+        term1 = WATER_DENSITY*waterSpeed*cos(thetai2);
+        term2 = SKULL_OUTER_TABLE_DENSITY*boneSpeed*cos(thetat2);
+        float innerTransmissionCoeff = 1.0 - (term1-term2)/(term1+term2);;
+
+        float totalThick = d[gid].skullThickness;
+        float corticalThickness = min(totalThick, OUTER_TABLE_THICKNESS + INNER_TABLE_THICKNESS);
+        float diploeThickness = max(0.0, totalThick - corticalThickness);
+
+        float absorbCoeffCort = exp(-CORTICAL_BONE_ATTENUATION*corticalThickness/1000);
+        float absorbCoeffTrab = exp(-TRABECULAR_BONE_ATTENUATION*diploeThickness/1000);
+
+        d[gid].skullTransmissionCoeff = outerTransmissionCoeff * innerTransmissionCoeff * absorbCoeffCort * absorbCoeffCort * absorbCoeffTrab * absorbCoeffTrab;
 
         int currentChannel = int(gid);
         if (currentChannel == selectedElement) {
