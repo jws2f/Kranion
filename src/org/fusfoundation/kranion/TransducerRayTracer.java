@@ -1600,6 +1600,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             floatDistances.get(); // skull thickness
             float sdrval2 = floatDistances.get(); // TODO
             float normSkullThickness = floatDistances.get();
+            float transmCoeff = floatDistances.get();
             if (value > 0) {
                 numberOn++;
 //                sdrSum += sdr;
