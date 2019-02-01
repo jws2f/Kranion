@@ -277,6 +277,7 @@ public class Main implements ProgressListener {
         DisplayMode[] modes = Display.getAvailableDisplayModes();
 
         DisplayMode chosenMode = null;
+        int maxDisplayWidth = 0;
         for (int i = 0; i < modes.length; i++) {
             DisplayMode current = modes[i];
             System.out.println(current.getWidth() + "x" + current.getHeight() + "x"
@@ -284,8 +285,26 @@ public class Main implements ProgressListener {
             if (current.getBitsPerPixel() == 32 && current.getWidth() == 2560 && current.getHeight() == 1440 && current.getFrequency() == 60) {
                 chosenMode = current;
             }
+            else if (current.getBitsPerPixel() == 32 && current.getFrequency() >= 60) {
+                if (current.getWidth() > maxDisplayWidth) {
+                    maxDisplayWidth = current.getWidth();
+                    chosenMode = current;
+                    if (maxDisplayWidth >= DISPLAY_WIDTH) {
+                        break;
+                    }
+                }
+            }
         }
-        DisplayMode mode = new DisplayMode(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        DisplayMode mode = null;
+        
+        if (chosenMode == null) {
+            mode = new DisplayMode(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        }
+        else {
+            mode = chosenMode;
+        }
+        
+     
 //        mode = chosenMode;
         System.out.println("Display: " + mode.getBitsPerPixel() + " bpp");
         Display.setDisplayMode(mode);

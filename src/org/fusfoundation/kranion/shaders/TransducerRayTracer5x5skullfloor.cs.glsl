@@ -447,10 +447,10 @@ void main()
          vec4 outColor = vec4(0);
          float firstIncidenceAngle = -1.0;
 
-         float thetai = 0f;
-         float thetat = 0f;
-         float thetai2 = 0f;
-         float thetat2 = 0f;
+         float thetai = 0;
+         float thetat = 0;
+         float thetai2 = 0;
+         float thetat2 = 0;
 
 //         d[gid].sdr = 0.0;
         d[gid].incidentAngle = -1;

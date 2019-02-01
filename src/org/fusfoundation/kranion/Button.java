@@ -319,7 +319,7 @@ public class Button extends GUIControl implements GUIControlModelBinding  {
                 newValue = new Boolean(false);
             }
             setIndicator((Boolean)newValue);
-            System.out.println("Button.update " + getTitle() + ") = " + (Boolean)newValue);
+//            System.out.println("Button.update " + getTitle() + ") = " + (Boolean)newValue);
         }
         catch(Exception e) {
             System.out.println(this + "Name=" + this.getTitle() + " command=" + this.getCommand() + " Wrong or NULL new value: " + newValue.toString());

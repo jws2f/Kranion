@@ -446,7 +446,10 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     }
     
     public int calculateCaretPos(String str, Rectangle rect, Font font, float mouseX, float mouseY, VPosFormat vpos, HPosFormat hpos, int currentCursorPosition) {
-        if (str.length() == 0) return 0;
+        if (str != null && str.length() != 0) {
+        } else {
+            return 0;
+        }
         
         BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
 

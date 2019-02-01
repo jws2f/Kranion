@@ -1036,6 +1036,69 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
     }
+    public void writeACTFileForWorkstation(File outFile) {
+        if (outFile != null) {
+            doCalc();
+            doPressureCalc(new Vector4f());
+            
+            glBindBuffer(GL_ARRAY_BUFFER, phaseSSBo);
+            ByteBuffer phases = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = phases.asFloatBuffer();
+            int count = 1, zeroCount = 0;
+
+            BufferedWriter writer = null;
+            try {
+                writer = new BufferedWriter(new FileWriter(outFile));
+                writer.write("[Table Header]");
+                writer.newLine();
+                writer.write("Name=KranionGeneratedACT");
+                writer.newLine();
+                writer.write("ID=1");
+                writer.newLine();
+                writer.write("XdSerialNumber=7026");
+                writer.newLine();
+                writer.write(";LoadedType=' optional value: '0' for overwrite ACT, '1' for turned off elements, '2' for scaling final power\n");
+                writer.newLine();
+                writer.write("LoadedType=0");
+                writer.newLine();
+                writer.write("NumberOfElements=1024");
+                writer.newLine();
+                writer.write("[Elements]");
+                writer.newLine();
+                while (floatPhases.hasRemaining()) {
+                    double phase = (double) floatPhases.get() % (2.0 * Math.PI);
+                    if (phase > Math.PI) {
+                        phase -= 2.0 * Math.PI;
+                    } else if (phase < -Math.PI) {
+                        phase += 2.0 * Math.PI;
+                    }
+                    if (phase == 0.0) {
+                        zeroCount++;
+                    }
+//                phase = -phase;
+//double phase = (double)floatPhases.get(); // for outputing skull thickness if set in pressure shader
+
+//                    System.out.println("Channel " + count + " = " + phase);
+                    writer.write("Element" + count + "=");
+                    count++;
+                    if (phase == 0.0) {
+                        writer.write("0.000000\t");
+                    } else {
+                        writer.write("1.000000\t");
+                    }
+                    writer.write(String.format("%1.6f", phase));
+                    writer.newLine();
+                }
+                System.out.println("zero phase channels = " + zeroCount);
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+        }
+    }
     
     public List<Double> getIncidentAngles() {
 
@@ -1366,15 +1429,19 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         return result;
     }
     
-    public void calcPressureEnvelope() {
+    public void calcPressureEnvelope(Quaternion pressureFieldOrientation) {
         
 //        if (envelopeImage == null) {
             float voxelsize = 0.5f;
             
-            int volumeHalfWidth = 10;
-            int volumeWidth = 2*volumeHalfWidth+1;
+            int volumeHalfWidthX = 20;
+            int volumeHalfWidthY = 20;
+            int volumeHalfWidthZ = 0;
+            int volumeWidthX = 2*volumeHalfWidthX+1;
+            int volumeWidthY = 2*volumeHalfWidthY+1;
+            int volumeWidthZ = 2*volumeHalfWidthZ+1;
             
-            envelopeImage = new ImageVolume4D(ImageVolume.FLOAT_VOXEL, volumeWidth, volumeWidth, volumeWidth, 1);
+            envelopeImage = new ImageVolume4D(ImageVolume.FLOAT_VOXEL, volumeWidthX, volumeWidthY, volumeWidthZ, 1);
             envelopeImage.getDimension(0).setSampleWidth(voxelsize);
             envelopeImage.getDimension(1).setSampleWidth(voxelsize);
             envelopeImage.getDimension(2).setSampleWidth(voxelsize);
@@ -1395,7 +1462,16 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 //        
 //        envelopeImage.setAttribute("ImageTranslation", new Vector3f(-imageTranslation.x, -imageTranslation.y, -imageTranslation.z));
         envelopeImage.setAttribute("ImageTranslation", new Vector3f(-centerOfRotation.x, -centerOfRotation.y, -centerOfRotation.z));
-        envelopeImage.setAttribute("ImageOrientationQ", new Quaternion());
+        if (pressureFieldOrientation == null) {
+            pressureFieldOrientation = new Quaternion();
+        }
+        
+        Quaternion r1 = new Quaternion();
+        r1.setFromAxisAngle(new Vector4f(1, 0, 0, 3.14159f)); // flip around the x-axis
+ 
+        envelopeImage.setAttribute("ImageOrientationQ", pressureFieldOrientation);
+        
+        Matrix4f pfoMat = Trackball.toMatrix4f(Quaternion.mul(r1, pressureFieldOrientation.negate(null), null));
         
                 
         float[] voxels = (float[])envelopeImage.getData();
@@ -1410,17 +1486,19 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glActiveTexture(GL_TEXTURE0 + 0);
         glDisable(GL_TEXTURE_3D);
         
-        for (int i = -volumeHalfWidth; i <= volumeHalfWidth; i++) {
-            for (int j = -volumeHalfWidth; j <= volumeHalfWidth; j++) {
-                for (int k = -volumeHalfWidth; k <= volumeHalfWidth; k++) {
+        for (int i = -volumeHalfWidthX; i <= volumeHalfWidthX; i++) {
+            for (int j = -volumeHalfWidthY; j <= volumeHalfWidthY; j++) {
+                for (int k = -volumeHalfWidthZ; k <= volumeHalfWidthZ; k++) {
                     float pressure = 0f;
 //if (k==0)   {                 
                     offset.set(i * voxelsize, j * voxelsize, k * voxelsize, 1f);
-
+                                        
+                    Matrix4f.transform(pfoMat, offset, offset);
+                    
                     pressure = calcSamplePressure(new Vector3f(), offset) * 10f;
                     pressure *= pressure;
                     
-                    if (i==0 && j==0 && k==0) {
+//                    if (i==0 && j==0 && k==0) {
 /////////////////////////////////////////////
 /////////////////////////////////////////////
 //TODO: just for now, remove
@@ -1475,7 +1553,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 //        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);        
 /////////////////////////////////////////////
 /////////////////////////////////////////////
-                    }
+//                    }
 
                     if (pressure > colormap_max) {
                         colormap_max = pressure;
@@ -1484,7 +1562,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                         colormap_min = pressure;
                     }
 //}
-                    voxels[(i + volumeHalfWidth) + (-j + volumeHalfWidth) * volumeWidth + (k + volumeHalfWidth) * volumeWidth * volumeWidth] = pressure;
+                    voxels[(i + volumeHalfWidthX) + (j + volumeHalfWidthY) * volumeWidthX + (k + volumeHalfWidthZ) * volumeWidthX * volumeWidthY] = pressure;
                     
 //                    if (i==0) {
 //                         if (k==-volumeHalfWidth) {
@@ -1857,6 +1935,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             org.lwjgl.opengl.GL11.glLineWidth(1.2f);
             if (!showEnvelope) {
                 glDrawArrays(GL_LINES, 0, 1024*6);
+//                glDrawArrays(GL_LINES, 4*6, 6); // to draw one element ray path for testing
             }
             /////////////////////////////////////////////
             //

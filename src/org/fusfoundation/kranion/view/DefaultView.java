@@ -459,7 +459,8 @@ public class DefaultView extends View {
                 
 //        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 350, 250, 220, 25, controller).setTitle("Find Fiducials").setCommand("findFiducials"));
         flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 115, 220, 25, this).setTitle("Save Skull Params...").setCommand("saveSkullParams"));
-        flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 80, 220, 25, this).setTitle("Save ACT file...").setCommand("saveACTfile"));
+        flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 80, 220, 25, this).setTitle("Save CPC ACT file...").setCommand("saveACTfile"));
+        flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 45, 220, 25, this).setTitle("Save Workstation ACT file...").setCommand("saveACTfileWS"));
         
         Slider slider1 = new Slider(750, 100, 410, 25, controller);
         slider1.setTitle("Average bone speed");
@@ -1584,7 +1585,7 @@ public class DefaultView extends View {
     private void updatePressureCalc() {
         if (canvas.getShowPressure()) {
                        
-            this.transRayTracer.calcPressureEnvelope();
+            this.transRayTracer.calcPressureEnvelope(new Quaternion(this.trackball.getCurrent()));
 
             canvas.setShowPressure(true);
             canvas.setOverlayImage(transRayTracer.getEnvelopeImage());
@@ -1933,6 +1934,11 @@ public class DefaultView extends View {
             transFuncDisplay.setVisible(true);
         } else {
             transFuncDisplay.setVisible(false);
+        }
+        
+        if (this.canvas.getShowPressure() && this.trackball.getIsDirty()) {
+            this.updatePressureCalc();
+            System.out.println("update pressure calc");
         }
         
         if (doTransition) {
@@ -2601,15 +2607,15 @@ public class DefaultView extends View {
                 double maxVal = 0;
                 double valueSum = 0;
                 int counter = 0;
-                for (int x=-1; x<=2; x++) {
-                    for (int y=-1; y<=2; y++) {
+                for (int x=-1; x<=0; x++) {
+                    for (int y=-1; y<=0; y++) {
                         counter++;
                         double val = data[thermometry.getVoxelOffset(cols/2+x, rows/2+y, i)];
                         valueSum += val;
-                        if (x==0 || x==1 || y==0 || y==1) {
-                            counter++;
-                            valueSum += val;        
-                        }
+//                        if (x==0 || x==1 || y==0 || y==1) {
+//                            counter++;
+//                            valueSum += val;        
+//                        }
                         if (val > maxVal) {
                             maxVal = val;
                         }      
@@ -3322,9 +3328,9 @@ public class DefaultView extends View {
             
         }
     }
-    public void saveACTFile() {
+    public void saveACTFileForCPC() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(new String("Save ACT..."));
+        fileChooser.setDialogTitle(new String("Save CPC ACT..."));
         fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
         fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
         fileChooser.setSelectedFile(new File("ACT.ini"));
@@ -3336,6 +3342,39 @@ public class DefaultView extends View {
             Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
 
             this.transRayTracer.writeACTFile(outFile);
+
+
+            try {
+                java.awt.Desktop desktop = Desktop.getDesktop();
+                if (desktop != null) {                
+                    try {
+                        desktop.open(new File(outFile.getAbsolutePath()));
+                    }
+                    catch(IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            catch(Exception e) {
+                e.printStackTrace();
+            }
+            
+        }
+    }
+    public void saveACTFileForWorkstation() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle(new String("Save Workstation ACT..."));
+        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        fileChooser.setSelectedFile(new File("ACT.ini"));
+        File outFile = null;
+        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
+            outFile = fileChooser.getSelectedFile();
+
+            model.setAttribute("showRayTracer", true); // turn raytracer on
+            Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
+
+            this.transRayTracer.writeACTFileForWorkstation(outFile);
 
 
             try {
@@ -3567,7 +3606,10 @@ public class DefaultView extends View {
                 saveSkullParams();
                 break;
             case "saveACTfile":
-                saveACTFile();
+                saveACTFileForCPC();
+                break;
+            case "saveACTfileWS":
+                saveACTFileForWorkstation();
                 break;
             case "currentOverlayFrame":
                 Integer sonicationIndex = (Integer)model.getAttribute("currentSonication");

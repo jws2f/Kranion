@@ -145,9 +145,15 @@ void main()
 
         //float fwhm = 1;
         //float mag = exp(-(offAxisDistance*offAxisDistance)/(2*fwhm*fwhm)); // gaussian
-        float mag = /*abs*/(sin(offAxisDistance*M_PI*0.44)/(offAxisDistance*M_PI*0.44));
+        float beamLength = sampleRayTimeWaterOnly * (waterSpeed*1000.0);
+        float beamHalfWidth = beamLength * tan(10.0/180.0*M_PI);
+        float sincArg = offAxisDistance*1.895/beamHalfWidth;
+        float mag = 1.0 * d[gid].skullTransmissionCoeff * abs(sin(sincArg)/(sincArg));
         //p[gid].pressure = mag * cos(2 * M_PI * CENTER_FREQ * sampleRayTime - acos(rayPhaseCorrection)); //(rayTime - sampleRayTime));
-        p[gid].pressure = mag * cos(2 * M_PI * CENTER_FREQ * (sampleRayTime - rayTime));
+//if (gid == 5)
+        p[gid].pressure = mag * cos(2 * M_PI * CENTER_FREQ  * (sampleRayTime - rayTime));
+//else
+//        p[gid].pressure = 0;
         outPhase[gid] = 2.0 * M_PI * CENTER_FREQ * (/* bone componen t*/ (rayTime - rayTimeWaterOnly) + /* steering component */(rayTime - sampleRayTime));
     }
     else {

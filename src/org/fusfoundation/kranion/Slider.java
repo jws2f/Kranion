@@ -171,7 +171,7 @@ public class Slider extends GUIControl implements GUIControlModelBinding {
                     xgrab = x;
                     grabbedCurrent = newVal;
                     
-                    System.out.println("Slider val: " + x + " " + xgrab + " " + current);
+//                    System.out.println("Slider val: " + x + " " + xgrab + " " + current);
                     setCurrentValue(newVal);
                     
                 }
