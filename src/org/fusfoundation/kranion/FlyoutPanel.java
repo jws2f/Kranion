@@ -43,18 +43,18 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
 
     public enum direction { NORTH, SOUTH, EAST, WEST };
     
-    private direction flyDirection = direction.EAST;
-    private Rectangle tabRect = new Rectangle();
-    private float dx, dy;
-    private float flyScale = 0f;
-    private float tabSize = 5;
-    private boolean autoExpand = false;
-    private AnimatorUtil anim = new AnimatorUtil();
-    private static float guiScale = 2f;
+    protected direction flyDirection = direction.EAST;
+    protected Rectangle tabRect = new Rectangle();
+    protected float dx, dy;
+    protected float flyScale = 0f;
+    protected float tabSize = 5;
+    protected boolean autoExpand = false;
+    protected AnimatorUtil anim = new AnimatorUtil();
+    protected static float guiScale = 2f;
     private Button pinButton;
-    private TabbedPanel tabbedPanel;
+    protected TabbedPanel tabbedPanel;
     
-    private long flyinDelay = -1;
+    protected long flyinDelay = -1;
     
 
     public static void setGuiScale(float scale) {
@@ -166,12 +166,12 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
     }
     
             
-    private void flyout() {
+    protected void flyout() {
 //        System.out.println("flyout" + flyScale);
         anim.set(flyScale, 1f, (1f - flyScale) * 0.7f);
     }
     
-    private void flyin() {
+    protected void flyin() {
 //        System.out.println("flyin" + flyScale);
         anim.set(flyScale, 0f,  flyScale * 0.7f);
     }

@@ -526,11 +526,9 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         
     }
 
-    public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
-        
-        BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+    public void renderTextCore(BufferedImage dest, String str, Rectangle rect, Font font, Color color, Color fill, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
 
-        Graphics2D gc = (Graphics2D) img.getGraphics();
+        Graphics2D gc = (Graphics2D) dest.getGraphics();
         gc.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         gc.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS,
                            RenderingHints.VALUE_FRACTIONALMETRICS_ON);
@@ -587,8 +585,11 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         
         
         gc.setFont(font);
-        gc.setColor(new Color(0.0f, 0.0f, 0.0f, 0.0f));
-        gc.fillRect(0, 0, img.getWidth(), img.getHeight());
+  
+        if (fill != null) {
+            gc.setColor(fill);
+            gc.fillRect(textBound.getBounds().x + Math.round(textHPos), textBound.getBounds().y + Math.round(textVPos), textBound.getBounds().width, textBound.getBounds().height);
+        }
         
         if (shadowed) {
             gc.setColor(new Color(0.0f, 0.0f, 0.0f, 1.0f));
@@ -609,7 +610,14 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                 (int)textVPos + metrics.getDescent(),
                 (int)textHPos + (int)cursorXPos - 1 - hScroll,
                 (int)textVPos + metrics.getDescent() - (int)textHeight);
-        }
+        }    
+    }
+    
+    public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
+        
+        BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+        
+        renderTextCore(img, str, rect, font, color, null, shadowed, vpos, hpos, showCaret, cursorPos);
         
         renderBufferedImageViaTexture(img, rect);
     }
@@ -754,7 +762,8 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                     bbuf.flip();
                     
                     createBackingTexture();
-                    
+
+// This doesn't seem to be necessary since we always init the rectangular region specified                    
                     glClearTexImage(backingTextureName, 0, GL_RGBA, GL_UNSIGNED_BYTE, BufferUtil.newByteBuffer(4));
                     
                     glBindTexture(GL_TEXTURE_2D, backingTextureName);

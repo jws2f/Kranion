@@ -117,6 +117,8 @@ import static org.lwjgl.opengl.GL20.glUniform3f;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 import java.util.prefs.Preferences;
+import org.fusfoundation.kranion.FileDialog;
+import org.fusfoundation.kranion.FlyoutDialog;
 import org.fusfoundation.kranion.GUIControlModelBinding;
 
 
@@ -218,6 +220,8 @@ public class DefaultView extends View {
     private FlyoutPanel flyout2 = new FlyoutPanel();
     private FlyoutPanel flyout3 = new FlyoutPanel();
     
+    private FileDialog fileDialog = new FileDialog();
+    
     private PullDownSelection sonicationSelector;
     private PullDownSelection mrSeriesSelector;
     private PullDownSelection transducerPatternSelector;
@@ -277,6 +281,12 @@ public class DefaultView extends View {
         canvas3.setOrientation(2);
         
         FlyoutPanel.setGuiScale(Display.getWidth()/1980f);
+        
+//        fileDialog.setBounds(200, 0, 800, 600);
+//        fileDialog.setFlyDirection(FlyoutPanel.direction.SOUTH);
+        
+        
+        
         
         flyout1.setBounds(0, 350, 400, 600);
         flyout1.setFlyDirection(FlyoutPanel.direction.EAST);
@@ -911,6 +921,7 @@ public class DefaultView extends View {
         overlay.addChild(flyout1);
         overlay.addChild(flyout2);
         overlay.addChild(flyout3);
+        overlay.addChild(fileDialog);
         overlay.addChild(activeElementsBar);
         overlay.addChild(sdrBar);
         overlay.addChild(beamBar);
@@ -1349,7 +1360,12 @@ public class DefaultView extends View {
         }
     }
     
-    private void loadScene() {
+    private void loadScene() { // TODO: FIX THIS AFTER TESTING
+        if (false) { // TODO: debuggin new file selection dialog
+            this.fileDialog.open();
+            return;
+        }
+        
         try {
             
             File selectedFile;
@@ -1867,6 +1883,7 @@ public class DefaultView extends View {
             activeElementsBar.setValue(transRayTracer.getActiveElementCount());
             sdrBar.setValue(transRayTracer.getSDR());
             
+            // Ohio State temp rise prediction display
             try {
                 int sonicationIndex = (Integer) model.getAttribute("currentSonication");
                 if (sonicationIndex >= 0 && model.getSonication(sonicationIndex) != null) {
