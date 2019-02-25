@@ -84,8 +84,9 @@ public class Button extends GUIControl implements GUIControlModelBinding  {
         addActionListener(listener);
     }
     
-    public Button setEnabled(boolean enabled) {
-        setIsEnabled(enabled);
+    @Override
+    public void setIsEnabled(boolean enabled) {
+        super.setIsEnabled(enabled);
         
         if (enabled) {
             state = ButtonState.ENABLED;
@@ -94,8 +95,6 @@ public class Button extends GUIControl implements GUIControlModelBinding  {
             state = ButtonState.DISABLED;
         }
         setIsDirty(true); // redundant?
-        
-        return this;
     }
     
     public Button setIndicator(boolean flag) {

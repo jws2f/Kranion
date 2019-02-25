@@ -120,6 +120,7 @@ import java.util.prefs.Preferences;
 import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.FlyoutDialog;
 import org.fusfoundation.kranion.GUIControlModelBinding;
+import org.fusfoundation.kranion.MessageBoxDialog;
 
 
 
@@ -221,6 +222,7 @@ public class DefaultView extends View {
     private FlyoutPanel flyout3 = new FlyoutPanel();
     
     private FileDialog fileDialog = new FileDialog();
+    private MessageBoxDialog messageDialog = new MessageBoxDialog("Quit Kranion?");
     
     private PullDownSelection sonicationSelector;
     private PullDownSelection mrSeriesSelector;
@@ -233,6 +235,21 @@ public class DefaultView extends View {
     private float transitionTime = 0.5f;
     
     private MRCTRegister imageregistration;
+
+    // So plugins have access to implemented file choosing mechanism
+    @Override
+    public File chooseFile(String title, FileDialog.fileChooseMode mode, String[] fileFilters) {
+            fileDialog.setDialogTitle(title);
+            fileDialog.setFileChooseMode(mode);
+            return fileDialog.open(fileFilters);
+    }
+
+    @Override
+    public boolean doOkCancelMessageBox(String title, String message) {
+        messageDialog.setDialogTitle(title);
+        messageDialog.setMessageText(message);
+        return this.messageDialog.open();
+    }
     
     private enum mouseMode {
         SCENE_ROTATE,
@@ -265,6 +282,13 @@ public class DefaultView extends View {
         
         // For storing any persistent preference values
         prefs = Preferences.userRoot().node(this.getClass().getName());
+    }
+    
+    @Override
+    public boolean okToExit() {
+        messageDialog.setDialogTitle("Are you sure you want to exit?");
+        messageDialog.setMessageText("Exit Kranion");
+        return this.messageDialog.open();
     }
 
     @Override
@@ -446,9 +470,9 @@ public class DefaultView extends View {
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 10, 205, 200, 25, this).setTitle("Save...").setCommand("saveKranionFile"));
       
         
-        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 230, 240, 200, 25, controller).setTitle("Import DICOM CT...").setCommand("loadCT"));
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 230, 240, 200, 25, this).setTitle("Import DICOM CT...").setCommand("loadCT"));
         
-        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON,230, 205, 200, 25, controller).setTitle("Import DICOM MR...").setCommand("loadMR"));
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON,230, 205, 200, 25, this).setTitle("Import DICOM MR...").setCommand("loadMR"));
         
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 445, 240, 150, 25, this).setTitle("Filter CT").setCommand("filterCT"));
 
@@ -922,6 +946,7 @@ public class DefaultView extends View {
         overlay.addChild(flyout2);
         overlay.addChild(flyout3);
         overlay.addChild(fileDialog);
+        overlay.addChild(messageDialog);
         overlay.addChild(activeElementsBar);
         overlay.addChild(sdrBar);
         overlay.addChild(beamBar);
@@ -1222,45 +1247,67 @@ public class DefaultView extends View {
         try {
             File selectedFile;
             
-            JFileChooser fileChooser = new JFileChooser() {
-                @Override
-                public void approveSelection(){
-                    File f = getSelectedFile();
-                    String fname = f.getAbsolutePath();
-                    if(!fname.endsWith(".kranion") && !fname.endsWith(".krn")) {
-                        f = new File(fname + ".krn");
-                    }
-                    this.setSelectedFile(f);
-                    if(f.exists() && getDialogType() == SAVE_DIALOG){
-                        int result = JOptionPane.showConfirmDialog(this,"The file exists, overwrite?","Existing file",JOptionPane.YES_NO_CANCEL_OPTION);
-                        switch(result){
-                            case JOptionPane.YES_OPTION:
-                                super.approveSelection();
-                                return;
-                            case JOptionPane.CANCEL_OPTION:
-                                cancelSelection();
-                                return;
-                            default:
-                                return;
-                        }
-                    }
-                    super.approveSelection();
-                }                        
-            };
-            fileChooser.setDialogTitle(new String("Save Kranion file..."));
-//            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-            FileNameExtensionFilter filter = new FileNameExtensionFilter("Kranion file", "kranion", "krn");
-            fileChooser.addChoosableFileFilter(filter);
-            fileChooser.setFileFilter(filter);
-//            fileChooser.setAcceptAllFileFilterUsed(false);    
+//            JFileChooser fileChooser = new JFileChooser() {
+//                @Override
+//                public void approveSelection(){
+//                    File f = getSelectedFile();
+//                    String fname = f.getAbsolutePath();
+//                    if(!fname.endsWith(".kranion") && !fname.endsWith(".krn")) {
+//                        f = new File(fname + ".krn");
+//                    }
+//                    this.setSelectedFile(f);
+//                    if(f.exists() && getDialogType() == SAVE_DIALOG){
+//                        int result = JOptionPane.showConfirmDialog(this,"The file exists, overwrite?","Existing file",JOptionPane.YES_NO_CANCEL_OPTION);
+//                        switch(result){
+//                            case JOptionPane.YES_OPTION:
+//                                super.approveSelection();
+//                                return;
+//                            case JOptionPane.CANCEL_OPTION:
+//                                cancelSelection();
+//                                return;
+//                            default:
+//                                return;
+//                        }
+//                    }
+//                    super.approveSelection();
+//                }                        
+//            };
+//            fileChooser.setDialogTitle(new String("Save Kranion file..."));
+////            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//            FileNameExtensionFilter filter = new FileNameExtensionFilter("Kranion file", "kranion", "krn");
+//            fileChooser.addChoosableFileFilter(filter);
+//            fileChooser.setFileFilter(filter);
+////            fileChooser.setAcceptAllFileFilterUsed(false);    
+//            
+//            if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+//                selectedFile = fileChooser.getSelectedFile();
+//            }
+//            else {
+//                return;
+//            }
             
-            if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-                selectedFile = fileChooser.getSelectedFile();
-            }
-            else {
+            fileDialog.setDialogTitle("Save to a Kranion scene file");
+            fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
+            String filters[] = {".krn", ".kranion"};
+            selectedFile = fileDialog.open(filters);
+            if (selectedFile == null) {
                 return;
             }
-                        
+            
+            String selectedFileName = selectedFile.getName();
+            if (!selectedFileName.endsWith(".krn") && !selectedFileName.endsWith(".kranion")) {
+                selectedFile = new File(selectedFile.getPath() + ".krn");
+            }
+            
+            //check for existing file that would be overwritten
+            if (selectedFile.exists()) {
+                messageDialog.setDialogTitle("Existing file");
+                messageDialog.setMessageText("The file exists, overwrite?");
+                if (messageDialog.open() == false) {
+                    return;
+                }
+            }
+                                    
             ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(selectedFile));
             os.writeObject(model);
             os.close();
@@ -1360,27 +1407,30 @@ public class DefaultView extends View {
         }
     }
     
-    private void loadScene() { // TODO: FIX THIS AFTER TESTING
-        if (false) { // TODO: debuggin new file selection dialog
-            this.fileDialog.open();
-            return;
-        }
-        
+    private void loadScene() { // TODO: FIX THIS AFTER TESTING        
         try {
             
             File selectedFile;
             
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle(new String("Load Kranion file..."));
-            FileNameExtensionFilter filter = new FileNameExtensionFilter("Kranion file", "kranion", "krn");
-            fileChooser.addChoosableFileFilter(filter);
-            fileChooser.setFileFilter(filter);
-//            fileChooser.setAcceptAllFileFilterUsed(false);    
-//            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                selectedFile = fileChooser.getSelectedFile();
-            }
-            else {
+//            JFileChooser fileChooser = new JFileChooser();
+//            fileChooser.setDialogTitle(new String("Load Kranion file..."));
+//            FileNameExtensionFilter filter = new FileNameExtensionFilter("Kranion file", "kranion", "krn");
+//            fileChooser.addChoosableFileFilter(filter);
+//            fileChooser.setFileFilter(filter);
+////            fileChooser.setAcceptAllFileFilterUsed(false);    
+////            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+//                selectedFile = fileChooser.getSelectedFile();
+//            }
+//            else {
+//                return;
+//            }
+
+            fileDialog.setDialogTitle("Open a Kranion scene file");
+            fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_FILES);
+            String[] filters = {".krn", ".kranion"};
+            selectedFile = fileDialog.open(filters);
+            if (selectedFile == null) {
                 return;
             }
                                     
@@ -3225,44 +3275,44 @@ public class DefaultView extends View {
                     }
                 }
             }
-            if (Keyboard.getEventKeyState()) {
-                if (Keyboard.getEventKey() == Keyboard.KEY_K) {
-                    controller.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "loadExport"));
-                }
-
-            }
-            if (Keyboard.getEventKeyState()) {
-                if (Keyboard.getEventKey() == Keyboard.KEY_I) {
-                    JFileChooser fileChooser = new JFileChooser();
-                    fileChooser.setDialogTitle(new String("Choose CT file..."));
-                    fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-                    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                    File ctfile = null;
-                    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                        ctfile = fileChooser.getSelectedFile();
-                        System.out.println("Selected file: " + ctfile.getAbsolutePath());
-
-                        ctloader = new Loader();
-                        ctloader.load(ctfile, "CT_IMAGE_LOADED", controller);
-                    }
-                }
-            }
-            if (Keyboard.getEventKeyState()) {
-                if (Keyboard.getEventKey() == Keyboard.KEY_O) {
-                    JFileChooser fileChooser = new JFileChooser();
-                    fileChooser.setDialogTitle(new String("Choose MR file..."));
-                    fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-                    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                    File mrfile = null;
-                    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                        mrfile = fileChooser.getSelectedFile();
-                        System.out.println("Selected file: " + mrfile.getAbsolutePath());
-
-                        mrloader = new Loader();
-                        mrloader.load(mrfile, "MR_IMAGE_0_LOADED", controller);
-                    }
-                }
-            }
+//            if (Keyboard.getEventKeyState()) {
+//                if (Keyboard.getEventKey() == Keyboard.KEY_K) {
+//                    controller.actionPerformed(new ActionEvent(this, ActionEvent.ACTION_PERFORMED, "loadExport"));
+//                }
+//
+//            }
+//            if (Keyboard.getEventKeyState()) {
+//                if (Keyboard.getEventKey() == Keyboard.KEY_I) {
+//                    JFileChooser fileChooser = new JFileChooser();
+//                    fileChooser.setDialogTitle(new String("Choose CT file..."));
+//                    fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//                    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//                    File ctfile = null;
+//                    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+//                        ctfile = fileChooser.getSelectedFile();
+//                        System.out.println("Selected file: " + ctfile.getAbsolutePath());
+//
+//                        ctloader = new Loader();
+//                        ctloader.load(ctfile, "CT_IMAGE_LOADED", controller);
+//                    }
+//                }
+//            }
+//            if (Keyboard.getEventKeyState()) {
+//                if (Keyboard.getEventKey() == Keyboard.KEY_O) {
+//                    JFileChooser fileChooser = new JFileChooser();
+//                    fileChooser.setDialogTitle(new String("Choose MR file..."));
+//                    fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//                    fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//                    File mrfile = null;
+//                    if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+//                        mrfile = fileChooser.getSelectedFile();
+//                        System.out.println("Selected file: " + mrfile.getAbsolutePath());
+//
+//                        mrloader = new Loader();
+//                        mrloader.load(mrfile, "MR_IMAGE_0_LOADED", controller);
+//                    }
+//                }
+//            }
         }            
         
         processController();
@@ -3313,14 +3363,20 @@ public class DefaultView extends View {
     }
     
     public void saveSkullParams() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(new String("Choose file for skull params..."));
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-        fileChooser.setSelectedFile(new File("skullParams.txt"));
-        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//        JFileChooser fileChooser = new JFileChooser();
+//        fileChooser.setDialogTitle(new String("Choose file for skull params..."));
+//        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//        fileChooser.setSelectedFile(new File("skullParams.txt"));
+//        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
         File outFile = null;
-        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
-            outFile = fileChooser.getSelectedFile();
+            fileDialog.setDialogTitle("Save skull measures file");
+            fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
+            outFile = fileDialog.open();
+            if (outFile == null) {
+                return;
+            }
+//        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
+//            outFile = fileChooser.getSelectedFile();
             
             model.setAttribute("showRayTracer", true); // turn raytracer on
             Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
@@ -3343,17 +3399,25 @@ public class DefaultView extends View {
                 e.printStackTrace();
             }
             
-        }
+//        }
     }
+    
     public void saveACTFileForCPC() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(new String("Save CPC ACT..."));
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        fileChooser.setSelectedFile(new File("ACT.ini"));
+//        JFileChooser fileChooser = new JFileChooser();
+//        fileChooser.setDialogTitle(new String("Save CPC ACT..."));
+//        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//        fileChooser.setSelectedFile(new File("ACT.ini"));
+//        File outFile = null;
         File outFile = null;
-        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
-            outFile = fileChooser.getSelectedFile();
+            fileDialog.setDialogTitle("Save CPC compatible ACT file");
+            fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
+            outFile = fileDialog.open();
+            if (outFile == null) {
+                return;
+            }
+//        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
+//            outFile = fileChooser.getSelectedFile();
 
             model.setAttribute("showRayTracer", true); // turn raytracer on
             Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
@@ -3376,17 +3440,23 @@ public class DefaultView extends View {
                 e.printStackTrace();
             }
             
-        }
+ //       }
     }
     public void saveACTFileForWorkstation() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle(new String("Save Workstation ACT..."));
-        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-        fileChooser.setSelectedFile(new File("ACT.ini"));
+//        JFileChooser fileChooser = new JFileChooser();
+//        fileChooser.setDialogTitle(new String("Save Workstation ACT..."));
+//        fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//        fileChooser.setSelectedFile(new File("ACT.ini"));
         File outFile = null;
-        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
-            outFile = fileChooser.getSelectedFile();
+            fileDialog.setDialogTitle("Save Workstation compatible ACT file");
+            fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
+            outFile = fileDialog.open();
+            if (outFile == null) {
+                return;
+            }
+//        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
+//            outFile = fileChooser.getSelectedFile();
 
             model.setAttribute("showRayTracer", true); // turn raytracer on
             Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
@@ -3409,7 +3479,7 @@ public class DefaultView extends View {
                 e.printStackTrace();
             }
             
-        }
+//        }
     }
     
     private void processController() {
@@ -3611,8 +3681,8 @@ public class DefaultView extends View {
     @Override
     public void actionPerformed(ActionEvent e) {
         String command = e.getActionCommand();
-        
-        switch(command) {
+
+        switch (command) {
             case "openKranionFile":
                 this.loadScene();
                 break;
@@ -3629,7 +3699,7 @@ public class DefaultView extends View {
                 saveACTFileForWorkstation();
                 break;
             case "currentOverlayFrame":
-                Integer sonicationIndex = (Integer)model.getAttribute("currentSonication");
+                Integer sonicationIndex = (Integer) model.getAttribute("currentSonication");
                 if (sonicationIndex == null) {
                     sonicationIndex = 0;
                 }
@@ -3637,10 +3707,9 @@ public class DefaultView extends View {
                 int nFrames = 1;
                 try {
                     nFrames = model.getSonication(sonicationIndex).getThermometryPhase().getDimension(3).getSize();
-                    model.getSonication(sonicationIndex).setAttribute("currentFrame", (int)(this.thermometryChart.getSelectedXValue()*(nFrames-1)));
+                    model.getSonication(sonicationIndex).setAttribute("currentFrame", (int) (this.thermometryChart.getSelectedXValue() * (nFrames - 1)));
                     updateThermometryDisplay(sonicationIndex, false);
-                }
-                catch(Exception ex) {
+                } catch (Exception ex) {
                 }
                 break;
             case "rotateScene":
@@ -3671,15 +3740,18 @@ public class DefaultView extends View {
                 this.currentMouseMode = mouseMode.MRI_TRANSLATE;
                 break;
             case "exit":
-                int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
-                if (result == JOptionPane.YES_OPTION) {
+                //int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
+                if (okToExit()) {
                     this.release();
                     System.exit(0);
                 }
                 break;
             case "close":
-                result = JOptionPane.showConfirmDialog(null, "Close the current plan a lose changes?", "Close Plan", JOptionPane.YES_NO_OPTION);
-                if (result == JOptionPane.YES_OPTION) {
+//                int result = JOptionPane.showConfirmDialog(null, "Close the current plan a lose changes?", "Close Plan", JOptionPane.YES_NO_OPTION);
+                messageDialog.setDialogTitle("Close the current plan a lose changes?");
+                messageDialog.setMessageText("Close Plan");
+//                if (result == JOptionPane.YES_OPTION) {
+                if (messageDialog.open()) {
                     if (this.model != null) {
                         this.model.clear();
                         this.setDisplayCTimage(null);
@@ -3695,17 +3767,17 @@ public class DefaultView extends View {
             case "CTFilterGpuAcceleration": // This is a preference, update preference key
                 boolean checked = true;
                 try {
-                    checked = ((Button)e.getSource()).getIndicator();
+                    checked = ((Button) e.getSource()).getIndicator();
+                } catch (Exception ex) {
                 }
-                catch(Exception ex) {}
                 prefs.putBoolean("CTFilterGpuAcceleration", checked);
                 break;
             case "prefShowLogo": // This is a preference, update preference key
                 checked = true;
                 try {
-                    checked = ((Button)e.getSource()).getIndicator();
+                    checked = ((Button) e.getSource()).getIndicator();
+                } catch (Exception ex) {
                 }
-                catch(Exception ex) {}
                 prefs.putBoolean("prefShowLogo", checked);
                 Renderable.lookupByTag("logo").setVisible(checked);
                 setDoTransition(true);
@@ -3713,53 +3785,52 @@ public class DefaultView extends View {
             case "prefShowDemographics": // This is a preference, update preference key
                 checked = true;
                 try {
-                    checked = ((Button)e.getSource()).getIndicator();
+                    checked = ((Button) e.getSource()).getIndicator();
+                } catch (Exception ex) {
                 }
-                catch(Exception ex) {}
                 prefs.putBoolean("prefShowDemographics", checked);
                 Renderable.lookupByTag("demographics").setVisible(checked);
                 setDoTransition(true);
                 break;
             case "filterCT":
-                ImageVolume4D image = (ImageVolume4D)model.getCtImage();
+                ImageVolume4D image = (ImageVolume4D) model.getCtImage();
                 if (image != null) {
                     RegionGrow rg = new RegionGrow(image);
 
                     rg.setUseGPUAcceleration(prefs.getBoolean("CTFilterGpuAcceleration", true));
-                    
-                    rg.grow(image.getDimension(0).getSize()/2, image.getDimension(1).getSize()/2, image.getDimension(2).getSize()/2);
+
+                    rg.grow(image.getDimension(0).getSize() / 2, image.getDimension(1).getSize() / 2, image.getDimension(2).getSize() / 2);
                     this.setDisplayCTimage(image);
                     this.mainLayer.setIsDirty(true);
                     this.setDoTransition(true);
                 }
                 break;
             case "registerMRCT":
-                Button registerButton = (Button)Renderable.lookupByTag("registerMRCT");
+                Button registerButton = (Button) Renderable.lookupByTag("registerMRCT");
                 if (registerButton.getIndicator()) {
                     Main.startBackgroundWorker("MRCTRegister");
-                }
-                else {
-                    Main.stopBackgroundWorker("MRCTRegister");                    
+                } else {
+                    Main.stopBackgroundWorker("MRCTRegister");
                 }
                 break;
             case "addSonication":
-                
+
                 Sonication newSonication = new Sonication();
                 newSonication.setNaturalFocusLocation(new Vector3f(this.currentTarget.getLocation()));
                 newSonication.setFocusSteering(new Vector3f(this.currentSteering.getLocation()));
-                newSonication.setAttribute("Description", ((TextBox)Renderable.lookupByTag("tbSonicationDescription")).getText());
+                newSonication.setAttribute("Description", ((TextBox) Renderable.lookupByTag("tbSonicationDescription")).getText());
                 newSonication.setPower(parseTextBoxFloat("tbSonicationAcousticPower"));
                 newSonication.setDuration(parseTextBoxFloat("tbSonicationDuration"));
                 newSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency"));
 
                 model.addSonication(newSonication);
-                
+
                 this.updateSonicationList();
-                sonicationSelector.setSelectionIndex(model.getSonicationCount()-1);
-                model.setAttribute("currentSonication", model.getSonicationCount()-1);
-            
+                sonicationSelector.setSelectionIndex(model.getSonicationCount() - 1);
+                model.setAttribute("currentSonication", model.getSonicationCount() - 1);
+
                 this.mainLayer.setIsDirty(true);
-                
+
                 break;
             case "updateSonication":
                 int sIndex = this.sonicationSelector.getSelectionIndex();
@@ -3775,7 +3846,7 @@ public class DefaultView extends View {
 
                     this.updateSonicationList();
                     sonicationSelector.setSelectionIndex(sIndex);
-                    
+
                     this.mainLayer.setIsDirty(true);
                 }
                 break;
@@ -3783,7 +3854,7 @@ public class DefaultView extends View {
                 sIndex = this.sonicationSelector.getSelectionIndex();
                 selSonication = model.getSonication(sIndex);
                 if (selSonication != null) {
-                    selSonication.setAttribute("targetVisible", ((Button)(e.getSource())).getIndicator());                    
+                    selSonication.setAttribute("targetVisible", ((Button) (e.getSource())).getIndicator());
                     this.mainLayer.setIsDirty(true);
                 }
                 break;
@@ -3809,7 +3880,39 @@ public class DefaultView extends View {
                 }
                 updateThermometryDisplay(sonicationIndex, false);
                 doTransition = true;
-                
+
+                break;
+            case "loadCT":
+//            JFileChooser fileChooser = new JFileChooser();
+//            fileChooser.setDialogTitle(new String("Choose CT file..."));
+//            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                File ctfile = null;
+                fileDialog.setDialogTitle("Choose a CT DICOM file from desired series");
+                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
+                ctfile = fileDialog.open();
+                if (ctfile != null) {
+                    System.out.println("Selected file: " + ctfile.getAbsolutePath());
+
+                    Loader ctloader = new Loader();
+                    ctloader.load(ctfile, "CT_IMAGE_LOADED", getController());
+                }
+                break;
+            case "loadMR":
+//            JFileChooser fileChooser = new JFileChooser();
+//            fileChooser.setDialogTitle(new String("Choose MR file..."));
+//            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+                File mrfile = null;
+                fileDialog.setDialogTitle("Choose a MR DICOM file from desired series");
+                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
+                mrfile = fileDialog.open();
+                if (mrfile != null) {
+                    System.out.println("Selected file: " + mrfile.getAbsolutePath());
+
+                    Loader mrloader = new Loader();
+                    mrloader.load(mrfile, "MR_IMAGE_0_LOADED", getController());
+                }
                 break;
         }
     }

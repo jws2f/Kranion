@@ -68,6 +68,8 @@ import static org.lwjgl.opengl.GL14.glBlendFuncSeparate;
 
 // Modal dialog baseclass
 public class FlyoutDialog extends FlyoutPanel {
+    
+    protected boolean isClosed = true;
 
     public FlyoutDialog() {
         this.children.clear();
@@ -108,7 +110,7 @@ public class FlyoutDialog extends FlyoutPanel {
                     // Don't draw the main panel rect if the panel isn't out
                     if (this.flyScale > 0f) {
                         glNormal3f(0f, 1f, 0f);                   
-                        glColor4f(0.15f, 0.15f, 0.15f, 0.85f);
+                        glColor4f(0.15f, 0.15f, 0.15f, 0.95f);
 
                         glVertex2f(nx, ny);
                         glVertex2f(nx+bounds.width, ny);
@@ -204,8 +206,14 @@ public class FlyoutDialog extends FlyoutPanel {
     
 
     
-    public void open() {
+    public void show() {
+        this.grabMouse(0f, 0f);
         flyout();
+        isClosed = false;
+        while(!isClosed || !anim.isAnimationDone()) {
+            Main.processNextFrame();
+        }
+        this.ungrabMouse();
     }
 
     @Override

@@ -101,11 +101,21 @@ void main(void)
             ovlyColor = vec4(1.0, 0.7, 0.7, 1.0);
         }
 */
+/*
         if (ovlyTexVal < 25000.0) {
-            ovlyColor = mix(vec4(0.05, 0.05, 0.3, 1), vec4(0.01, 1, 0.1, 1), clamp(ovlyTexVal/25000.0, 0, 1));
+            ovlyColor = mix(vec4(0.05, 0.05, 0.3, 0f), vec4(0.01, 1, 0.1, 1), clamp(ovlyTexVal/25000.0, 0, 1));
         }
         else {
             ovlyColor = mix(vec4(0.01, 1, 0.1, 1), vec4(1, 0.2, 0.2, 1), clamp((ovlyTexVal-25000.0)/40000.0, 0, 1));
+        }
+*/
+
+        // computing normalized pressure^2 (0-1)
+        if (ovlyTexVal < 0.05) {
+            ovlyColor = mix(vec4(0.05, 0.05, 0.3, 0f), vec4(0.01, 1, 0.1, 1), clamp(ovlyTexVal/0.05, 0, 1));
+        }
+        else {
+            ovlyColor = mix(vec4(0.01, 1, 0.1, 1), vec4(1, 0.2, 0.2, 1), clamp((ovlyTexVal-0.05)/0.15, 0, 1));
         }
 
         if (slice==last_slice) {
@@ -192,6 +202,6 @@ void main(void)
             }
         }
 
-        gl_FragColor = mix(vec4(color_tmp,color.a), ovlyColor, ovlyTexVal > 0 ? 0.9 : 0);
+        gl_FragColor = vec4(color_tmp,color.a) * (1 - ovlyColor.a) + ovlyColor * ovlyColor.a;
         //gl_FragColor = vec4(color.a,color.a,color.a,color.a) * ovlyColor;
 }

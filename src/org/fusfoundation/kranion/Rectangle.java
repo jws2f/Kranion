@@ -115,6 +115,21 @@ public class Rectangle {
         return result;
     }
     
+    public Rectangle intersection(Rectangle r) {
+        Rectangle result = new Rectangle();
+        
+        result.x = Math.max(this.x, r.x);
+        result.y = Math.max(this.y, r.y);
+        
+        float xmin = Math.min(this.x + this.width, r.x + r.width);
+        float ymin = Math.min(this.y + this.height, r.y + r.height);
+        
+        result.width = xmin -result.x;
+        result.height = ymin - result.y;
+        
+        return result;
+    }
+    
     public void translate(float dx, float dy) {
         this.x += dx;
         this.y += dy;

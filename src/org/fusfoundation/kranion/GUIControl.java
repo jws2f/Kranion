@@ -177,6 +177,15 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         }
      }
     
+    public void bringToTop() {
+        // If we have a parent, move us to the last to be drawn and first to get mouse events
+        if (this.parent != null) {
+            if (this.parent.children.remove(this)) {
+                this.parent.children.add(this);
+            }
+        }
+    }
+    
     public void renderPickableChildren() {
         Iterator<Renderable> i = children.iterator();
         while (i.hasNext()) {
@@ -588,7 +597,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
   
         if (fill != null) {
             gc.setColor(fill);
-            gc.fillRect(textBound.getBounds().x + Math.round(textHPos), textBound.getBounds().y + Math.round(textVPos), textBound.getBounds().width, textBound.getBounds().height);
+            gc.fillRect(0, 0, rect.getIntWidth(), rect.getIntHeight());
         }
         
         if (shadowed) {
@@ -615,9 +624,22 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     
     public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
         
+        if (rect.width <= 0 || rect.height <= 0) return;
+        
         BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
         
         renderTextCore(img, str, rect, font, color, null, shadowed, vpos, hpos, showCaret, cursorPos);
+        
+        renderBufferedImageViaTexture(img, rect);
+    }
+    
+    public void renderText(String str, Rectangle rect, Font font, Color color, Color fill, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
+        
+        if (rect.width <= 0 || rect.height <= 0) return;
+        
+        BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+        
+        renderTextCore(img, str, rect, font, color, fill, shadowed, vpos, hpos, showCaret, cursorPos);
         
         renderBufferedImageViaTexture(img, rect);
     }

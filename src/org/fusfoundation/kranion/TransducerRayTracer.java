@@ -1496,6 +1496,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     Matrix4f.transform(pfoMat, offset, offset);
                     
                     pressure = calcSamplePressure(new Vector3f(), offset) * 10f;
+//                    pressure = Math.abs(pressure);
                     pressure *= pressure;
                     
 //                    if (i==0 && j==0 && k==0) {
@@ -1573,15 +1574,14 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 }
             }
         }
-//        for (int i = -volumeHalfWidth; i <= volumeHalfWidth; i++) {
-//            for (int j = -volumeHalfWidth; j <= volumeHalfWidth; j++) {
-//                for (int k = -volumeHalfWidth; k <= volumeHalfWidth; k++) {
-//
-//                    float value = voxels[(i + volumeHalfWidth) + (-j + volumeHalfWidth) * volumeWidth + (-k + volumeHalfWidth) * volumeWidth * volumeWidth];
-//                    voxels[(i + volumeHalfWidth) + (-j + volumeHalfWidth) * volumeWidth + (-k + volumeHalfWidth) * volumeWidth * volumeWidth] = (value - colormap_min) / (colormap_max - colormap_min);
-//                }
-//            }
-//        }
+        
+        // normalize the pressure field
+        float colormap_range = (colormap_max - colormap_min);// / 500000f;
+        for (int index=0; index<voxels.length; index++) {
+
+                    float value = voxels[index];
+                    voxels[index] = (value - colormap_min) / colormap_range;
+        }
        
         System.out.println("Pressure max = " + colormap_max + ", min = " + colormap_min);
 

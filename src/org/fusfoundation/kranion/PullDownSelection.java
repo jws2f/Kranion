@@ -100,6 +100,14 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
         return this.selectedItem;
     }
     
+    public String getItem(int index) {
+        return items.get(index);
+    }
+    
+    public int getItemCount() {
+        return items.size();
+    }
+    
     public void setSelectionIndex(int i) {
         if (i>=0 && i<items.size()) {
             if (selectedItem != i) {
@@ -301,6 +309,7 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
             
             if (flyScale == 0f && button1released) {
                 button1released = false;
+                bringToTop();
                 flyout();
             }
             else {
@@ -328,6 +337,11 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
                 ungrabMouse();
                 flyin();
                 this.fireActionEvent();
+            }
+            else {
+                // reset this so we dont trigger more than once
+                button1released = false;
+                return true;
             }
         }
         else if (!hasGrabbed() && grabbedChild == null) {

@@ -607,10 +607,13 @@ public class Main implements ProgressListener {
             Main.checkForGLError();
             
             if (Display.isCloseRequested()) {
-                int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
-                if (result == JOptionPane.YES_OPTION) {
-                    break;
-                }
+//                int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
+//                if (result == JOptionPane.YES_OPTION) {
+//                    break;
+//                }
+                  if (view.okToExit()) {
+                      break;
+                  }
             }
 
         }
@@ -635,6 +638,24 @@ public class Main implements ProgressListener {
         }
     }
 
+    public static void processNextFrame() {
+        // Spin the event loop for one frame.
+        // Modal dialog boxes and others need this
+        if (Main.main != null) {
+            Main.main.messageLoop();
+        }
+    }
+    
+    protected void messageLoop() {
+            handleResize();
+
+            view.processInput();
+
+            nextFrame();
+
+            Main.checkForGLError();    
+    }
+    
     public void nextFrame() {
         if (Display.isVisible()) {
             // manage rendering into double buffer

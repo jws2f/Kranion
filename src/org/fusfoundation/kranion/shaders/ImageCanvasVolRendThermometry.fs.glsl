@@ -81,7 +81,7 @@ void main(void)
         float ctTexVal = texture3D(ct_tex, gl_TexCoord[0].stp).r;
         float pval = gl_TexCoord[5].p;
         if (pval >=0 && pval <= 1) pval = 0.5;
-        float ovlyTexVal = texture3D(ovly_tex, vec3(gl_TexCoord[5].st, pval)).r;//floating point texture now, so no * 32767.0;
+        float ovlyTexVal = texture3D(ovly_tex, vec3(gl_TexCoord[5].st, pval)).r; //floating point texture now, so no * 32767.0;
         //float ctOpacity = texture1D(lut_tex, ctTexVal).r;
         color = texture1D(lut_tex, ctTexVal);
 

@@ -27,6 +27,8 @@ import org.fusfoundation.kranion.controller.Controller;
 import java.beans.PropertyChangeEvent;
 import java.util.Observer;
 import java.awt.event.ActionListener;
+import java.io.File;
+import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.GUIControl;
 import org.fusfoundation.kranion.Renderable;
 import org.fusfoundation.kranion.ProgressListener;
@@ -89,6 +91,12 @@ public abstract class View extends Renderable implements Observer, ActionListene
         
         return propName;
     }
+    
+    public abstract boolean okToExit();
+    
+    public abstract File chooseFile(String title, FileDialog.fileChooseMode mode, String[] fileFilters);
+
+    public abstract boolean doOkCancelMessageBox(String title, String message);
     
     public abstract void processInput();
 

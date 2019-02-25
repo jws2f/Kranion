@@ -45,7 +45,7 @@ import static org.lwjgl.opengl.GL14.glWindowPos2f;
  */
 public class TextBox extends GUIControl implements Animator {
     
-    private String text;
+    private String text = "";
     private Vector4f color = new Vector4f(0.25f, 0.25f, 0.25f, 1f);
     private Vector4f textColor = new Vector4f(1f, 01f, 1f, 1f);
     private BufferedImage labelImage;
@@ -54,21 +54,27 @@ public class TextBox extends GUIControl implements Animator {
     private float textwidth;
     private long caretBlinkStartTime;
     private boolean showCaret = true;
+    private boolean showBackgroundBox = true;
+    private HPosFormat textHPos = HPosFormat.HPOSITION_LEFT;
+    private Font textfont = stdfont;
     
     private int cursorPos = 0;
     
     public TextBox() {
+        textfont = stdfont;
         this.setAcceptsKeyboardFocus(true);
     }
     
     public TextBox(float x, float y, float width, float height, String text) {
         super.setBounds(x, y, width, height);
+        textfont = stdfont;
         this.setText(text);
         this.setAcceptsKeyboardFocus(true);
     }
     
     public TextBox(float x, float y, float width, float height, String text, ActionListener listener) {
         super.setBounds(x, y, width, height);
+        textfont = stdfont;
         this.setText(text);
         this.addActionListener(listener);
         this.setAcceptsKeyboardFocus(true);
@@ -81,6 +87,15 @@ public class TextBox extends GUIControl implements Animator {
         else {
             this.text = new String(text);
         }
+    }
+    
+    public void setTextFont(Font font) {
+        textfont = font;
+    }
+    
+    public void setTextHorzAlignment(HPosFormat hpos){
+        textHPos = hpos;
+        setIsDirty(true);
     }
     
     public void setColor(float red, float green, float blue, float alpha) {
@@ -109,13 +124,18 @@ public class TextBox extends GUIControl implements Animator {
         return text;
     }
     
+    public void showBackgroundBox(boolean show) {
+        this.showBackgroundBox = show;
+        setIsDirty(true);
+    }
+    
     @Override
     public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
         if (this.MouseIsInside(x, y) && (button1down || button2down)) {
             this.acquireKeyboardFocus();
             this.caretBlinkStartTime = System.currentTimeMillis();
             this.showCaret = true;
-            this.cursorPos = this.calculateCaretPos(text, bounds, stdfont, x, y, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, this.cursorPos);
+            this.cursorPos = this.calculateCaretPos(text, bounds, textfont, x, y, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, this.cursorPos);
             System.out.println("cursor pos = " + cursorPos);
             return true;
         }
@@ -145,12 +165,14 @@ public class TextBox extends GUIControl implements Animator {
                         this.text = text.substring(0, cursorPos-1) + text.substring(cursorPos);
                         cursorPos--;
                         cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
+                        fireActionEvent();
                     }
                 }
                 else if (keyCode == Keyboard.KEY_DELETE) {
                     if (cursorPos < text.length()) {
                         this.text = text.substring(0, cursorPos) + text.substring(cursorPos+1);
                         cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
+                        fireActionEvent();
                     }
                 }
                 else if (keyCode == Keyboard.KEY_LSHIFT ||
@@ -170,7 +192,9 @@ public class TextBox extends GUIControl implements Animator {
                 else {
                     cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
                     this.text = text.substring(0, cursorPos) + keyChar + text.substring(cursorPos);
-                    cursorPos++;                    
+                    cursorPos++;
+
+                    fireActionEvent();
                 }
 
                 setIsDirty(true);
@@ -189,62 +213,63 @@ public class TextBox extends GUIControl implements Animator {
 //            generateLabel();
         }
         
-        Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_COLOR_BUFFER_BIT);
-        
-                if (isEnabled) {
-                        glColor4f(color.x, color.y, color.z, color.w);
-                        if (this.mouseInside) {
-                            glColor4f(color.x*1.15f, color.y*1.15f, color.z*1.15f, color.w);                            
-                        }
-                        else {                           
-                            glColor4f(color.x, color.y, color.z, color.w);                            
-                        }
+            Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_COLOR_BUFFER_BIT);
+
+            if (isEnabled) {
+                glColor4f(color.x, color.y, color.z, color.w);
+                if (this.mouseInside) {
+                    glColor4f(color.x * 1.15f, color.y * 1.15f, color.z * 1.15f, color.w);
+                } else {
+                    glColor4f(color.x, color.y, color.z, color.w);
                 }
-                else {
-                        glColor4f(color.x, color.y, color.z, 0.5f);
-                }
-                
-                glBegin(GL_QUADS);
-                    glNormal3f(0f, 0f, 1f);
-                    glVertex2f(bounds.x, bounds.y);
-                    glVertex2f(bounds.x+bounds.width, bounds.y);
-                    glNormal3f(0f, 0.4f, 0.4f);
-                    glVertex2f(bounds.x+bounds.width, bounds.y+bounds.height);
-                    glVertex2f(bounds.x, bounds.y+bounds.height);        
-                glEnd();
-                
-                glEnable(GL_BLEND);
-        //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-                glLineWidth(1f);
-                glColor4f(0.1f, 0.1f, 0.1f, 0.7f);
-                glNormal3f(0f, 0f, 1f);
-                glTranslatef(1,-1,0);
-                glBegin(GL_LINES);
-                    glVertex2f(bounds.x, bounds.y+2);
-                    glVertex2f(bounds.x, bounds.y+bounds.height);
-                    glVertex2f(bounds.x, bounds.y+bounds.height);
-                    glVertex2f(bounds.x+bounds.width, bounds.y+bounds.height);
-                    glVertex2f(bounds.x+bounds.width-2, bounds.y+bounds.height);
-                    glVertex2f(bounds.x+bounds.width-2, bounds.y+2);
-                glEnd();
-                
-                glColor4f(0.35f, 0.35f, 0.35f, 1f);
-                glNormal3f(0f, 0f, 1f);
-                glTranslatef(-1,1,0);
-                glBegin(GL_LINES);
-                    glVertex2f(bounds.x, bounds.y+1);
-                    glVertex2f(bounds.x, bounds.y+bounds.height);
-                    glVertex2f(bounds.x, bounds.y+bounds.height);
-                    glVertex2f(bounds.x+bounds.width, bounds.y+bounds.height);
-                    glVertex2f(bounds.x+bounds.width, bounds.y+bounds.height);
-                    glVertex2f(bounds.x+bounds.width, bounds.y+1);
-                glEnd();
-                               
-                //renderLabel();
-                renderText(getText(), bounds, HPosFormat.HPOSITION_LEFT, this.showCaret, this.cursorPos);
-                        
-        Main.glPopAttrib();
+            } else {
+                glColor4f(color.x, color.y, color.z, 0.5f);
+            }
+            
+        if (showBackgroundBox) {
+
+            glBegin(GL_QUADS);
+            glNormal3f(0f, 0f, 1f);
+            glVertex2f(bounds.x, bounds.y);
+            glVertex2f(bounds.x + bounds.width, bounds.y);
+            glNormal3f(0f, 0.4f, 0.4f);
+            glVertex2f(bounds.x + bounds.width, bounds.y + bounds.height);
+            glVertex2f(bounds.x, bounds.y + bounds.height);
+            glEnd();
+
+            glEnable(GL_BLEND);
+            //glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glLineWidth(1f);
+            glColor4f(0.1f, 0.1f, 0.1f, 1f);
+            glNormal3f(0f, 0f, 1f);
+            glTranslatef(1, -1, 0);
+            glBegin(GL_LINES);
+            glVertex2f(bounds.x, bounds.y + 2);
+            glVertex2f(bounds.x, bounds.y + bounds.height);
+            glVertex2f(bounds.x, bounds.y + bounds.height);
+            glVertex2f(bounds.x + bounds.width, bounds.y + bounds.height);
+            glVertex2f(bounds.x + bounds.width - 2, bounds.y + bounds.height);
+            glVertex2f(bounds.x + bounds.width - 2, bounds.y + 2);
+            glEnd();
+
+            glColor4f(0.35f, 0.35f, 0.35f, 1f);
+            glNormal3f(0f, 0f, 1f);
+            glTranslatef(-1, 1, 0);
+            glBegin(GL_LINES);
+            glVertex2f(bounds.x, bounds.y + 1);
+            glVertex2f(bounds.x, bounds.y + bounds.height);
+            glVertex2f(bounds.x, bounds.y + bounds.height);
+            glVertex2f(bounds.x + bounds.width, bounds.y + bounds.height);
+            glVertex2f(bounds.x + bounds.width, bounds.y + bounds.height);
+            glVertex2f(bounds.x + bounds.width, bounds.y + 1);
+            glEnd();
+        }
+
+            //renderLabel();
+            renderText(getText(), bounds, textHPos, this.showCaret, this.cursorPos);
+
+            Main.glPopAttrib();
         
         renderText(getTitle(), new Rectangle(bounds.x - 150, bounds.y, 150, bounds.height), HPosFormat.HPOSITION_RIGHT, false, -1);
         
@@ -252,7 +277,7 @@ public class TextBox extends GUIControl implements Animator {
     }
         
     private void renderText(String str, Rectangle rect, HPosFormat hpos, boolean showCaret, int cursPos) {
-        renderText(str, rect.shrinkHorz(8f), null, new Color(textColor.x, textColor.y, textColor.z, textColor.w), true, VPosFormat.VPOSITION_CENTER, hpos, showCaret, cursPos);
+        renderText(str, rect.shrinkHorz(8f), textfont, new Color(textColor.x, textColor.y, textColor.z, textColor.w), true, VPosFormat.VPOSITION_CENTER, hpos, showCaret, cursPos);
     }
         
 //    private void generateLabel() {
