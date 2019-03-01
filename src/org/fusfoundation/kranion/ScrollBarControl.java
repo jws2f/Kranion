@@ -81,7 +81,7 @@ public class ScrollBarControl extends GUIControl {
     
     public void setPageLength(float length) {
         pageLength = Math.max(0f, Math.min(1f, length));
-        System.out.println(this + " pagelength set = " + pageLength);
+//        System.out.println(this + " pagelength set = " + pageLength);
         updateThumb();
         setIsDirty(true);
     }
@@ -203,10 +203,10 @@ public class ScrollBarControl extends GUIControl {
                     currentValue = 0f;
                 }
                 
-                System.out.println("val = " + currentValue);
-                System.out.println("minVal = " + minValue);
-                System.out.println("maxVal = " + maxValue);
-                System.out.println("pl = " + pageLength);
+//                System.out.println("val = " + currentValue);
+//                System.out.println("minVal = " + minValue);
+//                System.out.println("maxVal = " + maxValue);
+//                System.out.println("pl = " + pageLength);
                 
                 updateThumb();
                 setIsDirty(true);

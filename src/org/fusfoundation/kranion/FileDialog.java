@@ -194,7 +194,7 @@ public class FileDialog extends FlyoutDialog {
 
         Path homePath = root.toPath();
         String currentRoot = homePath.getRoot().toString();
-        System.out.println("Root = " + currentRoot);
+//        System.out.println("Root = " + currentRoot);
         
         currentLocation.setText(homePath.toString());
         
@@ -249,7 +249,7 @@ public class FileDialog extends FlyoutDialog {
     
     @Override
     public void actionPerformed(ActionEvent e) {
-        System.out.println(this + ": " + e.getActionCommand());
+//        System.out.println(this + ": " + e.getActionCommand());
         switch (e.getActionCommand()) {
             case "fileNameTyping":
                 if (this.selectedFileDisplay.getText().length() > 0) {
@@ -267,7 +267,7 @@ public class FileDialog extends FlyoutDialog {
                     else {
                         selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
                     }
-                    System.out.println(selectedFile);
+//                    System.out.println(selectedFile);
                 }
                 else {
                     selectedFile = null;

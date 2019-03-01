@@ -136,7 +136,7 @@ public class TextBox extends GUIControl implements Animator {
             this.caretBlinkStartTime = System.currentTimeMillis();
             this.showCaret = true;
             this.cursorPos = this.calculateCaretPos(text, bounds, textfont, x, y, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, this.cursorPos);
-            System.out.println("cursor pos = " + cursorPos);
+//            System.out.println("cursor pos = " + cursorPos);
             return true;
         }
         return super.OnMouse(x, y, button1down, button2down, dwheel);
@@ -148,7 +148,7 @@ public class TextBox extends GUIControl implements Animator {
         if (!this.getTextEditable()) return;
         
         if (isKeyDown) {
-            System.out.println("Key: " + keyChar);
+//            System.out.println("Key: " + keyChar);
             
             
             if (cursorPos > -1) {

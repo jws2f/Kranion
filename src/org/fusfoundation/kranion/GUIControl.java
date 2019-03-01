@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Observable;
 import java.util.Observer;
+import java.util.concurrent.CopyOnWriteArrayList;
 import static org.fusfoundation.kranion.TextBox.getScreenCoords;
 import static org.fusfoundation.kranion.TextBox.getWorldCoords;
 import org.lwjgl.BufferUtils;
@@ -75,7 +76,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     protected GUIControl parent = null;
     protected GUIControl grabbedChild = null; // child control that has grabbed the mouse
     protected float xgrab, ygrab;
-    protected List<Renderable> children = new ArrayList<>();
+    protected List<Renderable> children = new CopyOnWriteArrayList<>();
     protected boolean isTextEditable = false;
     
     protected Thread myThread = Thread.currentThread();
@@ -179,9 +180,9 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     
     public void bringToTop() {
         // If we have a parent, move us to the last to be drawn and first to get mouse events
-        if (this.parent != null) {
-            if (this.parent.children.remove(this)) {
-                this.parent.children.add(this);
+        if (parent != null) {
+            if (parent.children.remove(this)) {
+                parent.children.add(this);
             }
         }
     }

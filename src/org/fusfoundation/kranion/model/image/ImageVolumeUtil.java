@@ -95,7 +95,7 @@ public class ImageVolumeUtil {
 //            System.out.println("   textureName = " + tn);
 
             if (tn != null && tn != -1) {
-                //System.out.println("Got previously built texture = " + tn);
+//                System.out.println("Got previously built texture = " + tn);
             } else {
 
                 //System.out.println("build new texture");

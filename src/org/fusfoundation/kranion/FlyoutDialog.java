@@ -160,7 +160,7 @@ public class FlyoutDialog extends FlyoutPanel {
         }
         
         boolean currentInside = MouseIsInside(x, y);
-        
+                
         if (mouseInside != currentInside) {
             mouseInside = currentInside;
             setIsDirty(true);
@@ -208,6 +208,7 @@ public class FlyoutDialog extends FlyoutPanel {
     
     public void show() {
         this.grabMouse(0f, 0f);
+        bringToTop();
         flyout();
         isClosed = false;
         while(!isClosed || !anim.isAnimationDone()) {

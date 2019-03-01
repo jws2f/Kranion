@@ -121,6 +121,7 @@ import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.FlyoutDialog;
 import org.fusfoundation.kranion.GUIControlModelBinding;
 import org.fusfoundation.kranion.MessageBoxDialog;
+import org.fusfoundation.kranion.Rectangle;
 
 
 
@@ -599,7 +600,7 @@ public class DefaultView extends View {
         
         
         flyout3.addTab("CT"); // Make sure this is the first tab
-        flyout3.setBounds(Display.getWidth() - 400, 200, 400, 275);
+        flyout3.setBounds(Display.getWidth() - 400, 150, 400, 275);
         flyout3.setFlyDirection(FlyoutPanel.direction.WEST);
         
         flyout3.addChild("CT", new Button(Button.ButtonType.BUTTON, 10, 30, 150, 25, this).setTitle("Filter CT").setCommand("filterCT"));
@@ -1407,6 +1408,25 @@ public class DefaultView extends View {
         }
     }
     
+    private void resetThermometryPanel() {
+
+        Renderable abortText = Renderable.lookupByTag("tbSonicationAborted");
+        if (abortText != null) {
+            abortText.setVisible(false);
+        }
+
+        model.setAttribute("currentTargetPoint", new Vector3f());
+        model.setAttribute("currentTargetSteering", new Vector3f());
+        model.setAttribute("sonicationPower", "");
+        model.setAttribute("sonicationDuration", "");
+        model.setAttribute("sonicationFrequency", "");
+        model.setAttribute("sonicationTimestamp", "");
+        model.setAttribute("targetVisible", false);
+        model.setAttribute("sonicationMaxTemp", "");
+        model.setAttribute("sonicationMaxDose", "");
+
+    }
+    
     private void loadScene() { // TODO: FIX THIS AFTER TESTING        
         try {
             
@@ -1464,6 +1484,8 @@ public class DefaultView extends View {
                 System.out.println(model.getMrImage(0).getAttribute("ImageTranslation"));
             }
             catch(Exception e) {}
+            
+            resetThermometryPanel();
             
 //                    model.setAttribute("doMRI", true);
                     model.updateAllAttributes();
@@ -2416,6 +2438,31 @@ public class DefaultView extends View {
         catch(NullPointerException e) {
         }
         
+        // Center the bottom display area
+        try {
+            Rectangle b = transFuncDisplay.getBounds();
+            b.x = Display.getWidth()/2 - b.width/2;
+
+            b = this.sdrChart.getBounds();
+            b.x = Display.getWidth()/2 + 25;
+            
+            b = this.sdrBar.getBounds();
+            b.x = Display.getWidth()/2 + 25;
+
+            b = this.incidentAngleChart.getBounds();
+            b.x = Display.getWidth()/2 - b.width - 25;
+            
+            b = this.activeElementsBar.getBounds();
+            b.x = Display.getWidth()/2 - b.width - 25;
+            
+            b = this.beamBar.getBounds();
+            b.x = Display.getWidth()/2 - b.width - 25;
+                        
+            b = this.tempPredictionIndicator.getBounds();
+            b.x = this.beamBar.getBounds().x;
+       }
+        catch(Exception e) {}
+        
         this.statusBar.setBounds(Display.getWidth() / 2 - 300, Display.getHeight() / 2 - 15, 600, 30);
 
         pickLayer.doLayout();
@@ -2652,6 +2699,10 @@ public class DefaultView extends View {
         if (sonication != null) {
             thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
             sonicationWasAborted = (Boolean)(model.getSonication(sonicationIndex).getAttribute("aborted"));
+        }
+        else {
+            sonicationWasAborted = false;
+            thermometry = null;
         }
         
         if (thermometry != null) {
