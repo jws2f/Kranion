@@ -328,17 +328,17 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
         Rectangle testTabRect = new Rectangle(tabRect);
         testTabRect.translate(Math.round(dx*flyScale)-dx, Math.round(dy*flyScale)-dy);
         
-        if (flyScale == 1f) {
-            Iterator<Renderable> iter = this.children.iterator();
-            while(iter.hasNext()) {
-                Renderable r = iter.next();
-                if (r instanceof GUIControl) {
-                    if (((GUIControl)r).MouseIsInside(x, y)) {
-                        return true;
-                    }
-                }
-            }
-        }
+//        if (flyScale == 1f) {
+//            Iterator<Renderable> iter = this.children.iterator();
+//            while(iter.hasNext()) {
+//                Renderable r = iter.next();
+//                if (r instanceof GUIControl) {
+//                    if (((GUIControl)r).MouseIsInside(x, y)) {
+//                        return true;
+//                    }
+//                }
+//            }
+//        }
         
         if (testMainRect.contains(x, y)) {           
             return true;

@@ -3426,6 +3426,14 @@ public class DefaultView extends View {
             if (outFile == null) {
                 return;
             }
+            
+            if (outFile.exists()) {
+                messageDialog.setDialogTitle("Existing file");
+                messageDialog.setMessageText("The file exists, overwrite?");
+                if (messageDialog.open() == false) {
+                    return;
+                }
+            }
 //        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
 //            outFile = fileChooser.getSelectedFile();
             
@@ -3469,6 +3477,13 @@ public class DefaultView extends View {
             }
 //        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
 //            outFile = fileChooser.getSelectedFile();
+            if (outFile.exists()) {
+                messageDialog.setDialogTitle("Existing file");
+                messageDialog.setMessageText("The file exists, overwrite?");
+                if (messageDialog.open() == false) {
+                    return;
+                }
+            }
 
             model.setAttribute("showRayTracer", true); // turn raytracer on
             Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
@@ -3509,6 +3524,14 @@ public class DefaultView extends View {
 //        if (fileChooser.showSaveDialog(Display.getParent()) == JFileChooser.APPROVE_OPTION) {
 //            outFile = fileChooser.getSelectedFile();
 
+            if (outFile.exists()) {
+                messageDialog.setDialogTitle("Existing file");
+                messageDialog.setMessageText("The file exists, overwrite?");
+                if (messageDialog.open() == false) {
+                    return;
+                }
+            }
+            
             model.setAttribute("showRayTracer", true); // turn raytracer on
             Main.update(); // TODO: kind of a hack to make sure the raytracer is active and initialized, forces one rendered frame
 
