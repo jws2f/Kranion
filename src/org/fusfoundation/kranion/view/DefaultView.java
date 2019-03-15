@@ -940,9 +940,9 @@ public class DefaultView extends View {
         overlay.addChild(new RenderableAdapter(canvas, "renderDemographics").setTag("demographics").setVisible(prefs.getBoolean("prefShowDemographics", true)));
         
         overlay.addChild(mprLayout);
-        overlay.addChild(canvas1);
-        overlay.addChild(canvas2);
-        overlay.addChild(canvas3);
+        mprLayout.addChild(canvas1);
+        mprLayout.addChild(canvas2);
+        mprLayout.addChild(canvas3);
         overlay.addChild(flyout1);
         overlay.addChild(flyout2);
         overlay.addChild(flyout3);

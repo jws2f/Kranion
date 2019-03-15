@@ -471,9 +471,13 @@ public class ImageCanvas2D extends GUIControl {
             if (MRimage != null)
                 ImageVolumeUtil.buildTexture(MRimage); ///HACK
 
-        displayFlat();
+            
         
         Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
+        
+        glDisable(GL_DEPTH_TEST);
+        displayFlat();
+        glEnable(GL_DEPTH_TEST);
         
         glMatrixMode(GL_PROJECTION);
         Main.glPushMatrix();

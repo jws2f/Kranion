@@ -303,11 +303,11 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
                 super.OnMouse(x, y, button1down, button2down, dwheel);
             }
  
-            if (button1down || button2down) {
+//            if (button1down || button2down) {
                 return true;
-            }
+//            }
         }
-        else if (!MouseIsInside(x, y, true) && grabbedChild == null) {
+        else if (grabbedChild == null) {
             if (flyScale == 1f && !pinButton.getIndicator() && flyinDelay == -1) {
                 //flyin();
                 flyinDelay = System.currentTimeMillis() + 500; // half second delay

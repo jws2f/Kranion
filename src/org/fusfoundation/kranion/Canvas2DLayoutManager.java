@@ -30,7 +30,7 @@ import org.lwjgl.opengl.*;
  *
  * @author john
  */
-public class Canvas2DLayoutManager extends Renderable implements Animator, Resizeable, ActionListener {
+public class Canvas2DLayoutManager extends GUIControl implements Animator, Resizeable, ActionListener {
     
     private ImageCanvas2D[] canvases = new ImageCanvas2D[3];
     private Button[] buttons = new Button[3];
@@ -61,6 +61,22 @@ public class Canvas2DLayoutManager extends Renderable implements Animator, Resiz
             canvases[i].addChild(expandButton);
             buttons[i] = expandButton;
         }
+    }
+
+    @Override
+    public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
+        boolean result =  super.OnMouse(x, y, button1down, button2down, dwheel);
+        
+        if (result == false) {
+            for (int i=0; i<canvases.length; i++) {
+                if (canvases[i].MouseIsInside(x, y)) {
+                    this.bringToTop();
+                    break;
+                }
+            }
+        }
+        
+        return result;
     }
     
     
@@ -146,11 +162,13 @@ public class Canvas2DLayoutManager extends Renderable implements Animator, Resiz
 
     @Override
     public void render() {
+        renderChildren();
     }
 
     @Override
     public boolean getIsDirty() {
-        return !isAnimationDone();
+        // if children are dirty or we are animating then we are dirty
+        return super.getIsDirty() || !isAnimationDone();
     }
 
     @Override
