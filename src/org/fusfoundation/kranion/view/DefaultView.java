@@ -939,6 +939,9 @@ public class DefaultView extends View {
         overlay.setIs2d(true);
         overlay.addChild(new RenderableAdapter(canvas, "renderDemographics").setTag("demographics").setVisible(prefs.getBoolean("prefShowDemographics", true)));
         
+        // try attaching MR/CT param flyout to one of the 2D canvases
+        flyout3.setAttachedToRenderable(canvas2);
+        
         overlay.addChild(mprLayout);
         mprLayout.addChild(canvas1);
         mprLayout.addChild(canvas2);
@@ -956,8 +959,7 @@ public class DefaultView extends View {
         overlay.addChild(tempPredictionIndicator);
         
         overlay.addChild(incidentAngleChart);
-        overlay.addChild(sdrChart);
-        
+        overlay.addChild(sdrChart);    
         
         currentTarget.setCommand("currentTargetPoint");
         currentTarget.setPropertyPrefix("Model.Attribute");
@@ -2468,6 +2470,11 @@ public class DefaultView extends View {
         pickLayer.doLayout();
         
         scene.doLayout();
+        
+        //TODO: this is a hack to make sure that the image display flyout
+        //      panel always gets doLayout() after the MRP layout control
+        //      since it depends on this
+        flyout3.doLayout();
         
     }
 

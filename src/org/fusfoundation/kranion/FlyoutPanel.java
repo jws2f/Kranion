@@ -42,8 +42,11 @@ import static org.lwjgl.opengl.GL14.glBlendFuncSeparate;
 public class FlyoutPanel extends GUIControl implements ActionListener, Animator, Resizeable {
 
     public enum direction { NORTH, SOUTH, EAST, WEST };
+    public enum layoutType {APPLICATION_WINDOW, PEER_WINDOW };
     
     protected direction flyDirection = direction.EAST;
+    protected layoutType attachmentMode = layoutType.APPLICATION_WINDOW;
+    protected GUIControl attachToControl = null;
     protected Rectangle tabRect = new Rectangle();
     protected float dx, dy;
     protected float flyScale = 0f;
@@ -79,6 +82,15 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
         tabbedPanel.addChild(tabName, child);
     }
         
+    public void setAttachmentMode(layoutType mode) {
+        this.attachmentMode = mode;
+    }
+    
+    public void setAttachedToRenderable(GUIControl control) {
+        this.attachToControl = control;
+        this.attachmentMode = layoutType.PEER_WINDOW;
+    }
+    
     public void setFlyDirection(direction dir) {
         setIsDirty(true);
         flyDirection = dir;
@@ -135,34 +147,62 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
     }
     
     public void doLayout() {
-        if (flyDirection == direction.SOUTH) {
-            bounds.y = Display.getHeight()-bounds.height;
-            
-            if (autoExpand) {
-                bounds.x = 0;
-                bounds.width = Display.getWidth();
+        if (this.attachmentMode == layoutType.APPLICATION_WINDOW) {
+            if (flyDirection == direction.SOUTH) {
+                bounds.y = Display.getHeight() - bounds.height;
+
+                if (autoExpand) {
+                    bounds.x = 0;
+                    bounds.width = Display.getWidth();
+                }
+            } else if (flyDirection == direction.WEST) {
+                bounds.x = Display.getWidth() - bounds.width;
+
+                if (autoExpand) {
+                    bounds.y = 0;
+                    bounds.height = Display.getHeight();
+                }
+            } else if (flyDirection == direction.NORTH) {
+                if (autoExpand) {
+                    bounds.x = 0;
+                    bounds.width = Display.getWidth();
+                }
+            } else if (flyDirection == direction.EAST) {
+                if (autoExpand) {
+                    bounds.y = 0;
+                    bounds.height = Display.getHeight();
+                }
             }
-        }
-        else if (flyDirection == direction.WEST) {
-            bounds.x = Display.getWidth()-bounds.width;
-            if (autoExpand) {
-                bounds.y = 0;
-                bounds.height = Display.getHeight();
-            }
-        }
-        else if (flyDirection == direction.NORTH) {
-            if (autoExpand) {
-                bounds.x = 0;
-                bounds.width = Display.getWidth();
-            }
-        }
-        else if (flyDirection == direction.EAST) {
-            if (autoExpand) {
-                bounds.y = 0;
-                bounds.height = Display.getHeight();
+        } else if (this.attachToControl != null && this.attachmentMode == layoutType.PEER_WINDOW) {
+            if (flyDirection == direction.SOUTH) {
+                bounds.y = Display.getHeight() - bounds.height;
+
+                if (autoExpand) {
+                    bounds.x = 0;
+                    bounds.width = Display.getWidth();
+                }
+            } else if (flyDirection == direction.WEST) {
+                bounds.x = attachToControl.getBounds().x - bounds.width;
+                bounds.y = attachToControl.getBounds().y + (attachToControl.getBounds().height - bounds.height)/2;
+
+                if (autoExpand) {
+                    bounds.y = 0;
+                    bounds.height = attachToControl.getBounds().height;
+                }
+            } else if (flyDirection == direction.NORTH) {
+                if (autoExpand) {
+                    bounds.x = 0;
+                    bounds.width = Display.getWidth();
+                }
+            } else if (flyDirection == direction.EAST) {
+                if (autoExpand) {
+                    bounds.y = 0;
+                    bounds.height = Display.getHeight();
+                }
             }
         }
         setFlyDirection(flyDirection);
+        setIsDirty(true);
     }
     
             
@@ -324,9 +364,11 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
         
         Rectangle testMainRect = new Rectangle(bounds);
         testMainRect.translate(Math.round(dx*flyScale)-dx, Math.round(dy*flyScale)-dy);
+        testMainRect = testMainRect.intersection(bounds);
         
         Rectangle testTabRect = new Rectangle(tabRect);
         testTabRect.translate(Math.round(dx*flyScale)-dx, Math.round(dy*flyScale)-dy);
+//        testTabRect = testTabRect.intersection(tabRect);
         
 //        if (flyScale == 1f) {
 //            Iterator<Renderable> iter = this.children.iterator();

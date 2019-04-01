@@ -506,7 +506,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
             Rectangle2D r1 = metrics.getStringBounds(str, 0, i-1, gc);
             Rectangle2D r2 = metrics.getStringBounds(str, 0, i, gc);
             float index = (float)((r1.getMaxX() + r2.getMaxX())/2f);
-            System.out.println("pos " + i + " = " + index + " ? " + (mouseX-(rect.x-hScroll)) + " hscroll " + hScroll);
+//             System.out.println("pos " + i + " = " + index + " ? " + (mouseX-(rect.x-hScroll)) + " hscroll " + hScroll);
             if (index > mouseX-(rect.x-hScroll)) {
                 if (hScroll > 0f) {
                     return Math.max(0, i);

@@ -155,6 +155,7 @@ public class FileDialog extends FlyoutDialog {
         fileFilters = filters;
         selectedFile = null;
         selectedFileDisplay.setText("");
+        selectedFileDisplay.acquireKeyboardFocus();
         okButton.setIsEnabled(false);
         
         populateLists(currentDirectory);
@@ -317,10 +318,10 @@ public class FileDialog extends FlyoutDialog {
                     selectedFileDisplay.setText(currentLocation.getText());                    
                     okButton.setIsEnabled(true);
                 }
-                else {
-                    selectedFileDisplay.setText("");
-                    okButton.setIsEnabled(false);
-                }
+//                else {
+//                    selectedFileDisplay.setText("");
+//                    okButton.setIsEnabled(false);
+//                }
                 ((DefaultView)Main.getView()).setDoTransition(true);
                 break;
             case "rootSelected":

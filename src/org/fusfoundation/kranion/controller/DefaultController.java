@@ -40,6 +40,7 @@ import org.fusfoundation.kranion.ImageCanvas2D;
 import org.fusfoundation.kranion.Renderable;
 import org.fusfoundation.kranion.Canvas2DLayoutManager;
 import org.fusfoundation.kranion.GUIControlModelBinding;
+//import org.fusfoundation.kranion.N4BiasCorrector;
 import org.fusfoundation.kranion.ProgressBar;
 
 
@@ -174,6 +175,11 @@ public class DefaultController extends Controller {
 
             ImageVolume4D image = (ImageVolume4D) loader.getLoadedImage();
             System.out.println("MAIN: setImage #1 MR");
+
+// TODO: Looks like only isometric (or some aspect ratio) voxels will work here
+//          Only the Windows Java bin is available for SimpleITK for now
+//            N4BiasCorrector n4 = new N4BiasCorrector(image);
+//            n4.execute();
 
 //            model.clearMrImages();
             int mrImageCount = model.getMrImageCount();

@@ -157,7 +157,12 @@ public class Canvas2DLayoutManager extends GUIControl implements Animator, Resiz
             canvases[i].setCanvasSize(scale * (endSize[i] - startSize[i]) + startSize[i]);
         }
 
-        doLayout();
+        if (this.parent != null && this.parent instanceof Resizeable) {
+            ((Resizeable)parent).doLayout();
+        }
+        else {
+            doLayout();
+        }
     }
 
     @Override

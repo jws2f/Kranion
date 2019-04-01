@@ -26,7 +26,7 @@ package org.fusfoundation.kranion;
 import java.nio.FloatBuffer;
 import org.fusfoundation.kranion.model.Model;
 import  org.fusfoundation.kranion.model.image.*;
-import org.itk.simple.*;
+//import org.itk.simple.*;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.util.vector.*;
 

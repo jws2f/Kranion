@@ -124,8 +124,8 @@ public class Rectangle {
         float xmin = Math.min(this.x + this.width, r.x + r.width);
         float ymin = Math.min(this.y + this.height, r.y + r.height);
         
-        result.width = xmin -result.x;
-        result.height = ymin - result.y;
+        result.width = Math.max(0, xmin - result.x);
+        result.height = Math.max(0, ymin - result.y);
         
         return result;
     }

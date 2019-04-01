@@ -44,7 +44,7 @@ import static org.lwjgl.opengl.GL32.*;
  */
 public class Framebuffer extends Renderable implements Resizeable {
 
-    private int myFBOId;
+    private int myFBOId = -1;
     private int renderedTextureID;
     private int depthRenderBufferID;
     private int width, height;
@@ -66,6 +66,8 @@ public class Framebuffer extends Renderable implements Resizeable {
     public void build(int w, int h) throws LWJGLException {
         
         if (w <=0 || h <=0) return;
+        
+        if (w == width && h == height && myFBOId != -1) return;
         
         nMSAAsamples = 1;
                 
@@ -140,6 +142,8 @@ public class Framebuffer extends Renderable implements Resizeable {
         
         if (w <=0 || h <=0) return;
         
+        if (w == width && h == height && samples == nMSAAsamples && myFBOId != -1) return;
+    
         if (samples == 1) {
             build(w, h);
             return;
