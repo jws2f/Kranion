@@ -99,5 +99,7 @@ public abstract class View extends Renderable implements Observer, ActionListene
     public abstract boolean doOkCancelMessageBox(String title, String message);
     
     public abstract void processInput();
+    
+    public abstract void doTransition(int milliseconds);
 
 }

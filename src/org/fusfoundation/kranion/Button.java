@@ -98,9 +98,11 @@ public class Button extends GUIControl implements GUIControlModelBinding  {
     }
     
     public Button setIndicator(boolean flag) {
-        indicatorOn = flag;
-        
-        setIsDirty(true);
+        if (indicatorOn != flag) {
+            indicatorOn = flag;
+
+            setIsDirty(true);
+        }
         
         return this;
     }

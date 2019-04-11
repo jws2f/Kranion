@@ -306,6 +306,17 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         }
     }
     
+    public void fireActionEvent(ActionListener dontNotifyMe) {
+        ActionEvent event = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, command);
+        Iterator<ActionListener> i = listeners.iterator();
+        while (i.hasNext()) {
+            ActionListener al = i.next();
+            if (al != dontNotifyMe) {
+                al.actionPerformed(event);
+            }
+        }
+    }
+    
     public void fireActionEvent(String altcmd) {
         ActionEvent event = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, altcmd);
         Iterator<ActionListener> i = listeners.iterator();

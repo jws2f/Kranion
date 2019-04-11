@@ -59,11 +59,15 @@ public class RadioButtonGroup extends GUIControl implements ActionListener {
             Iterator<Renderable> i = this.children.iterator();
             while (i.hasNext()) {
                 Renderable r = i.next();
-                if (r instanceof Button && r != src) {
-                    ((Button)r).setIndicator(false);
-                }
-                else if (r instanceof Button && r == src) {
-                    ((Button)r).setIndicator(true);
+                // turn the indicator off for others in the group
+                if (r instanceof Button) {
+                    if (r != src) {
+                        ((Button) r).setIndicator(false);
+//                        ((Button) r).fireActionEvent(this); // dont notify this, otherwise we recurse forever
+                    } else if (r == src) {
+                        ((Button) r).setIndicator(true);
+//                        ((Button) r).fireActionEvent(this); // dont notify this, otherwise we recurse forever
+                    }
                 }
             }
         }

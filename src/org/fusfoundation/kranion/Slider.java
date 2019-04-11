@@ -242,6 +242,7 @@ public class Slider extends GUIControl implements GUIControlModelBinding {
                     glClipPlane(GL_CLIP_PLANE0, eqnBuf);
                     glEnable(GL_CLIP_PLANE0);
 
+                    glDisable(GL_DEPTH_TEST);
 glEnable(GL_CULL_FACE);        
 glCullFace(GL_FRONT);
                         trough_hemisphere.setColor(0.15f, 0.15f, 0.15f, 0.8f);
@@ -433,7 +434,7 @@ glDisable(GL_CULL_FACE);
     
     @Override
     public void doBinding(Model model) {
-        if (model != null) {
+        if (model != null && getCommand().length() > 0) {
             model.setAttribute(this.getCommand(), this.getCurrentValue());
         }
     }

@@ -34,3 +34,6 @@ build.xml
 
 /transducers/
 /plugins/
+/ACPCPlanPlugin/nbproject/private/
+/ACPCPlanPlugin/build/
+/ACPCPlanPlugin/dist/

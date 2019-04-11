@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.fusfoundation.kranion.ImageGradientVolume;
 import org.fusfoundation.kranion.Main;
+import org.fusfoundation.kranion.Trackball;
 import static org.lwjgl.opengl.GL11.GL_CLAMP;
 import static org.lwjgl.opengl.GL11.GL_FLOAT;
 import static org.lwjgl.opengl.GL11.GL_LINEAR;
@@ -71,6 +72,8 @@ import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Vector3f;
 import org.lwjgl.util.vector.Matrix3f;
+import org.lwjgl.util.vector.Matrix4f;
+import org.lwjgl.util.vector.Vector4f;
 
 /**
  *
@@ -330,7 +333,66 @@ public class ImageVolumeUtil {
         System.out.println("Image orient quat: " + imageOrientationQ);
         System.out.println("Image position = " + imageOriginPosition);
     }
-
+    
+    public static Vector3f pointFromImageToWorld(ImageVolume image, Vector3f imagePoint) {
+        Vector3f result = new Vector3f();
+        
+        if (image == null || imagePoint == null) return null;
+        
+        Quaternion imageOrient = (Quaternion)image.getAttribute("ImageOrientationQ");
+        if (imageOrient == null) {
+            imageOrient = new Quaternion();
+        }
+        Vector3f imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
+        if (imageTranslation == null) {
+            imageTranslation = new Vector3f();
+        }
+        
+        Vector4f imageTranslation4 = new Vector4f(imageTranslation.x, imageTranslation.y, imageTranslation.z, 1);
+        
+        Matrix4f mat = Trackball.toMatrix4f(imageOrient);
+        mat = mat.translate(imageTranslation);
+        
+        mat.invert();
+        
+        Vector4f imagePoint4 = new Vector4f(imagePoint.x, imagePoint.y, imagePoint.z, 1);
+        Vector4f result4 = new Vector4f();
+        Matrix4f.transform(mat, imagePoint4, result4);
+        
+        result.set(result4.x, result4.y, result4.z);
+        
+        return result;
+    }
+    
+    public static Vector3f pointFromWorldToImage(ImageVolume image, Vector3f worldPoint) {
+        Vector3f result = new Vector3f();
+        
+        if (image == null || worldPoint == null) return null;
+        
+        Quaternion imageOrient = (Quaternion)image.getAttribute("ImageOrientationQ");
+        if (imageOrient == null) {
+            imageOrient = new Quaternion();
+        }
+        
+        Vector3f imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
+        if (imageTranslation == null) {
+            imageTranslation = new Vector3f();
+        }
+        
+        Vector4f imageTranslation4 = new Vector4f(imageTranslation.x, imageTranslation.y, imageTranslation.z, 1);
+        
+        Matrix4f mat = Trackball.toMatrix4f(imageOrient);
+        mat = mat.translate(imageTranslation);
+                
+        Vector4f worldPoint4 = new Vector4f(worldPoint.x, worldPoint.y, worldPoint.z, 1);
+        Vector4f result4 = new Vector4f();
+        Matrix4f.transform(mat, worldPoint4, result4);
+        
+        result.set(result4.x, result4.y, result4.z);
+        
+        return result;
+    }
+    
     private static Quaternion quatFromVectorAngle(Vector3f v1, Vector3f v2) {
         Quaternion result = new Quaternion();
 

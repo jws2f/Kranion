@@ -251,6 +251,14 @@ public class DefaultView extends View {
         messageDialog.setMessageText(message);
         return this.messageDialog.open();
     }
+
+    @Override
+    public void doTransition(int milliseconds) {
+        float oldTime = transitionTime;
+        doTransition = true;
+        this.setDoTransition(true, milliseconds/1000f);
+        transitionTime = oldTime;
+    }
     
     private enum mouseMode {
         SCENE_ROTATE,
@@ -598,7 +606,7 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout2.addChild("Transducer", textbox);
         
-        
+       
         flyout3.addTab("CT"); // Make sure this is the first tab
         flyout3.setBounds(Display.getWidth() - 400, 150, 400, 275);
         flyout3.setFlyDirection(FlyoutPanel.direction.WEST);
@@ -906,6 +914,7 @@ public class DefaultView extends View {
 //        background.addChild(new DirtyFollower(mainLayer));
         
 //        mainLayer.setClearColor(0.22f, 0.25f, 0.30f, 1f);
+        mainLayer.setTag("DefaultView.main_layer");
         mainLayer.setClearColor(0f, 0f, 0f, 0f);
          
         mainLayer.addChild(trackball);
@@ -937,6 +946,7 @@ public class DefaultView extends View {
         // the volume rendering into the main layer with the standard render() method and the
         // demographics into the overlay layer.
         overlay.setIs2d(true);
+        overlay.setTag("DefaultView.overlay_layer");
         overlay.addChild(new RenderableAdapter(canvas, "renderDemographics").setTag("demographics").setVisible(prefs.getBoolean("prefShowDemographics", true)));
         
         // try attaching MR/CT param flyout to one of the 2D canvases
@@ -1112,7 +1122,7 @@ public class DefaultView extends View {
     
     public void setDoTransition(boolean doTransition, float time) {
         this.doTransition = doTransition;
-        this.transitionTime = time;
+        transition.setDuration(time);
     }
     
     public void setDisplayCTimage(ImageVolume image) {
@@ -1490,13 +1500,17 @@ public class DefaultView extends View {
             resetThermometryPanel();
             
 //                    model.setAttribute("doMRI", true);
-                    model.updateAllAttributes();
-                    canvas.setVolumeRender(true);
-                    canvas.setIsDirty(true);
-                    
-                    ctHistogram.calculate();
-                    transFuncDisplay.setHistogram(ctHistogram.getData());
-                    ctHistogram.release();
+
+            // This is to get all model listeners sync up with
+            // the model just loaded.
+            model.updateAllAttributes();
+
+            canvas.setVolumeRender(true);
+            canvas.setIsDirty(true);
+
+            ctHistogram.calculate();
+            transFuncDisplay.setHistogram(ctHistogram.getData());
+            ctHistogram.release();
             
 //            this.updateFromModel();
 
@@ -1506,6 +1520,11 @@ public class DefaultView extends View {
             this.updateSonicationList();
             model.setAttribute("currentSonication", 0);
             
+            // This is to make sure that any controls that had no saved values
+            // in the loaded model get a chance to update their current values
+            // to the model.
+            Main.updateAllControlBindings();
+                    
             setDoTransition(true);
             
             return;
@@ -2034,7 +2053,7 @@ public class DefaultView extends View {
         
         if (doTransition) {
             System.out.println("Do transition");
-            transition.doTransition(transitionTime);
+            transition.doTransition();
             doTransition = false;
         }        
     }
@@ -3762,6 +3781,12 @@ public class DefaultView extends View {
     @Override
     public void actionPerformed(ActionEvent e) {
         String command = e.getActionCommand();
+        Object source = e.getSource();
+
+// TODO: not sure if we should have default model binding come first always by default
+        if (e.getSource() instanceof GUIControlModelBinding) {
+            ((GUIControlModelBinding)e.getSource()).doBinding(model);
+        }
 
         switch (command) {
             case "openKranionFile":
@@ -3794,31 +3819,49 @@ public class DefaultView extends View {
                 }
                 break;
             case "rotateScene":
-                this.currentMouseMode = mouseMode.SCENE_ROTATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.SCENE_ROTATE;
+                }
                 break;
             case "rotateHead":
-                this.currentMouseMode = mouseMode.HEAD_ROTATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.HEAD_ROTATE;
+                }
                 break;
             case "rotateSkull":
-                this.currentMouseMode = mouseMode.SKULL_ROTATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.SKULL_ROTATE;
+                }
                 break;
             case "rotateFrame":
-                this.currentMouseMode = mouseMode.FRAME_ROTATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.FRAME_ROTATE;
+                }
                 break;
             case "translateHead":
-                this.currentMouseMode = mouseMode.HEAD_TRANSLATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.HEAD_TRANSLATE;
+                }
                 break;
             case "translateSkull":
-                this.currentMouseMode = mouseMode.SKULL_TRANSLATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.SKULL_TRANSLATE;
+                }
                 break;
             case "translateFrame":
-                this.currentMouseMode = mouseMode.FRAME_TRANSLATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.FRAME_TRANSLATE;
+                }
                 break;
             case "rotateMRI":
-                this.currentMouseMode = mouseMode.MRI_ROTATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.MRI_ROTATE;
+                }
                 break;
             case "translateMRI":
-                this.currentMouseMode = mouseMode.MRI_TRANSLATE;
+                if (((Button)source).getIndicator()) {
+                    this.currentMouseMode = mouseMode.MRI_TRANSLATE;
+                }
                 break;
             case "exit":
                 //int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
@@ -3998,6 +4041,7 @@ public class DefaultView extends View {
         }
     }
     
+
     private void calcTreatmentEnvelope() {
         transRayTracer.setShowEnvelope(false);
 

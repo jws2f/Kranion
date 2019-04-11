@@ -93,92 +93,92 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
             // init() gets called everytime a new model is loaded.
             return;
         }
-        
-        FlyoutPanel flyout = null;
-        
-        Renderable mainPanel = Renderable.lookupByTag("MainFlyout");
-        if (mainPanel != null && mainPanel instanceof FlyoutPanel) {
-                flyout = (FlyoutPanel)mainPanel;
-        }
         else {
-            System.out.println("*** ACPCPlanPlugin failed to initialize.");
-        }
-        
-        
-        // AC-PC registration and target calculator
-        flyout.addTab("Planning");
-        Button acButton = new Button(Button.ButtonType.BUTTON, 10, 205, 125, 25, this);        
-        acButton.setTitle("Set AC").setCommand("setAC").setTag("setAC");
-        acButton.setPropertyPrefix("Model.Attribute");
-        acButton.setColor(0.35f, 0.55f, 0.35f, 1f);
-        flyout.addChild("Planning", acButton);
-        
-        goacButton = new Button(Button.ButtonType.BUTTON, 150, 205, 125, 25, this);        
-        goacButton.setTitle("Go AC").setCommand("goAC").setTag("goAC");
-        goacButton.setPropertyPrefix("Model.Attribute");
-        goacButton.setIsEnabled(false);
-        flyout.addChild("Planning", goacButton);
-        
-        Button pcButton = new Button(Button.ButtonType.BUTTON, 10, 175, 125, 25, this);        
-        pcButton.setTitle("Set PC").setCommand("setPC").setTag("setPC");
-        pcButton.setPropertyPrefix("Model.Attribute");
-        pcButton.setColor(0.35f, 0.55f, 0.35f, 1f);
-        flyout.addChild("Planning", pcButton);
-        
-        gopcButton = new Button(Button.ButtonType.BUTTON, 150, 175, 125, 25, this);        
-        gopcButton.setTitle("Go PC").setCommand("goPC").setTag("goPC");
-        gopcButton.setPropertyPrefix("Model.Attribute");
-        gopcButton.setIsEnabled(false);
-        flyout.addChild("Planning", gopcButton);
-        
-        Button acpcSupButton = new Button(Button.ButtonType.BUTTON, 10, 145, 125, 25, this);        
-        acpcSupButton.setTitle("Set Superior").setCommand("setSuperior").setTag("setSuperior");
-        acpcSupButton.setPropertyPrefix("Model.Attribute");
-        acpcSupButton.setColor(0.35f, 0.55f, 0.35f, 1f);
-        flyout.addChild("Planning", acpcSupButton);
-        
-        TextBox acpcLength = (TextBox)new TextBox(150, 100, 125, 25, "", this).setTitle("AC-PC Length").setCommand("acpcLength");
-        acpcLength.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-        model.addObserver(acpcLength);
-        flyout.addChild("Planning", acpcLength);
-        
-        goacpcSupButton = new Button(Button.ButtonType.BUTTON, 150, 145, 125, 25, this);        
-        goacpcSupButton.setTitle("Go Superior").setCommand("goSuperior").setTag("goSuperior");
-        goacpcSupButton.setPropertyPrefix("Model.Attribute");
-        goacpcSupButton.setIsEnabled(false);
-        flyout.addChild("Planning", goacpcSupButton);
-        
-        Button goTarget = new Button(Button.ButtonType.BUTTON, 300, 175, 125, 55, this);        
-        goTarget.setTitle("Go Target").setCommand("goTarget").setTag("goTarget");
-        goTarget.setColor(0.35f, 0.4f, 0.55f, 1f);
-        goTarget.setIsEnabled(false);
-        flyout.addChild("Planning", goTarget);
-        
-        Button goACPCPlane = new Button(Button.ButtonType.BUTTON, 300, 145, 125, 25, this);        
-        goACPCPlane.setTitle("AC-PC Plane").setCommand("goACPCplane").setTag("goACPCplane");
-        goACPCPlane.setColor(0.5f, 0.5f, 0.25f, 1f);
-        goACPCPlane.setIsEnabled(false);
-        flyout.addChild("Planning", goACPCPlane);
-        
-                RadioButtonGroup acpcOffsetButtonGrp = new RadioButtonGroup();
-                
-                acpcOffsetLeftButton = new Button(Button.ButtonType.RADIO_BUTTON, 475, 205, 150, 25, this);
-                acpcOffsetLeftButton.setTitle("Left Offset");
-                acpcOffsetLeftButton.setCommand("acpcLeftOffset");
-                acpcOffsetLeftButton.setDrawBackground(false);
-                acpcOffsetLeftButton.setIndicator(true);
-                
-                acpcOffsetRightButton = new Button(Button.ButtonType.RADIO_BUTTON, 475, 175, 150, 25, this);
-                acpcOffsetRightButton.setTitle("Right Offset");
-                acpcOffsetRightButton.setCommand("acpcRightOffset");
-                acpcOffsetRightButton.setTag("acpcRightOffset");
-                acpcOffsetRightButton.setDrawBackground(false);
-                
-                acpcOffsetButtonGrp.addChild(acpcOffsetLeftButton);
-                acpcOffsetButtonGrp.addChild(acpcOffsetRightButton);
-                
-                flyout.addChild("Planning", acpcOffsetButtonGrp);
-                
+
+            FlyoutPanel flyout = null;
+
+            Renderable mainPanel = Renderable.lookupByTag("MainFlyout");
+            if (mainPanel != null && mainPanel instanceof FlyoutPanel) {
+                flyout = (FlyoutPanel) mainPanel;
+            } else {
+                System.out.println("*** ACPCPlanPlugin failed to initialize.");
+                return;
+            }
+
+            // AC-PC registration and target calculator
+            flyout.addTab("Planning");
+            Button acButton = new Button(Button.ButtonType.BUTTON, 10, 205, 125, 25, this);
+            acButton.setTitle("Set AC").setCommand("setAC").setTag("setAC");
+            acButton.setPropertyPrefix("Model.Attribute");
+            acButton.setColor(0.35f, 0.55f, 0.35f, 1f);
+            flyout.addChild("Planning", acButton);
+
+            goacButton = new Button(Button.ButtonType.BUTTON, 150, 205, 125, 25, this);
+            goacButton.setTitle("Go AC").setCommand("goAC").setTag("goAC");
+            goacButton.setPropertyPrefix("Model.Attribute");
+            goacButton.setIsEnabled(false);
+            flyout.addChild("Planning", goacButton);
+
+            Button pcButton = new Button(Button.ButtonType.BUTTON, 10, 175, 125, 25, this);
+            pcButton.setTitle("Set PC").setCommand("setPC").setTag("setPC");
+            pcButton.setPropertyPrefix("Model.Attribute");
+            pcButton.setColor(0.35f, 0.55f, 0.35f, 1f);
+            flyout.addChild("Planning", pcButton);
+
+            gopcButton = new Button(Button.ButtonType.BUTTON, 150, 175, 125, 25, this);
+            gopcButton.setTitle("Go PC").setCommand("goPC").setTag("goPC");
+            gopcButton.setPropertyPrefix("Model.Attribute");
+            gopcButton.setIsEnabled(false);
+            flyout.addChild("Planning", gopcButton);
+
+            Button acpcSupButton = new Button(Button.ButtonType.BUTTON, 10, 145, 125, 25, this);
+            acpcSupButton.setTitle("Set Superior").setCommand("setSuperior").setTag("setSuperior");
+            acpcSupButton.setPropertyPrefix("Model.Attribute");
+            acpcSupButton.setColor(0.35f, 0.55f, 0.35f, 1f);
+            flyout.addChild("Planning", acpcSupButton);
+
+            TextBox acpcLength = (TextBox) new TextBox(150, 100, 125, 25, "", this).setTitle("AC-PC Length").setCommand("acpcLength");
+            acpcLength.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+            model.addObserver(acpcLength);
+            flyout.addChild("Planning", acpcLength);
+
+            goacpcSupButton = new Button(Button.ButtonType.BUTTON, 150, 145, 125, 25, this);
+            goacpcSupButton.setTitle("Go Superior").setCommand("goSuperior").setTag("goSuperior");
+            goacpcSupButton.setPropertyPrefix("Model.Attribute");
+            goacpcSupButton.setIsEnabled(false);
+            flyout.addChild("Planning", goacpcSupButton);
+
+            Button goTarget = new Button(Button.ButtonType.BUTTON, 300, 175, 125, 55, this);
+            goTarget.setTitle("Go Target").setCommand("goTarget").setTag("goTarget");
+            goTarget.setColor(0.35f, 0.4f, 0.55f, 1f);
+            goTarget.setIsEnabled(false);
+            flyout.addChild("Planning", goTarget);
+
+            Button goACPCPlane = new Button(Button.ButtonType.BUTTON, 300, 145, 125, 25, this);
+            goACPCPlane.setTitle("AC-PC Plane").setCommand("goACPCplane").setTag("goACPCplane");
+            goACPCPlane.setColor(0.5f, 0.5f, 0.25f, 1f);
+            goACPCPlane.setIsEnabled(false);
+            flyout.addChild("Planning", goACPCPlane);
+
+            RadioButtonGroup acpcOffsetButtonGrp = new RadioButtonGroup();
+
+            acpcOffsetLeftButton = new Button(Button.ButtonType.RADIO_BUTTON, 475, 205, 150, 25, this);
+            acpcOffsetLeftButton.setTitle("Left Offset");
+            acpcOffsetLeftButton.setCommand("acpcLeftOffset");
+            acpcOffsetLeftButton.setDrawBackground(false);
+            acpcOffsetLeftButton.setIndicator(true);
+
+            acpcOffsetRightButton = new Button(Button.ButtonType.RADIO_BUTTON, 475, 175, 150, 25, this);
+            acpcOffsetRightButton.setTitle("Right Offset");
+            acpcOffsetRightButton.setCommand("acpcRightOffset");
+            acpcOffsetRightButton.setTag("acpcRightOffset");
+            acpcOffsetRightButton.setDrawBackground(false);
+
+            acpcOffsetButtonGrp.addChild(acpcOffsetLeftButton);
+            acpcOffsetButtonGrp.addChild(acpcOffsetRightButton);
+
+            flyout.addChild("Planning", acpcOffsetButtonGrp);
+
             Slider slider1 = new Slider(650, 220, 380, 25, this);
             model.addObserver(slider1);
             slider1.setTitle("Lateral Offset");
@@ -189,11 +189,11 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
             slider1.setFormatString("%3.1f mm");
             slider1.setCurrentValue(0);
             flyout.addChild("Planning", slider1);
-            
-        Button zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 220, 45, 25, this);        
-        zeroButton.setTitle("Zero").setCommand("zeroLateralOffset");
-        zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
-        flyout.addChild("Planning", zeroButton);
+
+            Button zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 220, 45, 25, this);
+            zeroButton.setTitle("Zero").setCommand("zeroLateralOffset");
+            zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
+            flyout.addChild("Planning", zeroButton);
 
             slider1 = new Slider(1085, 220, 380, 25, this);
             model.addObserver(slider1);
@@ -205,13 +205,12 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
             slider1.setFormatString("%3.1f mm");
             slider1.setCurrentValue(0);
             flyout.addChild("Planning", slider1);
-            
-        zeroButton = new Button(Button.ButtonType.BUTTON, 1465, 220, 45, 25, this);        
-        zeroButton.setTitle("Zero").setCommand("zeroVentLateralOffset");
-        zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
-        flyout.addChild("Planning", zeroButton);
 
-            
+            zeroButton = new Button(Button.ButtonType.BUTTON, 1465, 220, 45, 25, this);
+            zeroButton.setTitle("Zero").setCommand("zeroVentLateralOffset");
+            zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
+            flyout.addChild("Planning", zeroButton);
+
             slider1 = new Slider(650, 75, 380, 25, this);
             model.addObserver(slider1);
             slider1.setTitle("AC/PC ratio");
@@ -222,13 +221,12 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
             slider1.setFormatString("%3.1f%%");
             slider1.setCurrentValue(50);
             flyout.addChild("Planning", slider1);
-            
-        zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 75, 45, 25, this);        
-        zeroButton.setTitle("MCP").setCommand("zeroACPCratio");
-        zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
-        flyout.addChild("Planning", zeroButton);
 
-             
+            zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 75, 45, 25, this);
+            zeroButton.setTitle("MCP").setCommand("zeroACPCratio");
+            zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
+            flyout.addChild("Planning", zeroButton);
+
             slider1 = new Slider(650, 175, 380, 25, this);
             model.addObserver(slider1);
             slider1.setTitle("Superior Offset");
@@ -239,13 +237,12 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
             slider1.setFormatString("%3.1f mm");
             slider1.setCurrentValue(0);
             flyout.addChild("Planning", slider1);
-            
-        zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 175, 45, 25, this);        
-        zeroButton.setTitle("Zero").setCommand("zeroSuperiorOffset");
-        zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
-        flyout.addChild("Planning", zeroButton);
 
-            
+            zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 175, 45, 25, this);
+            zeroButton.setTitle("Zero").setCommand("zeroSuperiorOffset");
+            zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
+            flyout.addChild("Planning", zeroButton);
+
             slider1 = new Slider(650, 130, 380, 25, this);
             model.addObserver(slider1);
             slider1.setTitle("Anterior Offset");
@@ -256,14 +253,29 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
             slider1.setFormatString("%3.1f mm");
             slider1.setCurrentValue(0);
             flyout.addChild("Planning", slider1);
-            
-        zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 130, 45, 25, this);        
-        zeroButton.setTitle("Zero").setCommand("zeroAnteriorOffset");
-        zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
-        flyout.addChild("Planning", zeroButton);
 
-            
-            // End AC PC planning controls             
+            zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 130, 45, 25, this);
+            zeroButton.setTitle("Zero").setCommand("zeroAnteriorOffset");
+            zeroButton.setColor(0.35f, 0.55f, 0.35f, 1f);
+            flyout.addChild("Planning", zeroButton);
+
+            TextBox textbox = (TextBox) new TextBox(60, 55, 60, 25, "", this).setTitle("R").setCommand("sonicationRLoc");
+            textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+            model.addObserver(textbox);
+            flyout.addChild("Planning", textbox);
+
+            textbox = (TextBox) new TextBox(160, 55, 60, 25, "", this).setTitle("A").setCommand("sonicationALoc");
+            textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+            model.addObserver(textbox);
+            flyout.addChild("Planning", textbox);
+
+            textbox = (TextBox) new TextBox(260, 55, 60, 25, "", this).setTitle("S").setCommand("sonicationSLoc");
+            textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+            model.addObserver(textbox);
+            flyout.addChild("Planning", textbox);
+
+            // End AC PC planning controls
+        }      
     }
     
     @Override

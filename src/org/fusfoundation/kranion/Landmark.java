@@ -48,7 +48,7 @@ public class Landmark extends GUIControl {
             location.set(loc);
         }
     }
-    
+        
     @Override
     public void render() {
         setIsDirty(false);

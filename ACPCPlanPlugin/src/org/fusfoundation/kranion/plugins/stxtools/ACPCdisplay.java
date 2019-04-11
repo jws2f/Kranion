@@ -91,12 +91,13 @@ public class ACPCdisplay extends GUIControl {
                     glColor4f(1f, 0.5f, 0.5f, 0.9f);
                     
                     ImageVolume ctimage = Main.getModel().getCtImage();
+                    Vector3f acpt=null, pcpt=null;
                     if (ctimage != null) {
-                        Vector3f pt = ImageVolumeUtil.pointFromImageToWorld(ctimage, ac);
-                        glVertex3f(pt.x, pt.y, pt.z);
+                        acpt = ImageVolumeUtil.pointFromImageToWorld(ctimage, ac);
+                        glVertex3f(acpt.x, acpt.y, acpt.z);
                         
-                        pt = ImageVolumeUtil.pointFromImageToWorld(ctimage, pc);
-                        glVertex3f(pt.x, pt.y, pt.z);
+                        pcpt = ImageVolumeUtil.pointFromImageToWorld(ctimage, pc);
+                        glVertex3f(pcpt.x, pcpt.y, pcpt.z);
                     }
                 
 //                    // Draw a verticle line from AC upward aligned with ACPC z-axis
@@ -119,24 +120,55 @@ public class ACPCdisplay extends GUIControl {
                 Vector3f targetPerpendicularPt = (Vector3f)Main.getModel().getAttribute("acpcPerpendicularPoint");
                 Vector3f target = (Vector3f)Main.getModel().getAttribute("acpcTarget");
                 
+                Vector3f acpcnorm = null;
+                Vector3f perpnorm = null;
+                if (acpt != null && pcpt != null) {
+                    acpcnorm = Vector3f.sub(acpt, pcpt, null).normalise(null);
+                }
+                
+                perpnorm = (Vector3f)Main.getModel().getAttribute("acpcCoordRight");                    
+                                
                 if (targetPerpendicularPt != null && target != null) {
                     if (ctimage != null) {
                         glLineWidth(2);
                         glBegin(GL_LINES);
                             glColor4f(1f, 0.5f, 0.5f, 0.9f);
                     
-                            Vector3f pt = ImageVolumeUtil.pointFromImageToWorld(ctimage, targetPerpendicularPt);
-                            glVertex3f(pt.x, pt.y, pt.z);
+                            Vector3f pt1 = ImageVolumeUtil.pointFromImageToWorld(ctimage, targetPerpendicularPt);
+                            glVertex3f(pt1.x, pt1.y, pt1.z);
                             
-                            pt = ImageVolumeUtil.pointFromImageToWorld(ctimage, target);
-                            glVertex3f(pt.x, pt.y, pt.z);
+                            Vector3f pt2 = ImageVolumeUtil.pointFromImageToWorld(ctimage, target);
+                            glVertex3f(pt2.x, pt2.y, pt2.z);
+                            
+                            if (acpcnorm != null) {
+                                Vector3f latMarker1 = Vector3f.add(pt1, acpcnorm, null);
+                                Vector3f latMarker2 = Vector3f.sub(pt1, acpcnorm, null);
+
+                                glVertex3f(latMarker1.x, latMarker1.y, latMarker1.z);
+                                glVertex3f(latMarker2.x, latMarker2.y, latMarker2.z);
+                            }
+                            
+                            if (perpnorm != null) {
+                                Vector3f latMarker1 = Vector3f.add(acpt, perpnorm, null);
+                                Vector3f latMarker2 = Vector3f.sub(acpt, perpnorm, null);
+
+                                glVertex3f(latMarker1.x, latMarker1.y, latMarker1.z);
+                                glVertex3f(latMarker2.x, latMarker2.y, latMarker2.z);
+                                
+                                latMarker1 = Vector3f.add(pcpt, perpnorm, null);
+                                latMarker2 = Vector3f.sub(pcpt, perpnorm, null);
+
+                                glVertex3f(latMarker1.x, latMarker1.y, latMarker1.z);
+                                glVertex3f(latMarker2.x, latMarker2.y, latMarker2.z);
+                            }
+                            
                         glEnd();
                         
                         glPointSize(8);
                         glBegin(GL_POINTS);
                             glColor4f(0.5f, 0.5f, 1f, 0.9f);
-                            pt = ImageVolumeUtil.pointFromImageToWorld(ctimage, refPt);
-                            glVertex3f(pt.x, pt.y, pt.z);
+                            pt1 = ImageVolumeUtil.pointFromImageToWorld(ctimage, refPt);
+                            glVertex3f(pt1.x, pt1.y, pt1.z);
                         glEnd();
                     }
                 }

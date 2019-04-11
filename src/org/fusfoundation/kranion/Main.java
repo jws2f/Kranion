@@ -194,6 +194,18 @@ public class Main implements ProgressListener {
         }
     }
     
+    public static void updateAllControlBindings() {
+        if (Main.main.model != null) {
+            Iterator<Renderable> controls = Renderable.iterator();
+            while (controls.hasNext()) {
+                Renderable control = controls.next();
+                if (control instanceof GUIControlModelBinding) {
+                    ((GUIControlModelBinding)control).doBinding(Main.main.model);
+                }
+            }
+        }        
+    }
+    
     public static View getView() { return Main.main.view; }
     public static void setView(View view) {
         if (Main.main.view != null) {

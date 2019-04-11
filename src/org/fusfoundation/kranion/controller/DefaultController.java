@@ -65,7 +65,17 @@ public class DefaultController extends Controller {
     public void update(Observable o, Object arg) {
         System.out.print("----DefaultController update: " + o.toString());
         if (arg != null && arg instanceof PropertyChangeEvent) {
-            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName());
+            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName() + " = " + ((PropertyChangeEvent)arg).getNewValue());
+            
+            switch (((PropertyChangeEvent)arg).getPropertyName()) {
+                case "Model.Attribute[currentTargetPoint]":
+                    Vector3f target = (Vector3f)((PropertyChangeEvent)arg).getNewValue();
+                    model.setAttribute("sonicationRLoc", String.format("%4.1f", -target.x)); // target is LPS, display RAS
+                    model.setAttribute("sonicationALoc", String.format("%4.1f", -target.y));
+                    model.setAttribute("sonicationSLoc", String.format("%4.1f", target.z));
+                break;
+                    
+            }
         }
         System.out.println();
     }
@@ -191,9 +201,9 @@ public class DefaultController extends Controller {
                 ImageCanvas2D canvas = (ImageCanvas2D)source;
                 Vector3f target = canvas.getSelectedPoint();
                 model.setAttribute("currentTargetPoint", target);
-                model.setAttribute("sonicationRLoc", String.format("%4.1f", -target.x));
-                model.setAttribute("sonicationALoc", String.format("%4.1f", -target.y));
-                model.setAttribute("sonicationSLoc", String.format("%4.1f", target.z));
+//                model.setAttribute("sonicationRLoc", String.format("%4.1f", -target.x));
+//                model.setAttribute("sonicationALoc", String.format("%4.1f", -target.y));
+//                model.setAttribute("sonicationSLoc", String.format("%4.1f", target.z));
             }
         }
         else if (e.getActionCommand().equals("rightClick")) {

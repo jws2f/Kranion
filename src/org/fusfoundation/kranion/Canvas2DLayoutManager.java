@@ -71,6 +71,9 @@ public class Canvas2DLayoutManager extends GUIControl implements Animator, Resiz
             for (int i=0; i<canvases.length; i++) {
                 if (canvases[i].MouseIsInside(x, y)) {
                     this.bringToTop();
+                    if (button1down || button2down) {
+                        result = true;
+                    }
                     break;
                 }
             }

@@ -40,12 +40,17 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     private AnimatorUtil animator = new AnimatorUtil();
     private boolean isBlending = false;
     private boolean isFading = false;
+    private float duration = 0.5f;
     
     public ScreenTransition() {
         doLayout();
     }
     
-    public void doTransition(float duration) {
+    public void setDuration(float seconds) {
+        duration = seconds;
+    }
+    
+    public void doTransition() {
         animator.set(0f, 1f, duration);
         
         //copy the main framebuffer to FBO
