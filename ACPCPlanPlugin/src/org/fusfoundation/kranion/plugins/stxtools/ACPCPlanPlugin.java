@@ -25,9 +25,12 @@ package org.fusfoundation.kranion.plugins.stxtools;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
 import org.fusfoundation.kranion.plugin.Plugin;
 
 import java.util.Iterator;
+import java.util.Observable;
+import java.util.Observer;
 import org.fusfoundation.kranion.Button;
 import org.fusfoundation.kranion.FlyoutPanel;
 import org.fusfoundation.kranion.GUIControlModelBinding;
@@ -47,7 +50,7 @@ import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Vector3f;
 
-public class ACPCPlanPlugin implements Plugin, ActionListener  {
+public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
 
     private Model model;
     private View view;
@@ -56,16 +59,22 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
     private Button goacButton, gopcButton, goacpcSupButton;
     private Button acpcOffsetLeftButton, acpcOffsetRightButton;
     private boolean doRightOffset = false;
+    private Button showACPCbut;
+    
+    private final String propertyPrefix = "Model.Attribute";
     
     @Override
     public void init(Controller controller) {
         System.out.println("******* Hello from ACPCPlanPlugin !! ****************");
-        
+                
         model = controller.getModel();
         view = controller.getView();
                 
         // listen to app level controller actions
         controller.addActionListener(this);
+        
+        // listen to model updates
+        model.addObserver(this);
         
         setupGUI();
         
@@ -91,6 +100,9 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
         if (goacButton != null && gopcButton != null && goacpcSupButton != null) {
             // We should only create GUI elements once.
             // init() gets called everytime a new model is loaded.
+            goacButton.setIsEnabled(false);
+            gopcButton.setIsEnabled(false);
+            goacpcSupButton.setIsEnabled(false);
             return;
         }
         else {
@@ -274,6 +286,13 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
             model.addObserver(textbox);
             flyout.addChild("Planning", textbox);
 
+            showACPCbut = new Button(Button.ButtonType.TOGGLE_BUTTON, 400, 55, 150, 25, this);
+            showACPCbut.setTitle("Show AC-PC").setCommand("showACPCgraphic");
+            showACPCbut.setTag("showACPCgraphic");
+            showACPCbut.setIndicator(true);
+            
+            flyout.addChild("Planning", showACPCbut);
+            
             // End AC PC planning controls
         }      
     }
@@ -285,8 +304,11 @@ public class ACPCPlanPlugin implements Plugin, ActionListener  {
             ((RenderLayer)parent).removeChild(this.acpcDisplay);
         }
         if (model != null) {
+            model.deleteObserver(this);
             model.deleteObserver(this.acpcDisplay);
         }
+        
+        view.getController().removeActionListener(this);
         
         acpcDisplay = null;
     }
@@ -410,6 +432,11 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 model.setAttribute("acpcRatioValue", 50f);
                 this.acpcDisplay.setIsDirty(true);
                 break;
+            case "showACPCgraphic":
+                boolean showGraphic = showACPCbut.getIndicator();
+                this.acpcDisplay.setVisible(showGraphic);
+                this.view.doTransition(500);
+                break;
         }
     }
     
@@ -418,7 +445,9 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 Vector3f pc = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("PC"));
                 Vector3f sup = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("ACPCSup"));
                 
-                if (ac != null &&
+                try {
+                    
+                 if (ac != null &&
                     pc != null &&
                     sup != null) {
                     
@@ -432,12 +461,37 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                         ((Button)button).setIsEnabled(true);
                     }
                     
-                    float anteriorOffsetVal = (Float)model.getAttribute("acpcAnteriorOffsetValue");
-                    float lateralOffsetVal = (Float)model.getAttribute("acpcOffsetValue");
-                    float ventricleOffsetVal = (Float)model.getAttribute("acpc3rdVentricleOffsetValue");
-                    float superiorOffsetVal = (Float)model.getAttribute("acpcSuperiorOffsetValue"); // attribute value is in percent
-                    float ratioVal = (Float)model.getAttribute("acpcRatioValue")/100f; // attribute value is in percent
+                    float anteriorOffsetVal = 0f;
+                    float lateralOffsetVal = 0f;
+                    float ventricleOffsetVal = 0f;
+                    float superiorOffsetVal = 0f;
+                    float ratioVal = 50; // attribute value is in percent
                     
+                    try {
+                        anteriorOffsetVal = (Float) model.getAttribute("acpcAnteriorOffsetValue");
+                    } catch (NullPointerException e) {
+                    }
+
+                    try {
+                        lateralOffsetVal = (Float) model.getAttribute("acpcOffsetValue");
+                    } catch (NullPointerException e) {
+                    }
+
+                    try {
+                        ventricleOffsetVal = (Float) model.getAttribute("acpc3rdVentricleOffsetValue");
+                    } catch (NullPointerException e) {
+                    }
+
+                    try {
+                        superiorOffsetVal = (Float) model.getAttribute("acpcSuperiorOffsetValue"); // attribute value is in percent
+                    } catch (NullPointerException e) {
+                    }
+
+                    try {
+                        ratioVal = (Float) model.getAttribute("acpcRatioValue") / 100f; // attribute value is in percent
+                    } catch (NullPointerException e) {
+                    }
+
                     if (!doRightOffset) {
                         lateralOffsetVal = -lateralOffsetVal;
                         ventricleOffsetVal = -ventricleOffsetVal;
@@ -483,7 +537,11 @@ System.out.println("ACPCPlanPlugin got command: " + command);
         
                     model.setAttribute("acpcTarget", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target));
                     model.setAttribute("acpcPerpendicularPoint", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), refPt));                    
-                }        
+                }
+                }
+                 catch(NullPointerException e) {
+                         
+                         }
     }
     
     private void calcACPCLength() {
@@ -563,6 +621,45 @@ System.out.println("ACPCPlanPlugin got command: " + command);
         }
         
         return result;
+    }
+    
+    protected String getFilteredPropertyName(PropertyChangeEvent arg) {
+        String propName = "";
+        String nameString = arg.getPropertyName();
+        
+        if (nameString.startsWith(propertyPrefix + "[")) {
+            int last = nameString.indexOf("]", propertyPrefix.length()+1);
+            propName = nameString.substring(propertyPrefix.length()+1, last);            
+        }
+        
+        return propName;
+    }
+
+    @Override
+    public void update(Observable o, Object arg) {
+        if (arg != null && arg instanceof PropertyChangeEvent) {
+            PropertyChangeEvent event = (PropertyChangeEvent)arg;
+//            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName());
+//            System.out.println();
+            
+            switch(this.getFilteredPropertyName(event)) {
+                case "AC":
+                    if (event.getNewValue() != null) {
+                        goacButton.setIsEnabled(true);
+                    }
+                    break;
+                case "PC":
+                    if (event.getNewValue() != null) {
+                        gopcButton.setIsEnabled(true);
+                    }
+                    break;
+                case "ACPCSup":
+                    if (event.getNewValue() != null) {
+                        goacpcSupButton.setIsEnabled(true);
+                    }
+                    break;
+            }
+        }       
     }
 }
 

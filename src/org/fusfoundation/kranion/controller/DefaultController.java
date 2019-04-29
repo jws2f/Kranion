@@ -145,34 +145,34 @@ public class DefaultController extends Controller {
                 npe.printStackTrace();
             }
         }        
-        else if (e.getActionCommand().equals("loadCT")) {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle(new String("Choose CT file..."));
-            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            File ctfile = null;
-            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                ctfile = fileChooser.getSelectedFile();
-                System.out.println("Selected file: " + ctfile.getAbsolutePath());
-
-                Loader ctloader = new Loader();
-                ctloader.load(ctfile, "CT_IMAGE_LOADED", this);
-            }
-        }
-        else if (e.getActionCommand().equals("loadMR")) {
-            JFileChooser fileChooser = new JFileChooser();
-            fileChooser.setDialogTitle(new String("Choose MR file..."));
-            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            File mrfile = null;
-            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                mrfile = fileChooser.getSelectedFile();
-                System.out.println("Selected file: " + mrfile.getAbsolutePath());
-
-                Loader mrloader = new Loader();
-                mrloader.load(mrfile, "MR_IMAGE_0_LOADED", this);
-            }
-        }
+//        else if (e.getActionCommand().equals("loadCT")) {
+//            JFileChooser fileChooser = new JFileChooser();
+//            fileChooser.setDialogTitle(new String("Choose CT file..."));
+//            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//            File ctfile = null;
+//            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+//                ctfile = fileChooser.getSelectedFile();
+//                System.out.println("Selected file: " + ctfile.getAbsolutePath());
+//
+//                Loader ctloader = new Loader();
+//                ctloader.load(ctfile, "CT_IMAGE_LOADED", this);
+//            }
+//        }
+//        else if (e.getActionCommand().equals("loadMR")) {
+//            JFileChooser fileChooser = new JFileChooser();
+//            fileChooser.setDialogTitle(new String("Choose MR file..."));
+//            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+//            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//            File mrfile = null;
+//            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+//                mrfile = fileChooser.getSelectedFile();
+//                System.out.println("Selected file: " + mrfile.getAbsolutePath());
+//
+//                Loader mrloader = new Loader();
+//                mrloader.load(mrfile, "MR_IMAGE_0_LOADED", this);
+//            }
+//        }
         else if (e.getActionCommand().equals("CT_IMAGE_LOADED")) {
             Loader loader = (Loader) e.getSource();
             ImageVolume4D image = (ImageVolume4D) loader.getLoadedImage();

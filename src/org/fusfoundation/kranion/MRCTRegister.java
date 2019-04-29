@@ -74,6 +74,7 @@ public class MRCTRegister implements BackgroundWorker {
         
         if (this.model.getCtImage() == null || this.model.getMrImageCount() == 0 || this.model.getMrImage(0) == null) {
             model.setAttribute(command, false);
+            done = true;
             return;
         }
         
@@ -84,9 +85,9 @@ public class MRCTRegister implements BackgroundWorker {
         failedSteps = 0;
         stepPhase = 0;
 
-        tranNoiseScale = 1f;
-        rotNoiseScale = 1.0f / 25.0f;
-        percentSample = 0.5f;
+        tranNoiseScale = 0.2f;
+        rotNoiseScale = 0.2f;//0.4f;
+        percentSample = 2.0f;
         doBlur = true;
 
         mutualInformation.setImageVolumes(this.model.getCtImage(), this.model.getMrImage(0));
@@ -99,9 +100,9 @@ public class MRCTRegister implements BackgroundWorker {
         }
         origTran = new Vector3f(tranVal);
 
-        rotx = MutualInformation.toQuaternion((float) (Math.PI / 180.0), 0, 0);
-        roty = MutualInformation.toQuaternion(0, (float) (Math.PI / 180.0), 0);
-        rotz = MutualInformation.toQuaternion(0, 0, (float) (Math.PI / 180.0));
+        rotx = MutualInformation.toQuaternion((float) (Math.PI / 90.0), 0, 0);
+        roty = MutualInformation.toQuaternion(0, (float) (Math.PI / 90.0), 0);
+        rotz = MutualInformation.toQuaternion(0, 0, (float) (Math.PI / 90.0));
         rot = null;
 
         tranX = new Vector3f(2f, 0, 0);
@@ -110,6 +111,10 @@ public class MRCTRegister implements BackgroundWorker {
         tran = null;
         
         model.setAttribute(command, true);
+        
+        // starting point MI
+        bestMI = mutualInformation.calcMI(percentSample, doBlur);
+
     }
     
     public void stop() {
@@ -118,6 +123,7 @@ public class MRCTRegister implements BackgroundWorker {
     }
     
     public void doWorkStep() {
+
         if (done) return;
                   
 //                  mutualInformation.updateTestImage(joinHistogram);
@@ -155,37 +161,56 @@ public class MRCTRegister implements BackgroundWorker {
 //                  origTran = new Vector3f((Vector3f)this.model.getCtImage().getAttribute("ImageTranslation"));
                       
 Vector3f noise = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0));
+Vector3f noise2 = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0));
+Vector4f rotnoise = new Vector4f((float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0));
+Vector4f rotnoise2 = new Vector4f((float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0), (float)((Math.random()-0.5)/10.0));
 
 
-                      if (failedSteps > 12 && stepPhase==0) {
+                      if (failedSteps > 20 && stepPhase==0) {
                             failedSteps = 0;
                             stepPhase++;
-                            tranX = new Vector3f(0.75f, 0, 0);
-                            tranY = new Vector3f(0, 0.75f, 0);
-                            tranZ = new Vector3f(0, 0, 0.75f);                          
-                            rotx = MutualInformation.toQuaternion((float)(Math.PI/720.0), 0,  0);
-                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/720.0),  0);
-                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/720.0));
-                            percentSample = 0.75f;
-                            rotNoiseScale *= 0.5f;
-                            tranNoiseScale *= 0.4;
+                            tranX = new Vector3f(1f, 0, 0);
+                            tranY = new Vector3f(0, 1f, 0);
+                            tranZ = new Vector3f(0, 0, 1f);                          
+                            rotx = MutualInformation.toQuaternion((float)(Math.PI/180.0), 0,  0);
+                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/180.0),  0);
+                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/180.0));
+                            percentSample = 2f;
+                            rotNoiseScale = 0.1f;
+                            tranNoiseScale = 0.1f;
+                            doBlur = false;
                       }
-                      else if (failedSteps > 24 && stepPhase==1) {
+                      else if (failedSteps > 20 && stepPhase==1) {
                             failedSteps = 0;
                             stepPhase++;
-                            tranX = new Vector3f(0.2f, 0, 0);
-                            tranY = new Vector3f(0, 0.2f, 0);
-                            tranZ = new Vector3f(0, 0, 0.2f);                          
-                            rotx = MutualInformation.toQuaternion((float)(Math.PI/1440.0), 0,  0);
-                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/1440.0),  0);
-                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/1440.0));
+                            tranX = new Vector3f(0.5f, 0, 0);
+                            tranY = new Vector3f(0, 0.5f, 0);
+                            tranZ = new Vector3f(0, 0, 0.5f);                          
+                            rotx = MutualInformation.toQuaternion((float)(Math.PI/360.0), 0,  0);
+                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/360.0),  0);
+                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/360.0));
                             //rotNoiseScale = 0.5f;
-                           percentSample = 2.0f;
-                           rotNoiseScale *= 0.5f;
-                           tranNoiseScale *= 0.25;
+                           percentSample = 1.0f;
+                           rotNoiseScale = 0.05f;
+                           tranNoiseScale = 0.05f;
                            doBlur = false;
                       }
-                      else if (failedSteps > 24 && stepPhase==2) {
+                      else if (failedSteps > 20 && stepPhase==2) {
+                            failedSteps = 0;
+                            stepPhase++;
+                            tranX = new Vector3f(0.25f, 0, 0);
+                            tranY = new Vector3f(0, 0.25f, 0);
+                            tranZ = new Vector3f(0, 0, 0.25f);                          
+                            rotx = MutualInformation.toQuaternion((float)(Math.PI/360.0), 0,  0);
+                            roty = MutualInformation.toQuaternion(0, (float)(Math.PI/360.0),  0);
+                            rotz = MutualInformation.toQuaternion(0,  0, (float)(Math.PI/360.0));
+                            //rotNoiseScale = 0.5f;
+                           percentSample = 1.0f;
+                           rotNoiseScale = 0.025f;
+                           tranNoiseScale = 0.025f;
+                           doBlur = false;
+                      }
+                      else if (failedSteps > 40 && stepPhase==3) {
                           done = true;
                           model.setAttribute(command, false);
 
@@ -218,27 +243,36 @@ Vector3f noise = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.r
                               break;
                       }
                       
+                      System.out.println("Phase " + stepPhase);
+                      
                       if (n % 6 < 3) {
                           Quaternion.mul(origRot, rot, testRot1);
-                          Quaternion.mul(origRot, rot.negate(null), testRot2);
+                              testRot1.set(testRot1.x+rotnoise.x*rotNoiseScale, testRot1.y+rotnoise.y*rotNoiseScale, testRot1.z+rotnoise.z*rotNoiseScale, testRot1.w+rotnoise.w*rotNoiseScale);
+                              testRot1 = testRot1.normalise(null);
 
-                          model.getCtImage().setAttribute("ImageOrientationQ", testRot1);
+                          Quaternion.mul(origRot, rot.negate(null), testRot2);
+                              testRot2.set(testRot2.x+rotnoise2.x*rotNoiseScale, testRot2.y+rotnoise2.y*rotNoiseScale, testRot2.z+rotnoise2.z*rotNoiseScale, testRot2.w+rotnoise2.w*rotNoiseScale);
+                              testRot2 = testRot2.normalise(null);
+
+                          model.getCtImage().setAttribute("ImageOrientationQ", new Quaternion(testRot1));
 
                           float testResult1 = mutualInformation.calcMI(percentSample, doBlur);
 
-                          model.getCtImage().setAttribute("ImageOrientationQ", testRot2);
+                          model.getCtImage().setAttribute("ImageOrientationQ", new Quaternion(testRot2));
 
                           float testResult2 = mutualInformation.calcMI(percentSample, doBlur);
 
                           if (testResult1 > bestMI && testResult1 > testResult2) {
-                              origRot.set(testRot1.x+noise.x*rotNoiseScale, testRot1.y+noise.y*rotNoiseScale, testRot1.z+noise.z*rotNoiseScale, testRot1.w);
-                              origRot = origRot.normalise(null);
+//                              origRot.set(testRot1.x+noise.x*rotNoiseScale, testRot1.y+noise.y*rotNoiseScale, testRot1.z+noise.z*rotNoiseScale, testRot1.w);
+//                              origRot = origRot.normalise(null);
+                              origRot.set(testRot1);
                               mi = testResult1;
 //                              miText.setText(String.format("%1.3f", mi));
                           }
                           if (testResult2 > bestMI && testResult2 > testResult1) {
-                              origRot.set(testRot2.x+noise.x*rotNoiseScale, testRot2.y+noise.y*rotNoiseScale, testRot2.z+noise.z*rotNoiseScale, testRot2.w);
-                              origRot = origRot.normalise(null);
+//                              origRot.set(testRot2.x+noise.x*rotNoiseScale, testRot2.y+noise.y*rotNoiseScale, testRot2.z+noise.z*rotNoiseScale, testRot2.w);
+//                              origRot = origRot.normalise(null);
+                              origRot.set(testRot2);
                               mi = testResult2;
 //                              miText.setText(String.format("%1.3f", mi));
                           }
@@ -246,22 +280,26 @@ Vector3f noise = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.r
                       else {
                           Vector3f.add(origTran, tran, testTran1);
                           Vector3f.add(origTran, tran.negate(null), testTran2);
+                              testTran1.set(testTran1.x+noise.x*tranNoiseScale, testTran1.y+noise.y*tranNoiseScale, testTran1.z+noise.z*tranNoiseScale);
+                              testTran2.set(testTran2.x+noise2.x, testTran2.y+noise2.y, testTran2.z+noise2.z);
 
-                          model.getCtImage().setAttribute("ImageTranslation", testTran1);
+                          model.getCtImage().setAttribute("ImageTranslation", new Vector3f(testTran1));
 
                           float testResult1 = mutualInformation.calcMI(percentSample, doBlur);
 
-                          model.getCtImage().setAttribute("ImageTranslation", testTran2);
+                          model.getCtImage().setAttribute("ImageTranslation", new Vector3f(testTran2));
 
                           float testResult2 = mutualInformation.calcMI(percentSample, doBlur);
 
                           if (testResult1 > bestMI && testResult1 > testResult2) {
-                              origTran.set(testTran1.x+noise.x*tranNoiseScale, testTran1.y+noise.y*tranNoiseScale, testTran1.z+noise.z*tranNoiseScale);
+//                              origTran.set(testTran1.x+noise.x*tranNoiseScale, testTran1.y+noise.y*tranNoiseScale, testTran1.z+noise.z*tranNoiseScale);
+                              origTran.set(testTran1);
                               mi = testResult1;
 //                              miText.setText(String.format("%1.3f", mi));
                           }
                           if (testResult2 > bestMI && testResult2 > testResult1) {
-                              origTran.set(testTran2.x+noise.x, testTran2.y+noise.y, testTran2.z+noise.z);
+//                              origTran.set(testTran2.x+noise.x, testTran2.y+noise.y, testTran2.z+noise.z);
+                              origTran.set(testTran2);
                               mi = testResult2;
 //                              miText.setText(String.format("%1.3f", mi));
                           }
@@ -270,8 +308,8 @@ Vector3f noise = new Vector3f((float)((Math.random()-0.5)/10.0), (float)((Math.r
                       if (mi > bestMI) {
                             failedSteps = 0;
                             bestMI = mi;
-                            model.getCtImage().setAttribute("ImageTranslation", origTran);
-                            model.getCtImage().setAttribute("ImageOrientationQ", origRot);
+                            model.getCtImage().setAttribute("ImageTranslation", new Vector3f(origTran));
+                            model.getCtImage().setAttribute("ImageOrientationQ", new Quaternion(origRot));
                             
 //                            mutualInformation.updateTestImage(joinHistogram);
 //                            histoCanvas.setCTImage(joinHistogram);

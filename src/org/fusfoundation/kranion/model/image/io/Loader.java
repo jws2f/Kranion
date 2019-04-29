@@ -47,6 +47,7 @@ public class Loader implements Runnable {
     private static List<ImageLoader> loaders = new ArrayList<ImageLoader>();
     
     private File theFile=null;
+    private List<File> theFileList=null;
     private ProgressListener progressListener;
     private ImageVolume image = null;
     private ActionListener actionListener = null;
@@ -72,19 +73,44 @@ public class Loader implements Runnable {
         thread.start();
     }
     
+    public void load(List<File> files, String command, ProgressListener pl) {
+        theFileList = files;
+        progressListener = pl;
+        this.command = new String(command);
+        if (pl != null && (pl instanceof ActionListener))
+            actionListener = (ActionListener)pl;
+        
+        Thread thread = new Thread(this);
+        thread.setPriority(Thread.MIN_PRIORITY);
+        thread.start();
+    }
+    
     public ImageVolume getLoadedImage() { return image; }
     
     public void run() {
-        if (theFile != null) {
+        if (theFile != null || theFileList != null) {
             ImageVolume stuntImage = null;
 
-            
-            for (int i=0; i<loaders.size(); i++) {
-                if (loaders.get(i).probe(theFile) == 100) {
-                    stuntImage = loaders.get(i).load(theFile, progressListener);
-                    System.out.println("Loaded DICOM series");
-                    break;
+            if (theFile != null) {
+                for (int i=0; i<loaders.size(); i++) {
+                    if (loaders.get(i).probe(theFile) == 100) {
+                        stuntImage = loaders.get(i).load(theFile, progressListener);
+                        System.out.println("Loaded DICOM series");
+                        break;
+                    }
                 }
+            }
+            else if (theFileList != null) {
+                for (int i=0; i<loaders.size(); i++) {
+                    if (loaders.get(i).probe(theFileList.get(0)) == 100) {
+                        stuntImage = loaders.get(i).load(theFileList, progressListener);
+                        System.out.println("Loaded DICOM series");
+                        break;
+                    }
+                }
+            }
+            else {
+                return;
             }
             
             

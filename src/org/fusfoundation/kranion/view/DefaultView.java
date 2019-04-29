@@ -88,6 +88,7 @@ import java.lang.reflect.Constructor;
 import java.io.File;
 import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
+import java.util.Map;
 import java.util.Observable;
 import javax.swing.*;
 import javax.swing.filechooser.FileNameExtensionFilter;
@@ -117,11 +118,13 @@ import static org.lwjgl.opengl.GL20.glUniform3f;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 import java.util.prefs.Preferences;
+import org.fusfoundation.kranion.DicomSeriesDialog;
 import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.FlyoutDialog;
 import org.fusfoundation.kranion.GUIControlModelBinding;
 import org.fusfoundation.kranion.MessageBoxDialog;
 import org.fusfoundation.kranion.Rectangle;
+import org.fusfoundation.kranion.model.image.io.DicomImageLoader;
 
 
 
@@ -131,9 +134,10 @@ public class DefaultView extends View {
     @Override
     public void percentDone(String msg, int percent) {
         System.out.println(msg + " - " + percent + "%");
+        statusBar.setFormatString(msg + ": %3.0f%%");
         statusBar.setValue(percent);
         
-        if (Thread.currentThread() == this.myThread) {
+        if (Thread.currentThread() == this.myThread && statusBar.getIsDirty()) {
                     Main.update();
         }
     }
@@ -178,6 +182,7 @@ public class DefaultView extends View {
     private Cylinder mrBore, mrBoreOuter;
     private Ring mrBoreFront, mrBoreBack;
     private TransformationAdapter mrBoreTransform, frameTransform, frameOffsetTransform, steeringTransform;
+    private CrossHair crosshair, steeringCrossHair;
     
     private RenderList mrBoreGroup = new RenderList();
     
@@ -215,6 +220,7 @@ public class DefaultView extends View {
     private RenderLayer background = new RenderLayer(1);
     private RenderLayer mainLayer = new RenderLayer(8);
     private RenderLayer overlay = new RenderLayer(8);
+    private RenderLayer statusOverlay = new RenderLayer(8);
     
     private Framebuffer pickLayer = new Framebuffer();
     
@@ -223,6 +229,7 @@ public class DefaultView extends View {
     private FlyoutPanel flyout3 = new FlyoutPanel();
     
     private FileDialog fileDialog = new FileDialog();
+    private DicomSeriesDialog dicomSeriesDialog = new DicomSeriesDialog();
     private MessageBoxDialog messageDialog = new MessageBoxDialog("Quit Kranion?");
     
     private PullDownSelection sonicationSelector;
@@ -285,6 +292,7 @@ public class DefaultView extends View {
         selTrans = 0;
         drawingStyle = 0;
         
+        Keyboard.enableRepeatEvents(false);
         this.setAcceptsKeyboardFocus(true);
         Renderable.setDefaultKeyboardFocus(this);
         this.acquireKeyboardFocus();
@@ -429,6 +437,20 @@ public class DefaultView extends View {
         button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 125, 120, 25, controller);
         button.setTitle("Clip");
         button.setCommand("doClip");
+        button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(button);
+        flyout2.addChild("View", button);
+        
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 195, 120, 25, this);
+        button.setTitle("Transducer");
+        button.setCommand("showTransducer");
+        button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(button);
+        flyout2.addChild("View", button);
+        
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 230, 120, 25, this);
+        button.setTitle("Crosshair");
+        button.setCommand("showCrosshair");
         button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(button);
         flyout2.addChild("View", button);
@@ -905,7 +927,7 @@ public class DefaultView extends View {
         steeringTransformGroup.add(transducerModel);
         steeringTransformGroup.add(mrBoreTransform);
         
-        
+               
         globalTransformList.add(transRayTracer);
         
         background.setClearColor(0.22f, 0.25f, 0.30f, 1f);
@@ -925,10 +947,10 @@ public class DefaultView extends View {
         mainLayer.addChild(canvas);
         mainLayer.addChild(transFuncDisplayProxy); // this will trigger updates to mainLayer when the overlay widget is dirty
         mainLayer.addChild(new RenderableAdapter(transducerModel, "renderFocalSpot"));
-        mainLayer.addChild(new CrossHair(this.trackball));
+        mainLayer.addChild(crosshair = new CrossHair(this.trackball));
         
         
-        CrossHair steeringCrossHair = new CrossHair(this.trackball);
+        steeringCrossHair = new CrossHair(this.trackball);
         steeringCrossHair.setOffset(this.currentSteering.getLocation());
         steeringCrossHair.setStyle(1);
         
@@ -953,23 +975,27 @@ public class DefaultView extends View {
         flyout3.setAttachedToRenderable(canvas2);
         
         overlay.addChild(mprLayout);
-        mprLayout.addChild(canvas1);
-        mprLayout.addChild(canvas2);
-        mprLayout.addChild(canvas3);
+            mprLayout.addChild(canvas1);
+            mprLayout.addChild(canvas2);
+            mprLayout.addChild(canvas3);
         overlay.addChild(flyout1);
         overlay.addChild(flyout2);
         overlay.addChild(flyout3);
         overlay.addChild(fileDialog);
+        overlay.addChild(dicomSeriesDialog);
         overlay.addChild(messageDialog);
         overlay.addChild(activeElementsBar);
         overlay.addChild(sdrBar);
         overlay.addChild(beamBar);
-        overlay.addChild(statusBar);
         overlay.addChild(transFuncDisplay);
         overlay.addChild(tempPredictionIndicator);
         
         overlay.addChild(incidentAngleChart);
-        overlay.addChild(sdrChart);    
+        overlay.addChild(sdrChart);
+        
+        statusOverlay.setIs2d(true);
+        statusOverlay.setTag("DefaultView.status_overlay_layer");
+        statusOverlay.addChild(statusBar);
         
         currentTarget.setCommand("currentTargetPoint");
         currentTarget.setPropertyPrefix("Model.Attribute");
@@ -1022,6 +1048,7 @@ public class DefaultView extends View {
         scene.addChild(background);
         scene.addChild(mainLayer);
         scene.addChild(overlay);
+        scene.addChild(statusOverlay);
         
         scene.addChild(transition); // must be last to work properly
         
@@ -1738,6 +1765,29 @@ public class DefaultView extends View {
             this.doMRI = false;
             model.setAttribute("doMRI", doMRI);
         }
+        
+        try {
+            boolean doTransducer = (Boolean)model.getAttribute("showTransducer");
+            if (transducerModel != null) {
+                transducerModel.setVisible(doTransducer);
+            }
+        }
+        catch(NullPointerException e) {
+            model.setAttribute("showTransducer", true);
+        }
+        
+        try {
+            boolean doCrosshair = (Boolean)model.getAttribute("showCrosshair");
+            if (crosshair != null) {
+                crosshair.setVisible(doCrosshair);
+            }
+            if (steeringCrossHair != null) {
+                steeringCrossHair.setVisible(doCrosshair);
+            }
+        }
+        catch(NullPointerException e) {
+            model.setAttribute("showCrosshair", true);
+        }
 
         try {
             this.doFrame = (Boolean)model.getAttribute("doFrame");
@@ -1834,7 +1884,7 @@ public class DefaultView extends View {
     
     protected void preRenderSetup() {
         updateFromModel();
-        
+                
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
@@ -1957,7 +2007,7 @@ public class DefaultView extends View {
 //            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 //        }
 
-        transducerModel.setVisible(true);
+//        transducerModel.setVisible(true);
         if (doClip) {
             transducerModel.setClipped(true);
             transducerModel.setTrackball(trackball);
@@ -2331,7 +2381,13 @@ public class DefaultView extends View {
 
                             Trackball registerBall = null;
                             try {
-                                registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
+                                try {
+                                    registerBall = (Trackball) model.getMrImage(i).getAttribute("registerBall");
+                                }
+                                catch(ClassCastException cce) {
+                                    registerBall = null;
+                                }
+                                
                                 if (registerBall == null) {
                                     registerBall = new Trackball(Display.getWidth() / 2, Display.getHeight() / 2, Display.getHeight() / 2f);
                                     model.getMrImage(i).setAttribute("registerBall", registerBall, true);                                    
@@ -4012,14 +4068,24 @@ public class DefaultView extends View {
 //            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
 //            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 File ctfile = null;
-                fileDialog.setDialogTitle("Choose a CT DICOM file from desired series");
-                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
+                fileDialog.setDialogTitle("Choose a directory from which to import DICOM CT");
+                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_DIRECTORIES);
                 ctfile = fileDialog.open();
                 if (ctfile != null) {
                     System.out.println("Selected file: " + ctfile.getAbsolutePath());
 
-                    Loader ctloader = new Loader();
-                    ctloader.load(ctfile, "CT_IMAGE_LOADED", getController());
+                    DicomImageLoader dicomLoader = new DicomImageLoader();
+                    Map<String, DicomImageLoader.seriesDescriptor> descriptorMap = dicomLoader.scanDirectoryForSeries(ctfile, this);
+                    
+                    dicomSeriesDialog.populateList(descriptorMap);
+                    String selectedSeriesUID = dicomSeriesDialog.open();
+                    
+                    DicomImageLoader.seriesDescriptor desc = descriptorMap.get(selectedSeriesUID);
+                    
+                    if (desc != null && desc.sliceFiles.size() > 0) {                        
+                        Loader ctloader = new Loader();
+                        ctloader.load(desc.sliceFiles, "CT_IMAGE_LOADED", getController());
+                    }
                 }
                 break;
             case "loadMR":
@@ -4028,15 +4094,29 @@ public class DefaultView extends View {
 //            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
 //            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 File mrfile = null;
-                fileDialog.setDialogTitle("Choose a MR DICOM file from desired series");
-                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
+                fileDialog.setDialogTitle("Choose a directory from which to import DICOM MR");
+                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_DIRECTORIES);
                 mrfile = fileDialog.open();
                 if (mrfile != null) {
                     System.out.println("Selected file: " + mrfile.getAbsolutePath());
 
-                    Loader mrloader = new Loader();
-                    mrloader.load(mrfile, "MR_IMAGE_0_LOADED", getController());
-                }
+                    DicomImageLoader dicomLoader = new DicomImageLoader();
+                    Map<String, DicomImageLoader.seriesDescriptor> descriptorMap = dicomLoader.scanDirectoryForSeries(mrfile, this);
+                    
+                    dicomSeriesDialog.populateList(descriptorMap);
+                    String selectedSeriesUID = dicomSeriesDialog.open();
+                    
+                    DicomImageLoader.seriesDescriptor desc = descriptorMap.get(selectedSeriesUID);
+                    
+                    if (desc != null && desc.sliceFiles.size() > 0) {                        
+                        Loader mrloader = new Loader();
+                        mrloader.load(desc.sliceFiles, "MR_IMAGE_0_LOADED", getController());
+                    }                }
+                break;
+            case "showTransducer":
+            case "showCrosshair":
+                this.transducerModel.setVisible(!this.transducerModel.getVisible());
+                this.setDoTransition(true, 0.5f);
                 break;
         }
     }
@@ -4051,7 +4131,7 @@ public class DefaultView extends View {
         canvas.setTextureRotatation(CofR.translate(currentSteering.getXpos(), currentSteering.getYpos(), currentSteering.getZpos()), trackball);
 
         transRayTracer.setTextureRotatation(CofR, trackball);
-        transRayTracer.calcEnvelope(this.controller);
+        transRayTracer.calcEnvelope(this);
 
         canvas.setOverlayImage(transRayTracer.getEnvelopeImage());
         canvas1.setOverlayImage(transRayTracer.getEnvelopeImage());

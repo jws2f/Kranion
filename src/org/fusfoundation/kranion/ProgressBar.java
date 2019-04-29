@@ -106,7 +106,9 @@ public class ProgressBar extends GUIControl {
     @Override
     public void render() {
         
-        if (value < 0 || !getVisible()) return;
+        if (value < 0 || !getVisible()) {
+            return;
+        }
         
         Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT);
         

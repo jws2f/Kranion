@@ -306,23 +306,46 @@ public class FileDialog extends FlyoutDialog {
                 }
                 break;
             case "fileSelected":
-                File thisSelection = (File)(fileList.getSelected());
+                File thisSelection = (File)(fileList.getSelectedValue());
                 if (thisSelection != null) {
                     selectedFileDisplay.setText(thisSelection.getName());
                     okButton.setIsEnabled(true);
                 }
                 break;
             case "dirSelected":
-                populateLists((File)dirList.getSelected());
                 if (chooseMode == fileChooseMode.EXISTING_DIRECTORIES) {
-                    selectedFileDisplay.setText(currentLocation.getText());                    
+                    String selectedDisplayDirName = ((String)dirList.getSelectedKey());
+                    String selectedDirPath = ((File)dirList.getSelectedValue()).getPath();
+                    if (selectedDisplayDirName.equalsIgnoreCase("[Parent directory]")) {
+                        selectedFileDisplay.setText(selectedDirPath);
+                    }
+                    else {
+                        selectedFileDisplay.setText(currentLocation.getText() + File.separator + selectedDisplayDirName);
+                    }                    
                     okButton.setIsEnabled(true);
                 }
 //                else {
 //                    selectedFileDisplay.setText("");
 //                    okButton.setIsEnabled(false);
 //                }
-                ((DefaultView)Main.getView()).setDoTransition(true);
+                ((DefaultView)Main.getView()).setDoTransition(true, 0.3f);
+                break;
+            case "doubleClick":
+                if (e.getSource() instanceof ListControl) {
+                    ListControl lc = (ListControl)e.getSource();
+                    if (lc == dirList) {
+                        populateLists((File)dirList.getSelectedValue());
+                        if (chooseMode == fileChooseMode.EXISTING_DIRECTORIES) {
+                            selectedFileDisplay.setText(currentLocation.getText());                    
+                            okButton.setIsEnabled(true);
+                        }
+                    }
+                    else if (lc == fileList) {
+                        selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
+                        flyin();
+                        isClosed = true;
+                    }
+                }
                 break;
             case "rootSelected":
                 populateLists(new File(rootSelector.getItem(rootSelector.getSelectionIndex())));

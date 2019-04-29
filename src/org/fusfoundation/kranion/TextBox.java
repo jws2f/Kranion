@@ -63,6 +63,7 @@ public class TextBox extends GUIControl implements Animator {
     public TextBox() {
         textfont = stdfont;
         this.setAcceptsKeyboardFocus(true);
+        setIsDirty(true);
     }
     
     public TextBox(float x, float y, float width, float height, String text) {
@@ -70,6 +71,7 @@ public class TextBox extends GUIControl implements Animator {
         textfont = stdfont;
         this.setText(text);
         this.setAcceptsKeyboardFocus(true);
+        setIsDirty(true);
     }
     
     public TextBox(float x, float y, float width, float height, String text, ActionListener listener) {
@@ -78,6 +80,7 @@ public class TextBox extends GUIControl implements Animator {
         this.setText(text);
         this.addActionListener(listener);
         this.setAcceptsKeyboardFocus(true);
+        setIsDirty(true);
     }
     
     public void setText(String text) {
@@ -87,10 +90,12 @@ public class TextBox extends GUIControl implements Animator {
         else {
             this.text = new String(text);
         }
+        setIsDirty(true);
     }
     
     public void setTextFont(Font font) {
         textfont = font;
+        setIsDirty(true);
     }
     
     public void setTextHorzAlignment(HPosFormat hpos){
@@ -205,7 +210,7 @@ public class TextBox extends GUIControl implements Animator {
     @Override
     public void render() {
         
-        if (!this.getVisible()) return;
+        if (!this.getVisible() ) return;
         
         float scale = getGuiScale();
         if (scale != labelScale) {
@@ -367,7 +372,26 @@ public class TextBox extends GUIControl implements Animator {
             setIsDirty(true);
         }
     }
-
+    
+    // Normally auto repeated keys are filtered out.
+    // For the TextBox we enable autorepeats when it
+    // gets the keyboard focus
+    @Override
+    public boolean acquireKeyboardFocus() {
+        if (super.acquireKeyboardFocus()) {
+            Keyboard.enableRepeatEvents(true);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    
+    @Override
+    public void lostKeyboardFocus() {
+        super.lostKeyboardFocus();
+        Keyboard.enableRepeatEvents(false);
+    }
 
     @Override
     public boolean isAnimationDone() {

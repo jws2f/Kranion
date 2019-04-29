@@ -172,7 +172,7 @@ public class VrInputStream implements VrReader {
             if (vrType == VR.UL || vrType == VR.SL || vrType == VR.FL) {
                 swab(buf, 4);
             }
-            else if (vrType == VR.US || vrType == VR.SS || vrType == VR.OW || vrType == VR.AT) {
+            else if (vrType == VR.US || vrType == VR.SS || vrType == VR.OW || vrType == VR.OB || vrType == VR.AT) {
                 swab(buf, 2);
             }
             else if (vrType == VR.FD) {

@@ -669,10 +669,12 @@ public class Main implements ProgressListener {
     }
     
     public void nextFrame() {
+        boolean wasRendered = false;
         if (Display.isVisible()) {
             // manage rendering into double buffer
             if (view.getIsDirty()) {
-                bufferNeedsRendering[0] = bufferNeedsRendering[1] = bufferNeedsRendering[2] = true;
+//                bufferNeedsRendering[0] = bufferNeedsRendering[1] = bufferNeedsRendering[2] = true;
+                bufferNeedsRendering[currentBuffer] = true;
             }
 
             if (bufferNeedsRendering[currentBuffer]) {
@@ -680,6 +682,7 @@ public class Main implements ProgressListener {
 
                 // Render the scene
                 view.render();
+                wasRendered = true;
             }
             else {
                 doBackgroundWorkers();                
@@ -690,8 +693,18 @@ public class Main implements ProgressListener {
 
         Display.processMessages();
         Display.update();
-        Display.sync(60);
-        currentBuffer = (currentBuffer + 1) % 3; // keep track of front/back buffers        
+//        Display.sync(60);
+        currentBuffer = (currentBuffer + 1) % 3; // keep track of front/back buffers
+
+        try {
+            if (!wasRendered) {
+                Thread.sleep(10);
+            }
+            else {
+                Display.sync(60);
+            }
+        }
+        catch(Exception e) {}
     }
     
     public static void checkForGLErrorAndThrow() {

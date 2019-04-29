@@ -53,6 +53,10 @@ public class CrossHair extends Renderable
     @Override
     public void render() {
         
+        if (!this.getVisible()) {
+            return;
+        }
+        
         glMatrixMode(GL_MODELVIEW);
         Main.glPushMatrix();
         

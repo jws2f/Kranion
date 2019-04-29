@@ -57,7 +57,9 @@ public class ListControl extends GUIControl {
     private int vscroll = 0;
     private float normVscroll = 0;
     private int hoverItem = -1;
+    private int selectedItem = -1;
     private boolean mouseButton1down = false;
+    private long previousClickTime = -1;
 
     private class Pair implements Comparable<Pair>{
         public Pair(String key, Object val) {
@@ -90,14 +92,33 @@ public class ListControl extends GUIControl {
         return normVscroll;
     }
     
-    public Object getSelected() {
-        if (hoverItem != -1 && hoverItem < items.size()) {
-            return items.get(hoverItem).value;
+    public int getSelected() {
+        if (selectedItem != -1 && selectedItem < items.size()) {
+            return selectedItem;
+        }
+        else {
+            return -1;
+        }
+    }
+    
+    public Object getSelectedKey() {
+        if (selectedItem != -1 && selectedItem < items.size()) {
+            return items.get(selectedItem).key;
         }
         else {
             return null;
         }
     }
+
+    public Object getSelectedValue() {
+        if (selectedItem != -1 && selectedItem < items.size()) {
+            return items.get(selectedItem).value;
+        }
+        else {
+            return null;
+        }
+    }
+    
     public void addItem(String name, Object value) {
         items.add(new Pair(name, value));
         setIsDirty(true);
@@ -120,6 +141,7 @@ public class ListControl extends GUIControl {
     
     public void clear() {
         items.clear();
+        hoverItem = selectedItem = -1;
         setIsDirty(true);
 }
 
@@ -155,8 +177,21 @@ public class ListControl extends GUIControl {
                 else if (!button1down && mouseButton1down) {
                     mouseButton1down = false;
                     ungrabMouse();
-                    fireActionEvent();
+                    
+                    selectedItem = hoverItem;
                     hoverItem = -1;
+                    
+                    long now = System.currentTimeMillis();
+                    if (previousClickTime > 0 && now - previousClickTime < 300) {
+                        fireActionEvent("doubleClick");
+                        System.out.println("dbClick interval: " + (now - previousClickTime));
+                        this.previousClickTime = -1;
+                    }
+                    else {
+                        fireActionEvent();
+                        System.out.println("Click interval: " + (now - previousClickTime));
+                        previousClickTime = now;
+                    }
                     setIsDirty(true);
                     
                     return true;
@@ -238,12 +273,23 @@ public class ListControl extends GUIControl {
                     int selected = 0;           
                     for (Pair item: items) {
                         
-                        if (itemBounds.intersection(bounds).height >= 0) {
+                        if (itemBounds.intersection(bounds).height > 0) {
 
 
                             if (selected == hoverItem) {
                                 glBegin(GL_QUADS);
                                 glColor4f(0.3f, 0.3f, 0.3f, 1);
+                                glNormal3f(0f, 0f, 1f);
+                                glVertex2f(itemBounds.x, itemBounds.y);
+                                glVertex2f(itemBounds.x + itemBounds.width, itemBounds.y);
+                                glVertex2f(itemBounds.x + itemBounds.width, itemBounds.y + itemBounds.height);
+                                glVertex2f(itemBounds.x, itemBounds.y + itemBounds.height);
+                                glEnd();
+                            }
+                            
+                            if (selected == selectedItem) {
+                                glBegin(GL_QUADS);
+                                glColor4f(0.2f, 0.6f, 0.2f, 0.6f);
                                 glNormal3f(0f, 0f, 1f);
                                 glVertex2f(itemBounds.x, itemBounds.y);
                                 glVertex2f(itemBounds.x + itemBounds.width, itemBounds.y);

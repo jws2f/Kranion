@@ -109,6 +109,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         while (i.hasNext()) {
             Renderable child = i.next();
             if (child.getIsDirty()) {
+//                System.out.println("  Dirty child: " + child);
                 return true;
             }
         }

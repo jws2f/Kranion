@@ -72,11 +72,16 @@ public class FlyoutDialog extends FlyoutPanel {
     protected boolean isClosed = true;
 
     public FlyoutDialog() {
+        setVisible(false);
         this.children.clear();
     }
     
     @Override
     public void render() {
+        if (!isVisible) return;
+        
+//        System.out.println("render(): " + this);
+        
         setIsDirty(false);
                 
         Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT | GL_LINE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT);
@@ -155,7 +160,7 @@ public class FlyoutDialog extends FlyoutPanel {
     @Override
     public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
 
-        if (flyScale < 1f) {
+        if (!isVisible || flyScale < 1f) {
             return false;
         }
         
@@ -209,12 +214,14 @@ public class FlyoutDialog extends FlyoutPanel {
     public void show() {
         this.grabMouse(0f, 0f);
         bringToTop();
+        this.setVisible(true);
         flyout();
         isClosed = false;
         while(!isClosed || !anim.isAnimationDone()) {
             Main.processNextFrame();
         }
         this.ungrabMouse();
+        this.setVisible(false);
     }
 
     @Override

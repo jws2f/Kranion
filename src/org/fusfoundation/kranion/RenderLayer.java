@@ -44,14 +44,17 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
     
 //    private boolean isDirty = true;
     
-    public RenderLayer() {   
+    public RenderLayer() {
+        setIsDirty(false);
     }
+    
     public RenderLayer(int nMSAA) {
         setOversample(nMSAA);
+        setIsDirty(false);
     }
     
     private void setOversample(int nMSAA) {
-        if (oversample != nMSAA) {
+        if (oversample != nMSAA && children.size() > 0) {
             setIsDirty(true);
         }
         oversample = Math.max(1, nMSAA);
@@ -86,6 +89,7 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
     public boolean getIs2D() { return this.is2D; }
     
     public void  setSize(int width, int height, int nMSAA) {
+//        System.out.println("Render Layer Resize " + this.getTag());
         setOversample(nMSAA);
         setSize(width, height);
     }

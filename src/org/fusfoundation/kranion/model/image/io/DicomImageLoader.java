@@ -39,6 +39,7 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import org.fusfoundation.dicom.DicomDate;
 import org.lwjgl.util.vector.Vector3f;
 
 /**
@@ -75,6 +76,8 @@ public class DicomImageLoader implements ImageLoader {
         } catch (IOException e) {
             return null;
         } catch (DicomException e) {
+            return null;
+        } catch (Exception e) {
             return null;
         }
 
@@ -115,6 +118,643 @@ public class DicomImageLoader implements ImageLoader {
         }
         
         return ImagePositionPatient;
+    }
+    
+    public class seriesDescriptor {
+        public String patientName;
+        public String modality;
+        public String acquisitionDate;
+        public String protocolName;
+        public String seriesDescription;
+        public List<File> sliceFiles;
+        
+        public seriesDescriptor() {
+            patientName = "";
+            modality = "";
+            acquisitionDate = "";
+            protocolName = "";
+            sliceFiles = new LinkedList<File>();
+        }
+    }
+    
+    protected String safeGetVRStringValue(DicomObject obj, String key) {
+        String result;
+        try {
+            result = obj.getVR(key).getValue().toString();
+        }
+        catch(NullPointerException e) {
+            result = null;
+        }
+        
+        return result;
+    }
+    
+    public Map<String, seriesDescriptor> scanDirectoryForSeries(File file, ProgressListener listener) {
+                File parentDir = new File(file.getParent());
+                File[] listOfFiles;
+                Map<String, seriesDescriptor> seriesMap = new HashMap<>();
+                
+                if (file.isDirectory()) {
+                    listOfFiles = file.listFiles();
+                }
+                else {
+                    listOfFiles = parentDir.listFiles();
+                }
+
+                for (int i = 0; i < listOfFiles.length; i++) {
+                    File theFile = listOfFiles[i];
+                    
+                    if (theFile.isFile()) {
+                        DicomObject selectedDicomObj = openDicomFile(listOfFiles[i], false);
+                        if (selectedDicomObj != null) {
+                            String seriesUID;
+                            seriesUID = safeGetVRStringValue(selectedDicomObj, "SeriesInstanceUID");
+
+                            if (seriesUID != null) {
+                                seriesDescriptor descriptor = seriesMap.get(seriesUID);
+                                if (descriptor == null) {
+                                    descriptor = new seriesDescriptor();
+                                    seriesMap.put(seriesUID, descriptor);
+                                }
+
+                                descriptor.sliceFiles.add(theFile);
+                                descriptor.modality = safeGetVRStringValue(selectedDicomObj, "Modality");
+                                descriptor.protocolName = safeGetVRStringValue(selectedDicomObj, "ProtocolName");
+                                descriptor.patientName = safeGetVRStringValue(selectedDicomObj, "PatientName");
+                                descriptor.acquisitionDate = safeGetVRStringValue(selectedDicomObj, "AcquisitionDate");
+                                descriptor.seriesDescription = safeGetVRStringValue(selectedDicomObj, "SeriesDescription");
+                                String filterName = safeGetVRStringValue(selectedDicomObj, "ConvolutionKernel");
+                                if (filterName != null) {
+                                    descriptor.seriesDescription = descriptor.seriesDescription + " - " + filterName;
+                                }
+                            }
+
+                        }
+                    }
+                    
+                    if (listener != null) {
+                        System.out.println("scanning " + i + " of " + listOfFiles.length);
+                        listener.percentDone("Scanning for dicom series", (int)Math.round((double)(i+1)/(listOfFiles.length)*100.0));
+                    }
+                    
+                }
+                
+                if (listener != null) {
+                    listener.percentDone("Ready", -1);
+                }
+                
+                return seriesMap;
+        
+    }
+    
+    // load a dicom series from a list of files, sort them by slice position
+    public ImageVolume load(List<File> listOfFiles, ProgressListener listener) {
+        ImageVolume image = null;
+       
+                
+        try {
+            
+            DicomObject selectedDicomObj = openDicomFile(listOfFiles.get(0));
+            String selectedSeriesUID = null;
+            float[] ImageNormal; ImageNormal = new float[3];
+            float[] ImageOrientationPatient; ImageOrientationPatient = new float[6];
+            float[] ImagePositionPatient = new float[3];
+            
+            float sliceZ=0f;
+            
+            if (selectedDicomObj != null) {
+System.out.println(selectedDicomObj);
+                selectedSeriesUID = selectedDicomObj.getVR("SeriesInstanceUID").getStringValue();
+                System.out.println("Selected series = " + selectedSeriesUID);
+                
+                
+                ImageOrientationPatient = getImageOrientationPatient(selectedDicomObj);
+
+                ImageNormal[0] = ImageOrientationPatient[1] * ImageOrientationPatient[5] - ImageOrientationPatient[2] * ImageOrientationPatient[4];
+                ImageNormal[1] = ImageOrientationPatient[2] * ImageOrientationPatient[3] - ImageOrientationPatient[0] * ImageOrientationPatient[5];
+                ImageNormal[2] = ImageOrientationPatient[0] * ImageOrientationPatient[4] - ImageOrientationPatient[1] * ImageOrientationPatient[3];
+                
+                ImagePositionPatient = getImagePositionPatient(selectedDicomObj);
+                try {
+                for (int index =0; index < 3; index++) {
+                    System.out.println("ImagePositionPatient[" + index + "] = " + ImagePositionPatient[index]);
+                    
+                    sliceZ += ImagePositionPatient[index] * ImageNormal[index];
+                }
+                }
+                catch(NullPointerException e) {
+                    sliceZ = 0;
+                }
+                
+                System.out.println("slice Z = " + sliceZ);
+            }
+            
+            if (selectedDicomObj != null && selectedSeriesUID != null) {
+            
+ 
+                List<Float> slicePositions = new ArrayList<>();
+                List<String> sliceFiles = new ArrayList<>();
+                TreeMap<Float, File> positionsFiles = new TreeMap<>();
+                                
+                Iterator<File> fileIterator = listOfFiles.iterator();
+                
+                int sliceCount=0; // counter
+                while(fileIterator.hasNext()) {
+                    
+                    File sliceFile = fileIterator.next();
+
+                    if (sliceFile.isFile()) {
+                        System.out.println(sliceFile.getName());
+                    }
+                    else {
+                        continue;
+                    }
+                                    
+                    // Is it a DICOM file? Try to parse it.
+                    DicomObjectReader dor = null;
+                    DicomObject obj = openDicomFile(sliceFile, false); // Don't need to read pixel data in this first loop
+                    if (obj == null) {
+                        continue;
+                    }
+                    
+//                    System.out.println(obj);
+                                        
+//                    float slicePosition = sliceZ;
+//                    try {
+//                        slicePosition = obj.getVR("SliceLocation").getFloatValue();
+//                        System.out.println("Slice position = " + slicePosition);
+//                    }
+//                    catch(Exception e) {
+//                        continue;
+//                    }
+
+                    try {
+                        System.out.print(obj.getVR("Modality").getStringValue() + " -- ");
+                    } catch (Exception e) {}
+                    try {
+                        System.out.print(obj.getVR("ProtocolName").getStringValue() + " -- ");
+                    } catch (Exception e) {}
+                    try {
+                        System.out.print(obj.getVR("AcquisitionDate").getDateValue());
+                    } catch (Exception e) {}
+                    System.out.println();
+                    
+                    // Make sure we include files from the same dicom series
+                    if (obj.getVR("SeriesInstanceUID") == null || selectedSeriesUID.compareTo(obj.getVR("SeriesInstanceUID").getStringValue()) != 0) {
+                        continue;
+                    }
+                    
+                    
+                    // Slice
+                    // Get/Check image orientation for each slice in the series
+                    try {
+                        ImageOrientationPatient = getImageOrientationPatient(obj);
+//                        for (int index=0; index<6; index++) {
+//                            if (ImageOrientationPatient[index] != obj.getVR("ImageOrientationPatient").getFloatValue(index)) {
+//                                continue;
+//                            }
+//                        }
+                    }
+                    catch(Exception e) {
+                        continue;
+                    }
+                    
+                    // Query slice position in patient coordinate system
+                    //float[] ImagePositionPatient;
+                    ImagePositionPatient = new float[3];
+                    float sliceNormalOffset = 0.0f;
+                    try {
+                        if (obj.getVR("ImagePositionPatient") != null) {
+                            ImagePositionPatient = getImagePositionPatient(obj);
+                            for (int index = 0; index < 3; index++) {
+                                //                            ImagePositionPatient[index] = obj.getVR("ImagePositionPatient").getFloatValue(index);
+                                //                            System.out.println("ImagePositionPatinet[" + index + "] = " + ImagePositionPatient[index]);
+                                //                            
+                                sliceNormalOffset += ImagePositionPatient[index] * ImageNormal[index];
+                            }
+                        }
+//                        else if (obj.getVR("SliceThickness") != null) {
+//                            sliceNormalOffset = (float)obj.getVR("SliceThickness").getFloatValue() * sliceCount;
+//                        }
+                        else {
+                            throw new DicomException("No slice position information found.");
+                        }
+                    }
+                    catch(Exception e) {
+                        continue;
+                    }
+                                         
+                    sliceFiles.add(sliceFile.getPath());
+                                     
+                    System.out.println("Slice position = " + sliceNormalOffset);
+                    slicePositions.add(new Float(sliceNormalOffset));
+                    
+                    positionsFiles.put(sliceNormalOffset, sliceFile);
+                    
+                    if (listener != null) {
+                        listener.percentDone("Scanning dicom headers", (int)Math.round((double)(sliceCount+1)/(listOfFiles.size())*100.0));
+                    }
+                    
+                    sliceCount++;
+                }
+                
+                
+                Iterator<String> fileNamesIter = sliceFiles.iterator();
+                System.out.println("Selected series file names:");
+                while(fileNamesIter.hasNext()) {
+                    System.out.println(fileNamesIter.next());
+                }
+                System.out.println("/n");
+                
+                Object[] positions = slicePositions.toArray();
+                
+                
+                Set s = positionsFiles.entrySet();
+                
+                // save the pixel dimensions of the central slice.
+                // Any slices in this series that don't match will be zeroed out
+                // Sometimes there is an initial slice with resampling graphics and
+                // we want to filter that out.
+                float centerXres = 0;
+                float centerYres = 0;
+                Object entries[] = s.toArray();
+                if (entries.length>0) {
+                    Map.Entry centerSlice = (Map.Entry)entries[entries.length/2];
+                    File centerFile = (File)centerSlice.getValue();
+                    DicomObject obj = openDicomFile(centerFile, false);
+                    if (obj != null) {
+                        try {
+                            centerXres = obj.getVR("PixelSpacing").getFloatValue(0);
+                            centerYres = obj.getVR("PixelSpacing").getFloatValue(1);
+                        }
+                        catch(Exception e) {
+                            centerXres = 0f;
+                            centerYres = 0f;
+                        }
+                    }
+                }
+                
+                
+                Iterator iter = s.iterator();
+                         
+                float ImagePositionPatientRoot[] = new float[3]; // coord of top left corner of first image plane
+                
+                for (int i=0; iter.hasNext()==true; i++) {                  
+                    
+                    Map.Entry entry = (Map.Entry)iter.next();
+                    
+                    System.out.println("slice position stored = " + (float)entry.getKey());
+                    
+                    File sliceFile = (File)entry.getValue();
+
+                //// Hack to save series files somewhere in order, GE randomizes them on CD
+//                    System.out.println(sliceFile);
+//                    String destPath = "H:\\CT Data\\image" + i + ".dcm";
+//                    Path src = Paths.get(sliceFile.getPath());
+//                    Path dst = Paths.get(destPath);
+//                    Files.copy(src, dst);
+                    
+                    
+                    DicomObject obj = openDicomFile(sliceFile);
+                    
+                    if (i==0) {
+                        System.out.println(obj);
+                    }
+                    
+                    if (obj == null) {
+                        return null;
+                    }
+                    
+                    if (i==s.size()/2) {
+//                        try {
+//                            image.setAttribute("WindowWidth", obj.getVR("WindowWidth").getFloatValue());
+//                            image.setAttribute("WindowCenter", obj.getVR("WindowCenter").getFloatValue());
+//                        }
+//                        catch(Exception e) {} // TODO: fix exception handling here for missing tags
+//
+                        float xres;
+                        float yres;
+                        
+                        float sliceThickness;
+                        
+                        try {
+                            xres = obj.getVR("PixelSpacing").getFloatValue(0);
+                            yres = obj.getVR("PixelSpacing").getFloatValue(1);
+                        }
+                        catch(Exception e) {
+                            xres = 1f;
+                            yres = 1f;
+                        }
+                        
+                        Object[] pos = positionsFiles.entrySet().toArray();
+                        if (pos.length > 1) {
+                            int midIndex = pos.length/2;
+                            float loc1 = (Float)(((Map.Entry)pos[midIndex+1]).getKey());
+                            float loc0 = (Float)(((Map.Entry)pos[midIndex]).getKey());
+                            sliceThickness = Math.abs(loc1 - loc0);
+                            
+//                            for (int t=0; t<pos.length; t++) {
+//                                System.out.println("Slice pos " + t + " (" + ((File)((Map.Entry)pos[t]).getValue()).getName() + ") = " + (Float)(((Map.Entry)pos[t]).getKey()));
+//                            }
+                        }
+                        else {
+                            sliceThickness = obj.getVR("SliceThickness").getFloatValue();
+                        }
+                        
+                        float zres = sliceThickness;
+                        System.out.println(xres + " x " + yres + " x " + zres);
+                        
+                        image.getDimension(0).setSampleSpacing(xres);
+                        image.getDimension(1).setSampleSpacing(yres);
+                        image.getDimension(2).setSampleSpacing(zres);
+                        
+                        image.getDimension(0).setSampleWidth(xres);
+                        image.getDimension(1).setSampleWidth(yres);
+                        image.getDimension(2).setSampleWidth(zres);
+                    }                    
+                    else if (i==0) {
+                        System.out.println("ImageVolume init");
+                        
+                        int cols;
+                        int rows;
+                        
+                            cols = obj.getVR("Columns").getIntValue();
+                            rows = obj.getVR("Rows").getIntValue();
+                            
+                        System.out.println(cols + " x " + rows + " x " + positions.length );
+                            
+//                        try {
+//                            sliceThickness = obj.getVR("SliceThickness").getFloatValue();
+//                        }
+//                        catch (Exception e) {
+//                            sliceThickness = 1.0f;
+//                        }
+                        
+                        
+                        ImagePositionPatientRoot = getImagePositionPatient(obj);
+//                        for (int index=0; index<3; index++) {
+//                            ImagePositionPatientRoot[index] = obj.getVR("ImagePositionPatient").getFloatValue(index);
+//                       }
+                        
+                        
+                        // Put the image volume center at the origin for now
+                        ImagePositionPatientRoot[0] = 0;
+                        ImagePositionPatientRoot[1] = 0;
+                        ImagePositionPatientRoot[2] = 0;
+
+                        image = new ImageVolume4D(ImageVolume.USHORT_VOXEL, cols, rows, positions.length, 1);
+                        
+                        try {
+                            image.setAttribute("PatientName", obj.getVR("PatientName").getValue());
+                            image.setAttribute("PatientID", obj.getVR("PatientID").getValue());
+                            image.setAttribute("PatientBirthDate", obj.getVR("PatientBirthDate").getValue());
+                            image.setAttribute("PatientSex", obj.getVR("PatientSex").getValue());
+                            image.setAttribute("AcquisitionDate", obj.getVR("AcquisitionDate").getValue());
+                            image.setAttribute("AcquisitionTime", obj.getVR("AcquisitionTime").getValue());
+                            image.setAttribute("InstitutionName", obj.getVR("InstitutionName").getValue());
+                        }
+                        catch(Exception e) {} // TODO: fix exception handling here for missing tags
+                        
+                        try {
+                            image.setAttribute("ProtocolName", obj.getVR("ProtocolName").getValue());
+                        }
+                        catch(Exception e) {
+                        }
+
+                        try {
+                            image.setAttribute("ImageOrientation", ImageOrientationPatient);
+                            image.setAttribute("ImagePosition", ImagePositionPatientRoot);
+                            image.setAttribute("ImageTranslation", new Vector3f(ImagePositionPatientRoot[0], ImagePositionPatientRoot[1], ImagePositionPatientRoot[2]));
+                        }
+                        catch(Exception e) {} // TODO: fix exception handling here for missing tags
+                        
+                        try {
+                            VR vr = obj.getVR("WindowWidth");
+                            int multiplicity = vr.getValueMultiplicity();
+                            if (multiplicity > 0) {
+                                image.setAttribute("WindowWidth", vr.getFloatValue(multiplicity-1));                                
+                            }
+                            else {
+                                image.setAttribute("WindowWidth", vr.getFloatValue());
+                            }
+
+                            vr = obj.getVR("WindowCenter");
+                            multiplicity = vr.getValueMultiplicity();
+                            if (multiplicity > 0) {
+                                image.setAttribute("WindowCenter", vr.getFloatValue(multiplicity-1));
+                            }
+                            else {
+                                image.setAttribute("WindowCenter", vr.getFloatValue());
+                            }
+                        }
+                        catch(Exception e) {} // TODO: fix exception handling here for missing tags
+                        
+                        try {
+                            image.setAttribute("RescaleIntercept", obj.getVR("RescaleIntercept").getFloatValue());
+                            image.setAttribute("RescaleSlope", obj.getVR("RescaleSlope").getFloatValue());
+                        }
+                        catch (Exception e) {
+                            image.setAttribute("RescaleIntercept", 0f);
+                            image.setAttribute("RescaleSlope", 1f);
+                        }
+                        
+                        System.out.println("ImageVolume init done");
+                    }
+                    
+                    System.out.println("Set DICOM attributes on ImageVolume");
+                    
+//                    float thick = obj.getVR("SliceThickness").getFloatValue();
+                    
+//                    System.out.println("SliceThickness = " + thick);
+                        float xres;
+                        float yres;
+                        
+                        float sliceThickness;
+                        
+                        try {
+                            xres = obj.getVR("PixelSpacing").getFloatValue(0);
+                            yres = obj.getVR("PixelSpacing").getFloatValue(1);
+                        }
+                        catch(Exception e) {
+                            xres = 0f;
+                            yres = 0f;
+                        }
+                        
+                        boolean sliceMisMatch = (xres != centerXres) || (yres != centerYres);
+
+                    float sliceTime = 0f;
+                    try {
+                        //sliceTime = obj.getVR("TriggerTime").getFloatValue();
+                        sliceTime = obj.getVR("InstanceNumber").getFloatValue() % 40;
+                    }
+                    catch (Exception e) {}
+                    
+                    System.out.println("InstanceNumber = " + sliceTime);
+                    
+                    float slicePosition = 0f;
+                    try {
+                        slicePosition = obj.getVR("SliceLocation").getFloatValue();
+                    }
+                    catch(Exception e) {}
+                    
+                    System.out.println("SliceLocation = " + slicePosition);
+                    
+                    float sliceTE = 0f;
+                    try {
+                        VR vr = obj.getVR("EchoTime");
+                        System.out.println("Got EchoTime VR");
+                        if (vr != null) {
+                            sliceTE = obj.getVR("EchoTime").getFloatValue();
+                        }
+                    }
+                    catch(Exception e) {
+                        System.out.println("No EchoTime attr");
+                    }
+                    
+                    System.out.println("EchoTime = " + sliceTE);                                                                                                  
+                                        
+//                    image.getDimension(2).setSamplePosition(i, (Float)entry.getKey());
+//                    
+//                    float sliceThickness = 0.0f;
+//                    Object[] pos = positionsFiles.entrySet().toArray();
+//                    if (pos.length > 1) {
+//                        int midIndex = pos.length/2;
+//                        float loc1 = (Float)(((Map.Entry)pos[midIndex+1]).getKey());
+//                        float loc0 = (Float)(((Map.Entry)pos[midIndex]).getKey());
+//                        sliceThickness = Math.abs(loc1 - loc0);
+//                    }
+//                    else {
+//                        sliceThickness = obj.getVR("SliceThickness").getFloatValue();
+//                    }
+//                    image.getDimension(2).setSampleWidth(sliceThickness);
+                    
+                    short[] voxelData = (short[])image.getData();
+                    byte[] sliceData = obj.getVR("PixelData").getValueBytes();
+                    if (sliceData != null && sliceData.length == 0) {
+                        List frames = obj.getVR("PixelData").getImageFrames();
+                        if (frames != null && frames.size() > 0) {
+                            sliceData = (byte[])frames.get(0);
+                        }
+                    }
+                    
+                    boolean bLosslessJPEG = false;
+                    
+                    VR tsVR = obj.getVR("TransferSyntaxUID");
+                    if (tsVR != null) {
+                        String transferSyntax = tsVR.getStringValue();
+                        if (transferSyntax.endsWith(".70")) {
+                            bLosslessJPEG = true;
+                        }
+                    }
+                    
+                    short[] outData = null;
+                    if (bLosslessJPEG) {
+                        Parse.DecompressedOutput decomOutput = new Parse.DecompressedOutput(null ,ByteOrder.BIG_ENDIAN);
+                        Parse.parse(new ByteArrayInputStream(sliceData), null, null, decomOutput);
+
+                        int ncomponents = decomOutput.getDecompressedOutputPerComponent().length;
+
+                        OutputArrayOrStream[] compStreams = decomOutput.getDecompressedOutputPerComponent();
+
+                        outData = compStreams[0].getShortArray();
+                    }
+                    
+                    
+//                    LJPEGDecoder decoder = new LJPEGDecoder();
+//                    decoder.setInputStream(new ByteArrayInputStream(sliceData));
+//                    int cols = obj.getVR("Columns").getIntValue();
+//                    int rows = obj.getVR("Rows").getIntValue();
+//                    ByteArrayOutputStream bytesOut = new ByteArrayOutputStream(rows * cols * 2);
+//                    decoder.setOutputStream(bytesOut);
+//                    decoder.decodeImageHeader();
+//                    decoder.decodeImageData();                  
+//                    sliceData = bytesOut.toByteArray();
+
+                    int signedPixelRep = 1;
+                    try {
+                        signedPixelRep = obj.getVR("PixelRepresentation").getIntValue();
+                    }
+                    catch(Exception e) {}
+                    
+                    if (signedPixelRep != 1) {
+//                        throw new Exception("Unsupported PixelRepresentation. Only Signed pixel values supported currently;");                                
+                    }
+                    
+                    int pixelPaddingValue = Integer.MIN_VALUE;
+                    try {
+                        pixelPaddingValue = obj.getVR("PixelPaddingValue").getIntValue();
+                    }
+                    catch(Exception e) {}
+                    
+                    int frameSize = image.getDimension(0).getSize() * image.getDimension(1).getSize();
+                    int offset = (s.size() - 1 - i)*frameSize;
+                    
+                    int min=9999999;
+                    int max=0;
+                    for (int v = 0; v < frameSize; v++) {
+                        if (!sliceMisMatch) {
+                            if (!bLosslessJPEG) {
+                                //            voxelData[offset + v] = (short)((((int)sliceData[v*2] & 0xff) << 8 | ((int)sliceData[v*2 + 1] & 0xff)) & 0xfffL);
+
+                                // handle pixel padding value if given for CT
+                                short rawValue;
+                                if (signedPixelRep == 1) {
+                                    rawValue = (short) ((sliceData[v * 2] & 0xff) << 8 | (sliceData[v * 2 + 1] & 0xff));
+                                    if (rawValue < 0) {
+                                        rawValue = 0; // in the signed case, we don't handle negative pixel values. Typically zero will get rescaled to -1024:Air
+                                    }
+                                } else {
+                                    rawValue = (short) ((sliceData[v * 2] & 0xff) << 8 | (sliceData[v * 2 + 1] & 0xff));
+                                }
+
+                                if (rawValue == pixelPaddingValue) {
+                                    rawValue = 0;
+                                }
+//                            if (rawValue < 0) rawValue = 0;
+                                voxelData[offset + v] = rawValue;
+                                //int val = v%4096;
+                                //voxelData[offset + v] = (short)(((int)val & 0xff) << 8 | ((int)val & 0xff));
+                                int val = voxelData[offset + v] & 0x0fff;
+                                if (val > max) {
+                                    max = val;
+                                }
+                                if (val < min) {
+                                    min = val;
+                                }
+                            } else {
+                                voxelData[offset + v] = (short) (outData[v]);
+                            }
+                        } else {
+                            voxelData[offset + v] = 0; // sometimes this is one image prepended that has resampling grid graphics and doesn't match resolution
+                        }
+                    }
+                    
+                    System.out.println("Image min = " + min + " max = " + max);
+                    
+                    System.out.println("Loaded " + (int)Math.round((double)(i+1)/(positions.length)*100.0));
+                    
+                    if (listener != null) {
+                        listener.percentDone("Loading dicom image data", (int)Math.round((double)(i+1)/(positions.length)*100.0));
+                    }
+
+                }
+                                                 
+             }
+            
+            if (listener != null) {
+                listener.percentDone("Ready.", -1);
+            }            
+
+            return image;
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            if (listener != null) {
+                listener.percentDone("Error loading dicom image series", -1);
+            }
+            image = null;
+            return image;
+        }
     }
     
     public ImageVolume load(File file, ProgressListener listener) {
@@ -196,6 +836,17 @@ System.out.println(selectedDicomObj);
 //                    catch(Exception e) {
 //                        continue;
 //                    }
+
+                    try {
+                        System.out.print(obj.getVR("Modality").getStringValue() + " -- ");
+                    } catch (Exception e) {}
+                    try {
+                        System.out.print(obj.getVR("ProtocolName").getStringValue() + " -- ");
+                    } catch (Exception e) {}
+                    try {
+                        System.out.print(obj.getVR("AcquisitionDate").getDateValue());
+                    } catch (Exception e) {}
+                    System.out.println();
                     
                     // Make sure we include files from the same dicom series
                     if (obj.getVR("SeriesInstanceUID") == null || selectedSeriesUID.compareTo(obj.getVR("SeriesInstanceUID").getStringValue()) != 0) {

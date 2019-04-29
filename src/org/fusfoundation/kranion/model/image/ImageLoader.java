@@ -24,6 +24,7 @@
 package org.fusfoundation.kranion.model.image;
 
 import java.io.File;
+import java.util.List;
 import org.fusfoundation.kranion.ProgressListener;
 
 /**
@@ -33,4 +34,4 @@ import org.fusfoundation.kranion.ProgressListener;
 public interface ImageLoader {
     public int probe(File file);
     public ImageVolume load(File file, ProgressListener listener);
-}
+    public ImageVolume load(List<File> files, ProgressListener listener);}
