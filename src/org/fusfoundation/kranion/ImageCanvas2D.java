@@ -117,7 +117,7 @@ public class ImageCanvas2D extends GUIControl {
 
     private static int centerUniform = 0, windowUniform = 0, thresholdUniform = 0;
 //    private static int shaderprogram = 0;
-    private ShaderProgram shader;
+    private ShaderProgram shader, shaderGray;
     
     private boolean showMR = true;
 
@@ -127,7 +127,9 @@ public class ImageCanvas2D extends GUIControl {
     private boolean rightMouseButtonDown = false;
     
     private boolean displayPosition = false;
-
+    private boolean targetingEnabled = true;
+    private boolean useGrayScale = false; // default is "green" scale
+    
     /**
      * Creates a new instance of ImageCanvasGL
      */
@@ -165,6 +167,14 @@ public class ImageCanvas2D extends GUIControl {
             setIsDirty(true);
         }
         canvasSize = size;
+    }
+    
+    public void setTargetingEnabled(boolean flag) {
+        this.targetingEnabled = flag;
+    }
+    
+    public void setUseGrayScale(boolean flag) {
+        useGrayScale = flag;
     }
     
     public Vector2f getCanvasPosition() { return new Vector2f(canvasX, canvasY); }
@@ -537,6 +547,12 @@ public class ImageCanvas2D extends GUIControl {
             shader.release();
             shader = null;
         }
+        
+        if (shaderGray != null)
+        {
+            shaderGray.release();
+            shaderGray = null;
+        }
     }
 
     private int nextPowerOfTwo(int value) {
@@ -633,6 +649,10 @@ public class ImageCanvas2D extends GUIControl {
 
             Quaternion imageOrientation = (Quaternion)image.getAttribute("ImageOrientationQ");
             if (imageOrientation == null) return;
+            
+            if (orientation==-1) {
+                imageOrientation = new Quaternion().setIdentity();
+            }
             
             FloatBuffer orientBuffer = BufferUtils.createFloatBuffer(16);
 		Trackball.toMatrix4f(imageOrientation).store(orientBuffer);
@@ -1213,7 +1233,7 @@ public class ImageCanvas2D extends GUIControl {
 
         glMatrixMode(GL_MODELVIEW);
         Main.glPushMatrix();
-        glLoadIdentity();
+//        glLoadIdentity();
         
         glColor4d(0.7, 0.7, 0.9, 1.0);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -1259,8 +1279,13 @@ public class ImageCanvas2D extends GUIControl {
             zres = CTimage.getDimension(2).getSampleWidth(2);
            
             int shaderprogram = 0;
-            if (shader != null) {
-                shaderprogram = shader.getShaderProgramID();
+            if (shader != null && shaderGray != null) {
+                if (useGrayScale) {
+                    shaderprogram = shaderGray.getShaderProgramID();
+                }
+                else {
+                    shaderprogram = shader.getShaderProgramID();
+                }
             }
             
             if (shaderprogram != 0) {
@@ -1359,15 +1384,18 @@ public class ImageCanvas2D extends GUIControl {
         
         float yoff = Vector3f.dot(imagePlaneY, centerOfRotation);
         float ypos = canvasSize/2.0f - yoff*(canvasSize/canvasFOV);
-        glBegin(GL_LINES);
-                glColor4f(0.3f, 0.8f, 0.3f, 0.3f);
-                
-                glVertex3d(xpos+canvasX, canvasY+canvasSize, 0.0);
-                glVertex3d(xpos+canvasX, canvasY, 0.0);
-                
-                glVertex3d(canvasX+canvasSize, ypos+canvasY, 0.0);
-                glVertex3d(canvasX,       ypos+canvasY, 0.0);
-       glEnd();
+        
+        if (targetingEnabled) {
+            glBegin(GL_LINES);
+                    glColor4f(0.3f, 0.8f, 0.3f, 0.3f);
+
+                    glVertex3d(xpos+canvasX, canvasY+canvasSize, 0.0);
+                    glVertex3d(xpos+canvasX, canvasY, 0.0);
+
+                    glVertex3d(canvasX+canvasSize, ypos+canvasY, 0.0);
+                    glVertex3d(canvasX,       ypos+canvasY, 0.0);
+           glEnd();
+        }
         
         Main.glPopAttrib();
 
@@ -1380,7 +1408,7 @@ public class ImageCanvas2D extends GUIControl {
         
         glMatrixMode(GL_MODELVIEW);
 
-        if (CTimage != null && displayPosition) {
+        if (CTimage != null && displayPosition && targetingEnabled) {
             glEnable(GL_BLEND);
             glBlendFuncSeparate (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
             Rectangle textRect = new Rectangle(bounds);
@@ -1503,11 +1531,12 @@ public class ImageCanvas2D extends GUIControl {
 
     public void initShaders() {
 
-        if (shader != null) {
+        if (shader != null && shaderGray != null) {
             return;
         } // already compiled the shader
         
         shader = new ShaderProgram();
+        shaderGray = new ShaderProgram();
 
         String vsrc = "void main(void)\n"
                 + "{\n"
@@ -1557,12 +1586,60 @@ public class ImageCanvas2D extends GUIControl {
                 + "        color.a = 1;\n"
                 + "        gl_FragColor = color * ovlyColor;\n"
                 + "}";
-      
+        
+        String fsrcGray = "#version 120 \n"
+                + "uniform float center;\n"
+                + "uniform float window;\n"
+                + "uniform float mr_center;\n"
+                + "uniform float mr_window;\n"
+                + "uniform float mr_rescale_intercept;\n"
+                + "uniform float mr_rescale_slope;\n"
+                + "uniform float ct_rescale_intercept;\n"
+                + "uniform float ct_rescale_slope;\n"
+                + "uniform float threshold;\n"
+                + "uniform int showMR;\n"
+                + "uniform sampler3D ct_tex;\n"
+                + "uniform sampler3D mr_tex;\n"
+                + "uniform sampler3D ovly_tex;\n"
+                + "void main(void)\n"
+                + "{\n"
+                + "       vec4 color;\n"
+                + "        float ctsample = texture3D(ct_tex, gl_TexCoord[0].stp).r * 65535.0 * ct_rescale_slope + ct_rescale_intercept;\n"
+                + "        float mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 65535.0 * mr_rescale_slope + mr_rescale_intercept;\n"
+                + "//        if (ctsample < threshold-150 && (showMR!=1 || mrsample < threshold))\n"
+                + "//           discard;\n"
+                + "        float ovlyTexVal = texture3D(ovly_tex, gl_TexCoord[2].stp).r; // * 32767.0;\n"
+                + "        vec4 ovlyColor = vec4(1.0);\n"
+                + "        if (ovlyTexVal > 699.0) {\n"
+                + "            ovlyColor = vec4(0.3, 1.0, 0.3, 1.0);\n"
+                + "        }\n"
+                + "        else if (ovlyTexVal > 499.0) {\n"
+                + "            ovlyColor = vec4(1, 1, 0.3, 1.0);\n"
+                + "        }\n"
+                + "        else if (ovlyTexVal > 399.0) {\n"
+                + "            ovlyColor = vec4(1.0, 0.7, 0.7, 1.0);\n"
+                + "        }\n"
+                + "        float ctval = (ctsample - center)/(window) + 0.5;\n"
+                + "        float mrval = (mrsample - mr_center)/(mr_window) + 0.5;\n"
+                + "        color.rgb = vec3(ctval, ctval, ctval);\n"
+                + "        if (showMR==1 && ctsample < threshold) \n"
+                + "             color.rgb = vec3(mrval);\n"
+                + "        color.a = 1;\n"
+                + "        gl_FragColor = color * ovlyColor;\n"
+                + "}";
+        
         shader.addShaderSourceString(GL_VERTEX_SHADER, vsrc);
 
         shader.addShaderSourceString(GL_FRAGMENT_SHADER, fsrc);
         
         shader.compileShaderProgram();
+        
+        
+        shaderGray.addShaderSourceString(GL_VERTEX_SHADER, vsrc);
+        
+        shaderGray.addShaderSourceString(GL_FRAGMENT_SHADER, fsrcGray);
+        
+        shaderGray.compileShaderProgram();
 
         shader.start();
         

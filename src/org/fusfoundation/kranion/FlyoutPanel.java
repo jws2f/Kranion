@@ -210,6 +210,8 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
         bringToTop();
 //        System.out.println("flyout" + flyScale);
         anim.set(flyScale, 1f, (1f - flyScale) * 0.7f);
+        tabbedPanel.bringToTop();
+        this.pinButton.bringToTop();
     }
     
     protected void flyin() {

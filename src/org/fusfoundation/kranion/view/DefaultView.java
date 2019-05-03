@@ -243,6 +243,7 @@ public class DefaultView extends View {
     private float transitionTime = 0.5f;
     
     private MRCTRegister imageregistration;
+    private XYChartControl registrationChart;
 
     // So plugins have access to implemented file choosing mechanism
     @Override
@@ -507,14 +508,32 @@ public class DefaultView extends View {
         
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 445, 240, 150, 25, this).setTitle("Filter CT").setCommand("filterCT"));
 
-        Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 10, 205, 125, 25, this);
-        regButton.setTitle("Registration").setCommand("registerMRCT").setTag("registerMRCT");
+        Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 80, 205, 150, 25, this);
+        regButton.setTitle("Register").setCommand("registerMRCT").setTag("registerMRCT");
         regButton.setPropertyPrefix("Model.Attribute");
-        flyout2.addChild("View", regButton);
         
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 10, 170, 200, 25, this).setTitle("Close").setCommand("close"));
         
-        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 200, 25, this).setTitle("Exit").setCommand("exit"));
+        flyout2.addChild("Registration", regButton);
+        
+        Button regLabel = (Button)new Button(Button.ButtonType.BUTTON, 80, 150, 120, 25,  this).setTitle("Moving image");
+        regLabel.setDrawBackground(false);
+        flyout2.addChild("Registration", regLabel);
+        flyout2.addChild("Registration", transducerPatternSelector = (PullDownSelection)new PullDownSelection(200, 150, 250, 25, this).setTitle("Moving image").setTag("movingImageSel"));
+        
+        regLabel = (Button)new Button(Button.ButtonType.BUTTON, 80, 110, 120, 25,  this).setTitle("Static image");
+        regLabel.setDrawBackground(false);
+        flyout2.addChild("Registration", regLabel);
+        flyout2.addChild("Registration", transducerPatternSelector = (PullDownSelection)new PullDownSelection(200, 110, 250, 25, this).setTitle("Static image").setTag("staticImageSel"));
+        
+        registrationChart = new XYChartControl(500, 10, 500, 250);
+        registrationChart.newChart("Iteration", "Normalized MI", 7);
+        registrationChart.addSeries("MI", new double[1], new double[1], new Vector4f(0.7f, 0.7f, 0.7f, 1f), false);
+        registrationChart.generateChart();
+
+        flyout2.addChild("Registration", registrationChart);
+        
+        flyout2.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 200, 25, this).setTitle("Exit").setCommand("exit").setTag("exitButton"));
         
         Button verButton = new Button(Button.ButtonType.BUTTON, 1450, 0, 200, 25, this);
         verButton.setTitle("Build " + Main.getRbTok("app.version") + ":" + Main.getRbTok("app.build"));
@@ -588,6 +607,7 @@ public class DefaultView extends View {
         slider1.setCurrentValue(0);
         flyout2.addChild("View", slider1);
         model.addObserver(slider1);
+        
         
         Button envelopeCalcButton = new Button(Button.ButtonType.BUTTON, 1250, 175, 150, 25, this);
         envelopeCalcButton.setTitle("Calc Envelope");
@@ -1040,7 +1060,7 @@ public class DefaultView extends View {
         CoordinateWidget widget = new CoordinateWidget();
         widget.setTrackball(trackball);
         overlay.addChild(widget);
-              
+                      
         background.setSize(Display.getWidth(), Display.getHeight());
         overlay.setSize(Display.getWidth(), Display.getHeight());
         mainLayer.setSize(Display.getWidth(), Display.getHeight());
@@ -2674,6 +2694,7 @@ public class DefaultView extends View {
             
             switch(event.getPropertyName()) {
                 case "Model.CtImage":
+                    updateMRlist(); // update pull down lists in registration tab
                     setDisplayCTimage(model.getCtImage());
                                 
                     model.setAttribute("doMRI", true);
@@ -2685,6 +2706,7 @@ public class DefaultView extends View {
                     setDoTransition(true);
                     return;
                 case "Model.MrImage[0]":
+                    updateMRlist();
                     setDisplayMRimage(model.getMrImage(0));
                     return;
                 case "rayCalc":
@@ -2994,19 +3016,49 @@ public class DefaultView extends View {
     private void updateMRlist() {
         System.out.println("updateMRList");
         
+        // registration image selection lists too
+        PullDownSelection sel1 = (PullDownSelection)Renderable.lookupByTag("movingImageSel");
+        if (sel1 != null) {
+            sel1.clear();
+            sel1.addItem(0, "CT", model.getCtImage());
+            sel1.setSelectionIndex(0);
+        }
+        
+        PullDownSelection sel2 = (PullDownSelection)Renderable.lookupByTag("staticImageSel");
+        if (sel2 != null) {
+            sel2.clear();
+            sel2.addItem(0, "CT", model.getCtImage());
+        }
+        
         this.mrSeriesSelector.clear();
         mrSeriesSelector.setTitle("MR Series");
         for (int i=0; i<model.getMrImageCount(); i++) {
             try {
                 mrSeriesSelector.addItem(i, model.getMrImage(i).getAttribute("ProtocolName").toString());
+                
+                // registration image selection lists too
+                if (sel1 != null) {
+                    sel1.addItem("MR - " + model.getMrImage(i).getAttribute("ProtocolName").toString(), model.getMrImage(i));
+                }
+                if (sel2 != null) {
+                    sel2.addItem("MR - " + model.getMrImage(i).getAttribute("ProtocolName").toString(), model.getMrImage(i));
+                    sel2.setSelectionIndex(1);
+                }
             }
             catch(Exception e) {
                 mrSeriesSelector.addItem(i, "Unspecified MR protocol");                
-            }
+                 if (sel1 != null) {
+                    sel1.addItem("MR - " + "Unspecified MR protocol", model.getMrImage(i));
+                }
+                if (sel2 != null) {
+                    sel2.addItem("MR - " + "Unspecified MR protocol", model.getMrImage(i));
+                }
+           }
         }
 //        if (mrSeriesSelector.getSelectionIndex() != 0) {
             mrSeriesSelector.setSelectionIndex(0);
 //        }
+
     }
     
     private void updateSonicationList() {
@@ -3941,6 +3993,7 @@ public class DefaultView extends View {
                         model.setAttribute("currentTargetSteering", new Vector3f());
                         model.setAttribute("currentSonication", -1);
                         updateSonicationList();
+                        updateMRlist();
                     }
                 }
                 break;
@@ -3988,6 +4041,14 @@ public class DefaultView extends View {
             case "registerMRCT":
                 Button registerButton = (Button) Renderable.lookupByTag("registerMRCT");
                 if (registerButton.getIndicator()) {
+                    PullDownSelection volsel = (PullDownSelection)Renderable.lookupByTag("movingImageSel");
+                    if (volsel!= null) {
+                        this.imageregistration.setMovingImage((ImageVolume)volsel.getAttachment(volsel.getSelectionIndex()));
+                    }
+                    volsel = (PullDownSelection)Renderable.lookupByTag("staticImageSel");
+                    if (volsel!= null) {
+                        this.imageregistration.setStaticImage((ImageVolume)volsel.getAttachment(volsel.getSelectionIndex()));
+                    }
                     Main.startBackgroundWorker("MRCTRegister");
                 } else {
                     Main.stopBackgroundWorker("MRCTRegister");
@@ -4118,6 +4179,11 @@ public class DefaultView extends View {
                 this.transducerModel.setVisible(!this.transducerModel.getVisible());
                 this.setDoTransition(true, 0.5f);
                 break;
+            case "registrationUpdated":
+                registrationChart.newChart("Iteration", "Normalized MI", 7);
+                registrationChart.addSeries("MI", imageregistration.getXData(), imageregistration.getYData(), new Vector4f(0.55f, 0.8f, 0.55f, 1f), false);
+                registrationChart.generateChart();
+            break;
         }
     }
     

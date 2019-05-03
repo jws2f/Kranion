@@ -101,8 +101,17 @@ public class MutualInformation {
     
     private void initBuffers(float percentSample) {
     
+        if (CTimage == null || MRimage == null) return;
+        
+        // choose the smaller size image volume to pick percent sampling size
+        
+        int imagesize1 = ((short[])(CTimage.getData())).length;
+        int imagesize2 = ((short[])(MRimage.getData())).length;
+        
+        int smallestSize = imagesize1 < imagesize2 ? imagesize1 : imagesize2;
+        
         // input sampling point array
-        int size = (int)(((short[])(CTimage.getData())).length * (percentSample / 100f)); // 2% subsampling of the volume for building histogram
+        int size = (int)(smallestSize * (percentSample / 100f)); // subsampling of the volume for building histograms
         
         if (sampleCount != size) {
             sampleCount = size;

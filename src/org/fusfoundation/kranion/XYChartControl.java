@@ -152,6 +152,8 @@ public class XYChartControl extends GUIControl {
                 RenderingHints.VALUE_FRACTIONALMETRICS_ON);
 
         chart.paint(gc, image.getWidth(), image.getHeight());
+        
+        setIsDirty(true);
     }
 
     @Override

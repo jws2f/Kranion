@@ -60,7 +60,8 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
     private boolean button1pressed = false;
     private boolean button1released = false;
 
-    private ArrayList<String> items = new ArrayList<String>();
+    private final ArrayList<String> items = new ArrayList<>();
+    private final ArrayList<Object> attachments = new ArrayList<>();
     
     public PullDownSelection(int x, int y, int width, int height) {
         setBounds(x, y, width, height);
@@ -82,17 +83,32 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
     }
     
     public void addItem(String item) {
+        addItem(item, null);
+    }
+    
+    public void addItem(String item, Object atmt) {
         items.add(item);
+        attachments.add(atmt);
         setIsDirty(true);
     }
     
     public void setItem(int i, String item) {
+        setItem(i, item, null);
+    }
+    
+    public void setItem(int i, String item, Object atmt) {
         items.set(i, item);
+        attachments.set(i, atmt);
         setIsDirty(true);
     }
     
     public void addItem(int i, String item) {
+        addItem(i, item, null);
+    }
+    
+    public void addItem(int i, String item, Object atmt) {
         items.add(i, item);
+        attachments.add(i, atmt);
         setIsDirty(true);
     }
     
@@ -101,7 +117,21 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
     }
     
     public String getItem(int index) {
-        return items.get(index);
+        try {
+            return items.get(index);
+        }
+        catch(ArrayIndexOutOfBoundsException e) {
+            return null;
+        }
+    }
+    
+    public Object getAttachment(int index) {
+        try {
+            return attachments.get(index);
+        }
+        catch(ArrayIndexOutOfBoundsException e) {
+            return null;
+        }
     }
     
     public int getItemCount() {
@@ -121,6 +151,7 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
     
     public void clear() {
         items.clear();
+        attachments.clear();
         selectedItem = -1;
         hoverItem = -1;
         setTitle("");

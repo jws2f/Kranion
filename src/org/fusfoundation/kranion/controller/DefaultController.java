@@ -145,6 +145,32 @@ public class DefaultController extends Controller {
                 npe.printStackTrace();
             }
         }        
+        else if (e.getActionCommand().equals("CTcenter")) {
+            try {
+                org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
+                slider.doBinding(model);
+                
+                if (model.getCtImage() != null) {
+                    model.getCtImage().setAttribute("WindowCenter", slider.getCurrentValue());
+                }
+            }
+            catch(NullPointerException npe) {
+                npe.printStackTrace();
+            }
+        }        
+        else if (e.getActionCommand().equals("CTwindow")) {
+            try {
+                org.fusfoundation.kranion.Slider slider = (org.fusfoundation.kranion.Slider)e.getSource();
+                slider.doBinding(model);
+                
+                if (model.getCtImage() != null) {
+                    model.getCtImage().setAttribute("WindowWidth", slider.getCurrentValue());
+                }
+            }
+            catch(NullPointerException npe) {
+                npe.printStackTrace();
+            }
+        }
 //        else if (e.getActionCommand().equals("loadCT")) {
 //            JFileChooser fileChooser = new JFileChooser();
 //            fileChooser.setDialogTitle(new String("Choose CT file..."));

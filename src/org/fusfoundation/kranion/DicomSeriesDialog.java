@@ -27,9 +27,12 @@ import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import javax.swing.JFileChooser;
+import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.fusfoundation.kranion.model.image.io.DicomImageLoader;
 import org.fusfoundation.kranion.view.DefaultView;
 
@@ -47,12 +50,13 @@ public class DicomSeriesDialog extends FlyoutDialog {
     private Button cancelButton = new Button(Button.ButtonType.BUTTON, 125, 10, 100, 25, this);
     private TextBox titleDisplay = new TextBox();
     private static Font titleFont = new Font("Helvetica", Font.PLAIN | Font.TRUETYPE_FONT, 20);
+    private ImageCanvas2D canvas;
     
     private int selectedSeries = -1;
     private String selectedSeriesUID = "";
             
     public DicomSeriesDialog() {
-        this.setBounds(0, 0, 512, 256);
+        this.setBounds(0, 0, 600, 256);
         this.setFlyDirection(direction.SOUTH);
         
         selectedFileDisplay.setText("");
@@ -77,6 +81,10 @@ public class DicomSeriesDialog extends FlyoutDialog {
         addChild(selectedFileDisplay);
         addChild(titleDisplay);
         
+        canvas = new ImageCanvas2D();
+        canvas.setBounds(450, 0, 256, 256);
+        addChild(canvas);
+        
         seriesScroll.setCommand("seriesScroll");
         seriesScroll.addActionListener(this);
         
@@ -98,7 +106,11 @@ public class DicomSeriesDialog extends FlyoutDialog {
         selectedFileDisplay.acquireKeyboardFocus();
         okButton.setIsEnabled(false);
         
+        canvas.setCTImage(null);
+        
         show();
+        
+        canvas.setCTImage(null);
         
         return selectedSeriesUID;
     }
@@ -112,7 +124,8 @@ public class DicomSeriesDialog extends FlyoutDialog {
         while(i.hasNext()) {
             String seriesUID = i.next();
             DicomImageLoader.seriesDescriptor descriptor = series.get(seriesUID);
-            if (descriptor != null) {
+            if (descriptor != null && descriptor.modality != null
+                    && (descriptor.modality.equalsIgnoreCase("CT") || descriptor.modality.equalsIgnoreCase("MR"))) {
                 String itemText = new String(descriptor.patientName);
                 if (descriptor.modality != null) {
                     itemText = itemText + " - " + descriptor.modality;
@@ -130,7 +143,7 @@ public class DicomSeriesDialog extends FlyoutDialog {
                     itemText = itemText + " - " + descriptor.acquisitionDate;
                 }
                 
-                seriesList.addItem(itemText, seriesUID);
+                seriesList.addItem(itemText, descriptor);
             }
         }    
 
@@ -153,8 +166,12 @@ public class DicomSeriesDialog extends FlyoutDialog {
                 }
                 break;
             case "OK":
+                flyin();
+                isClosed = true;
+                break;
             case "CANCEL":
                 flyin();
+                selectedSeriesUID = null;
                 isClosed = true;
                 break;
             case "seriesScroll":
@@ -164,12 +181,60 @@ public class DicomSeriesDialog extends FlyoutDialog {
                 }
                 break;
             case "seriesSelected":
-                selectedFileDisplay.setText((String)seriesList.getSelectedValue());
-                selectedSeriesUID = (String)seriesList.getSelectedValue();
+                DicomImageLoader.seriesDescriptor selectedSeries = (DicomImageLoader.seriesDescriptor)seriesList.getSelectedValue();
+                selectedFileDisplay.setText(selectedSeries.seriesUID);
+                selectedSeriesUID = selectedSeries.seriesUID;
                 this.selectedSeries = seriesList.getSelected();
                 System.out.println("Selected series: " + selectedSeries + ": " + selectedSeriesUID);
                 if (selectedFileDisplay.getText().length() > 0) {
                     okButton.setIsEnabled(true);
+                    
+                    ImageVolume previewImage = null;
+                    
+                    // Try to identify the central slice in the selected series.
+                    // The file list is not sorted at this point so we have to search.
+                    try {
+                        float min = Float.MAX_VALUE;
+                        float max = Float.MIN_VALUE;
+                        for (float pos : selectedSeries.sliceLocations) {
+                            if (pos < min) min = pos;
+                            if (pos > max) max = pos;
+                        }
+                        float mid = (max - min)/2 + min;
+
+                        int bestSlice=-1;
+                        float minDist = Float.MAX_VALUE;
+                        for (int i=0; i<selectedSeries.sliceLocations.size(); i++) {
+                            float dist = Math.abs(selectedSeries.sliceLocations.get(i) - mid);
+                            if (dist < minDist) {
+                                bestSlice = i;
+                                minDist = dist;
+                            }
+                        }
+
+                        File centerSlice = selectedSeries.sliceFiles.get(bestSlice);
+                        List<File> slicesToLoad = new ArrayList<>(1); // fake list with one slice
+                        slicesToLoad.add(centerSlice);
+                        
+                        DicomImageLoader loader = new DicomImageLoader();
+                        previewImage = loader.load(slicesToLoad, null);
+                    }
+                    catch(Exception e2) {
+                        previewImage = null; // something bad happened
+                    }
+                    
+                    canvas.setCTImage(previewImage); // loading everythin into the CT channel regardless of modality
+                    canvas.setOrientation(-1);
+                    canvas.setCTThreshold(-1024);
+                    canvas.setMRThreshold(-1024);
+                    try {
+                        canvas.setCenterWindow(((Float)previewImage.getAttribute("WindowCenter")).intValue(), ((Float)previewImage.getAttribute("WindowWidth")).intValue());
+                        canvas.setCTrescale(((Float)previewImage.getAttribute("RescaleSlope")).intValue(), ((Float)previewImage.getAttribute("RescaleIntercept")).intValue());
+                    }
+                    catch(Exception e3) {
+                        // image didn't have center/window tags
+                    }
+                    canvas.setShowMR(true);
                 }
                 else {
                     okButton.setIsEnabled(false);
@@ -202,7 +267,7 @@ public class DicomSeriesDialog extends FlyoutDialog {
         okButton.setBounds(bounds.width - 220, 10, 100, 25);
         cancelButton.setBounds(bounds.width - 110, 10, 100, 25);
         
-        seriesList.setBounds(10, 50, bounds.width - 50, bounds.height - 150);
+        seriesList.setBounds(10, 50, bounds.width - (50+256), bounds.height - 150);
         dirLabel.setBounds(10, 50+bounds.height-150, seriesList.getBounds().width, 25);
         
         Rectangle listBounds = seriesList.getBounds();
@@ -213,6 +278,13 @@ public class DicomSeriesDialog extends FlyoutDialog {
         selectedFileDisplay.setBounds(150, 10, bounds.width - 380, 25);
         
         titleDisplay.setBounds(10, bounds.height-50, bounds.width-20, 50);
+        
+        canvas.setCanvasSize(256);
+        canvas.setTargetingEnabled(false);
+        canvas.setUseGrayScale(true);
+        canvas.setCanvasPosition(seriesScroll.getBounds().x + seriesScroll.getBounds().width + 5, seriesScroll.getBounds().y + seriesScroll.getBounds().height - 256, 256, 256);
+        
+        canvas.bringToTop();
     }
     
 }

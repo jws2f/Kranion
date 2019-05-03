@@ -121,19 +121,23 @@ public class DicomImageLoader implements ImageLoader {
     }
     
     public class seriesDescriptor {
+        public String seriesUID;
         public String patientName;
         public String modality;
         public String acquisitionDate;
         public String protocolName;
         public String seriesDescription;
         public List<File> sliceFiles;
+        public List<Float> sliceLocations;
         
         public seriesDescriptor() {
+            seriesUID = "";
             patientName = "";
             modality = "";
             acquisitionDate = "";
             protocolName = "";
             sliceFiles = new LinkedList<File>();
+            sliceLocations = new LinkedList<Float>();
         }
     }
     
@@ -177,7 +181,15 @@ public class DicomImageLoader implements ImageLoader {
                                     seriesMap.put(seriesUID, descriptor);
                                 }
 
+                                Float sliceLocation = null;
+                                try {
+                                    sliceLocation = new Float(selectedDicomObj.getVR("SliceLocation").getFloatValue());
+                                }
+                                catch(Exception e) {}
+                                
                                 descriptor.sliceFiles.add(theFile);
+                                descriptor.sliceLocations.add(sliceLocation);
+                                descriptor.seriesUID = seriesUID;
                                 descriptor.modality = safeGetVRStringValue(selectedDicomObj, "Modality");
                                 descriptor.protocolName = safeGetVRStringValue(selectedDicomObj, "ProtocolName");
                                 descriptor.patientName = safeGetVRStringValue(selectedDicomObj, "PatientName");
@@ -425,54 +437,8 @@ System.out.println(selectedDicomObj);
                         return null;
                     }
                     
-                    if (i==s.size()/2) {
-//                        try {
-//                            image.setAttribute("WindowWidth", obj.getVR("WindowWidth").getFloatValue());
-//                            image.setAttribute("WindowCenter", obj.getVR("WindowCenter").getFloatValue());
-//                        }
-//                        catch(Exception e) {} // TODO: fix exception handling here for missing tags
-//
-                        float xres;
-                        float yres;
-                        
-                        float sliceThickness;
-                        
-                        try {
-                            xres = obj.getVR("PixelSpacing").getFloatValue(0);
-                            yres = obj.getVR("PixelSpacing").getFloatValue(1);
-                        }
-                        catch(Exception e) {
-                            xres = 1f;
-                            yres = 1f;
-                        }
-                        
-                        Object[] pos = positionsFiles.entrySet().toArray();
-                        if (pos.length > 1) {
-                            int midIndex = pos.length/2;
-                            float loc1 = (Float)(((Map.Entry)pos[midIndex+1]).getKey());
-                            float loc0 = (Float)(((Map.Entry)pos[midIndex]).getKey());
-                            sliceThickness = Math.abs(loc1 - loc0);
-                            
-//                            for (int t=0; t<pos.length; t++) {
-//                                System.out.println("Slice pos " + t + " (" + ((File)((Map.Entry)pos[t]).getValue()).getName() + ") = " + (Float)(((Map.Entry)pos[t]).getKey()));
-//                            }
-                        }
-                        else {
-                            sliceThickness = obj.getVR("SliceThickness").getFloatValue();
-                        }
-                        
-                        float zres = sliceThickness;
-                        System.out.println(xres + " x " + yres + " x " + zres);
-                        
-                        image.getDimension(0).setSampleSpacing(xres);
-                        image.getDimension(1).setSampleSpacing(yres);
-                        image.getDimension(2).setSampleSpacing(zres);
-                        
-                        image.getDimension(0).setSampleWidth(xres);
-                        image.getDimension(1).setSampleWidth(yres);
-                        image.getDimension(2).setSampleWidth(zres);
-                    }                    
-                    else if (i==0) {
+               
+                    if (i==0) {
                         System.out.println("ImageVolume init");
                         
                         int cols;
@@ -559,6 +525,54 @@ System.out.println(selectedDicomObj);
                         }
                         
                         System.out.println("ImageVolume init done");
+                    }
+                    
+                    if (i==s.size()/2) {
+//                        try {
+//                            image.setAttribute("WindowWidth", obj.getVR("WindowWidth").getFloatValue());
+//                            image.setAttribute("WindowCenter", obj.getVR("WindowCenter").getFloatValue());
+//                        }
+//                        catch(Exception e) {} // TODO: fix exception handling here for missing tags
+//
+                        float xres;
+                        float yres;
+                        
+                        float sliceThickness;
+                        
+                        try {
+                            xres = obj.getVR("PixelSpacing").getFloatValue(0);
+                            yres = obj.getVR("PixelSpacing").getFloatValue(1);
+                        }
+                        catch(Exception e) {
+                            xres = 1f;
+                            yres = 1f;
+                        }
+                        
+                        Object[] pos = positionsFiles.entrySet().toArray();
+                        if (pos.length > 1) {
+                            int midIndex = pos.length/2;
+                            float loc1 = (Float)(((Map.Entry)pos[midIndex+1]).getKey());
+                            float loc0 = (Float)(((Map.Entry)pos[midIndex]).getKey());
+                            sliceThickness = Math.abs(loc1 - loc0);
+                            
+//                            for (int t=0; t<pos.length; t++) {
+//                                System.out.println("Slice pos " + t + " (" + ((File)((Map.Entry)pos[t]).getValue()).getName() + ") = " + (Float)(((Map.Entry)pos[t]).getKey()));
+//                            }
+                        }
+                        else {
+                            sliceThickness = obj.getVR("SliceThickness").getFloatValue();
+                        }
+                        
+                        float zres = sliceThickness;
+                        System.out.println(xres + " x " + yres + " x " + zres);
+                        
+                        image.getDimension(0).setSampleSpacing(xres);
+                        image.getDimension(1).setSampleSpacing(yres);
+                        image.getDimension(2).setSampleSpacing(zres);
+                        
+                        image.getDimension(0).setSampleWidth(xres);
+                        image.getDimension(1).setSampleWidth(yres);
+                        image.getDimension(2).setSampleWidth(zres);
                     }
                     
                     System.out.println("Set DICOM attributes on ImageVolume");
