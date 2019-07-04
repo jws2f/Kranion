@@ -66,12 +66,12 @@ public class CoordinateWidget extends GUIControl{
 
     public CoordinateWidget() {
         super();
-        try {
-            body.readObject();
-        }
-        catch (IOException e) {
-            System.out.println(e);
-        }
+//        try {
+//            body.readObject();
+//        }
+//        catch (IOException e) {
+//            System.out.println(e);
+//        }
     }
     
     public void setTrackball(Trackball trackball) {

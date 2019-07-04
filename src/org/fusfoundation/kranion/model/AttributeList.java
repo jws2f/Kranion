@@ -45,6 +45,14 @@ public class AttributeList implements Serializable {
     
     public AttributeList() {}
     
+    public int size() {
+        return attributes.size() + transient_attributes.size();
+    }
+    
+    public int nontransientSize() {
+        return attributes.size();
+    }
+    
     public Object get(String name) {
         Object retVal = null;
                               
@@ -87,6 +95,10 @@ public class AttributeList implements Serializable {
         mergedKeys.addAll(transient_attributes.keySet());
         
         return mergedKeys;
+    }
+    
+    public Set<String> nontransientKeySet() {        
+        return attributes.keySet();
     }
     
     public void put(String name, Object value) {
@@ -149,7 +161,7 @@ public class AttributeList implements Serializable {
     // a different vector/matrix class library later. This will definitely happen on the transition
     // form lwjgl 2.9 to lwjgl 3.x in the near future. Don't want to orphan the stored files people
     // have saved. Downside of using native Java serialization, but simple and fast.
-    private Object translateOut(Object obj) {
+    public static Object translateOut(Object obj) {
         
         if (obj == null) return null;
         
@@ -190,24 +202,24 @@ public class AttributeList implements Serializable {
             }
             case "org.lwjgl.util.vector.Vector3f": {
                 org.lwjgl.util.vector.Vector3f vec = (org.lwjgl.util.vector.Vector3f) obj;
-                Vector3f tmp = new Vector3f(vec.x, vec.y, vec.z);
+                Vector3f tmp = new org.fusfoundation.kranion.model.Vector3f(vec.x, vec.y, vec.z);
                 return tmp;
             }
             case "org.lwjgl.util.vector.Quaternion": {
                 org.lwjgl.util.vector.Quaternion q = (org.lwjgl.util.vector.Quaternion) obj;
-                Quaternionf tmp = new Quaternionf(q.x, q.y, q.z, q.w);
+                Quaternionf tmp = new org.fusfoundation.kranion.model.Quaternionf(q.x, q.y, q.z, q.w);
                 return tmp;
             }
             case "org.lwjgl.util.vector.Matrix3f": {
                 org.lwjgl.util.vector.Matrix3f m = (org.lwjgl.util.vector.Matrix3f) obj;
-                Matrix3f tmp = new Matrix3f(m.m00, m.m01, m.m02,
+                Matrix3f tmp = new org.fusfoundation.kranion.model.Matrix3f(m.m00, m.m01, m.m02,
                                             m.m10, m.m11, m.m12,
                                             m.m20, m.m21, m.m22);
                 return tmp;
             }
             case "org.lwjgl.util.vector.Matrix4f": {
                 org.lwjgl.util.vector.Matrix4f m = (org.lwjgl.util.vector.Matrix4f) obj;
-                Matrix4f tmp = new Matrix4f(m.m00, m.m01, m.m02, m.m03,
+                Matrix4f tmp = new org.fusfoundation.kranion.model.Matrix4f(m.m00, m.m01, m.m02, m.m03,
                                             m.m10, m.m11, m.m12, m.m13,
                                             m.m20, m.m21, m.m22, m.m23,
                                             m.m30, m.m31, m.m32, m.m33);
@@ -223,7 +235,7 @@ public class AttributeList implements Serializable {
         }
     }
     
-    private Object translateIn(Object obj) {
+    public static Object translateIn(Object obj) {
         
         if (obj == null) return null;
         

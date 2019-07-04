@@ -99,22 +99,54 @@ public class PluginFinder {
     private static final Class<?>[] PARAMS = new Class<?>[] { URL.class };
     
     public void addURL(URL u) throws IOException {
-        URLClassLoader sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
-        URL urls[] = sysLoader.getURLs();
-        for (URL url : urls) {
-            if (url.toString().equalsIgnoreCase(u.toString())) {
-                return;
-            }
-        }
-        Class sysclass = URLClassLoader.class;
-        try {
-            Method method = sysclass.getDeclaredMethod("addURL", PARAMS);
-            method.setAccessible(true);
-            method.invoke(sysLoader, new Object[]{u});
-        } catch (IllegalAccessException | IllegalArgumentException | NoSuchMethodException | SecurityException | InvocationTargetException t) {
-            //t.printStackTrace();
-            throw new IOException("Error, could not add URL to system classloader");
-        }
+        
+// Copyright notice from CG Jennings for jar-loader inclusion:
+// https://github.com/CGJennings/jar-loader/blob/master/LICENSE
+
+//        BSD 2-Clause License
+//
+//Copyright (c) 2018, Christopher G. Jennings
+//All rights reserved.
+//
+//Redistribution and use in source and binary forms, with or without
+//modification, are permitted provided that the following conditions are met:
+//
+//1. Redistributions of source code must retain the above copyright notice, this
+//   list of conditions and the following disclaimer.
+//
+//2. Redistributions in binary form must reproduce the above copyright notice,
+//   this list of conditions and the following disclaimer in the documentation
+//   and/or other materials provided with the distribution.
+//
+//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+//AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+//IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+//DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+//FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+//DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+//SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+//CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+//OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+//OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+        ca.cgjennings.jvm.JarLoader.addToClassPath(new File(u.getFile()));
+//
+// Java 8 class loader, but breaks Java 9+
+//        URLClassLoader sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
+//        URL urls[] = sysLoader.getURLs();
+//        for (URL url : urls) {
+//            if (url.toString().equalsIgnoreCase(u.toString())) {
+//                return;
+//            }
+//        }
+//        Class sysclass = URLClassLoader.class;
+//        try {
+//            Method method = sysclass.getDeclaredMethod("addURL", PARAMS);
+//            method.setAccessible(true);
+//            method.invoke(sysLoader, new Object[]{u});
+//        } catch (IllegalAccessException | IllegalArgumentException | NoSuchMethodException | SecurityException | InvocationTargetException t) {
+//            //t.printStackTrace();
+//            throw new IOException("Error, could not add URL to system classloader");
+//        }
     }
 
     public List<Plugin> getPluginCollection() {

@@ -27,6 +27,8 @@
 
 uniform float       boneSpeed;
 uniform float       waterSpeed;
+uniform int         elementCount;
+uniform float       phaseCorrectAmount; // 0 to 1
 
 struct elemStart{
          vec4 pos;
@@ -87,6 +89,11 @@ float remap( float minval, float maxval, float curval )
     return clamp (( curval - minval ) / ( maxval - minval ), 0, 1);
 }
 
+float blend( float minval, float maxval, float amount )
+{
+    return (maxval - minval)*amount + minval;
+}
+
 vec3 GetClosestPoint(vec3 A, vec3 B, vec3 P)
 {
     vec3 AP = P - A;
@@ -106,6 +113,8 @@ uniform vec3        sample_point;
 void main()
 {
     uint gid = gl_GlobalInvocationID.x; // which transducer element we are
+//      if (gid != 0) return;
+    if (gid >= elementCount) return;
 
     vec3 rayStart = e[gid].pos.xyz;
     vec3 pos1 = r[gid].pos[2].xyz; // point on the outside of the skull
@@ -132,6 +141,7 @@ void main()
 //        float rayPhaseCorrection = cos(2 * M_PI * CENTER_FREQ * rayTime);
 
         vec3 finalRayIntercept = GetClosestPoint(pos2, rayEnd, sample_point);
+
         float offAxisDistance = distance(sample_point, finalRayIntercept);
 
         float sampleRayTime = rayTimeFirstTwoSegments
@@ -147,14 +157,21 @@ void main()
         //float mag = exp(-(offAxisDistance*offAxisDistance)/(2*fwhm*fwhm)); // gaussian
         float beamLength = sampleRayTimeWaterOnly * (waterSpeed*1000.0);
         float beamHalfWidth = beamLength * tan(10.0/180.0*M_PI);
+//        float beamHalfWidth = beamLength * tan(1.0/180.0*M_PI);
         float sincArg = offAxisDistance*1.895/beamHalfWidth;
         float mag = 1.0 * d[gid].skullTransmissionCoeff * abs(sin(sincArg)/(sincArg));
         //p[gid].pressure = mag * cos(2 * M_PI * CENTER_FREQ * sampleRayTime - acos(rayPhaseCorrection)); //(rayTime - sampleRayTime));
-//if (gid == 5)
-        p[gid].pressure = mag * cos(2 * M_PI * CENTER_FREQ  * (sampleRayTime - rayTime));
-//else
-//        p[gid].pressure = 0;
-        outPhase[gid] = 2.0 * M_PI * CENTER_FREQ * (/* bone componen t*/ (rayTime - rayTimeWaterOnly) + /* steering component */(rayTime - sampleRayTime));
+
+//        float phi = skullThickness * (1.0/waterSpeed - 1.0/boneSpeed);
+
+        float phase = 2.0 * M_PI * CENTER_FREQ * ( (sampleRayTime - blend(rayTimeWaterOnly, rayTime, phaseCorrectAmount)));
+
+        p[gid].pressure = mag * cos(phase);// - 150/(waterSpeed*1000));
+
+        // outPhase should be the phase correction amount for this element, not the phase used to compute the pressure for display,
+        // which is actual signal phase and includes offset for pressure samples around the geometric focus
+        outPhase[gid] = 2.0 * M_PI * CENTER_FREQ * (rayTime - rayTimeWaterOnly); // time delta should be negative, so the more bone the larger the delay
+
     }
     else {
         p[gid].pressure = 0.0;

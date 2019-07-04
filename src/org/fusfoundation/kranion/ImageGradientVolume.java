@@ -23,7 +23,7 @@
  */
 package org.fusfoundation.kranion;
 
-import com.sun.scenario.effect.impl.BufferUtil;
+//import com.sun.scenario.effect.impl.BufferUtil;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -31,6 +31,7 @@ import java.nio.IntBuffer;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import org.fusfoundation.kranion.model.image.ImageVolume;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.Sys;
 import org.lwjgl.opencl.CL10;
 import static org.lwjgl.opencl.CL10.clEnqueueNDRangeKernel;
@@ -134,7 +135,7 @@ public class ImageGradientVolume {
             //Vector3f coord = position + (offset[i] * gradient_delta);
             //float s = texture(image_tex, coord).r * 4095.0;
             int indexOffset = position + pixelOffsets[i];
-            float s = (float) (imageData[indexOffset] & 0xfff) - 1024f;
+            float s = (float) (imageData[indexOffset] & 0xfff);
             grad.x += s * xGradZH[i];
             grad.y += s * yGradZH[i];
             grad.z += s * zGradZH[i];
@@ -265,7 +266,7 @@ public class ImageGradientVolume {
 
         float[] gradients = new float[iWidth * iHeight * iDepth * 4];
 
-        FloatBuffer gradArray = BufferUtil.newFloatBuffer(iWidth * iHeight * iDepth * 4);
+        FloatBuffer gradArray = BufferUtils.createFloatBuffer(iWidth * iHeight * iDepth * 4);
 
         short idata[] = (short[]) image.getData();
 

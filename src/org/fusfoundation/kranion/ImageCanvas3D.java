@@ -496,9 +496,9 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
 
     @Override
     public void release() {
-        ImageVolumeUtil.releaseTexture(CTimage);
-        ImageVolumeUtil.releaseTexture(MRimage);
-        ImageVolumeUtil.releaseTexture(OverlayImage);
+        ImageVolumeUtil.releaseTextures(CTimage);
+        ImageVolumeUtil.releaseTextures(MRimage);
+        ImageVolumeUtil.releaseTextures(OverlayImage);
         
         if (lutTextureName != 0) {
             if (glIsTexture(lutTextureName)) {
@@ -508,7 +508,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
                 glDeleteTextures(texName.asIntBuffer());
             }                
         }
-        
+
         if (shader != null) {
             shader.release();
             shader = null;
@@ -517,6 +517,21 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
         if (pressureShader != null) {
             pressureShader.release();
             pressureShader = null;
+        }
+        
+        if (thermometryShader != null) {
+            thermometryShader.release();
+            thermometryShader = null;
+        }
+        
+        if (thermometryDoseShader != null) {
+            thermometryDoseShader.release();
+            thermometryDoseShader = null;
+        }
+               
+        if (pickShader != null) {
+            pickShader.release();
+            pickShader = null;
         }
         
         if (shader2D != null) {

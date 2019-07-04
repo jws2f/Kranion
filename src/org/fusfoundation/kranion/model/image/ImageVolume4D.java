@@ -49,6 +49,11 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     private AttributeList attributes = new AttributeList();
     
     /** Creates a new instance of ImageVolume4D */
+    
+    public ImageVolume4D() {
+        
+    }
+    
     public ImageVolume4D(int voxelType, int x, int y, int z, int t) {
         dims[0] = new ImageDimension(x);
         dims[1] = new ImageDimension(y);
@@ -58,6 +63,12 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         voxelData.setSize(1);
         
         alloc(0, voxelType);
+    }
+        
+    public void setDimension(int dim, ImageDimension imageDimension) {
+        if (dim>=0 && dim<dims.length) {
+            dims[dim] = imageDimension;
+        }
     }
     
     public ImageVolume createMatchingVolume(int voxtype) {
@@ -88,6 +99,24 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         System.out.println("added channel " + channelNum);
         return channelNum;
     }
+    
+    public int addChannel(int channel, int voxtype) {
+        if (voxelData.size() < channel + 1) {
+            voxelData.setSize(channel+1);
+        }
+        
+        if (voxelData.get(channel) != null) {
+            voxelData.remove(channel);
+        }
+        
+        alloc(channel, voxtype);
+        System.out.println("added channel " + channel);
+        return channel;
+    }
+    
+    public int getChannelCount() { return voxelData.size(); }
+    
+    public int getVoxelCount() { return this.voxelCount; }
     
     public void setPixelSize(float width, float height) {
         dims[0].setSampleSpacing(width);
@@ -135,6 +164,9 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     @Override
     public void freeChannel(int channel) {
         voxelData.set(channel, null);
+        voxelData.remove(channel);
+        
+        voxelType.remove(channel);
     }
     
     private int getDataSize() { return getDataSize(0); }
@@ -154,10 +186,25 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         }
     }
     
+    public int getVoxelDataSize(int channel) {
+        switch(voxelType.get(channel)) {
+            case ImageVolume.FLOAT_VOXEL:
+            case ImageVolume.RGBA_VOXEL:
+            case ImageVolume.INT_VOXEL:
+                return 4;
+            case ImageVolume.UBYTE_VOXEL:
+                return 1;
+            case ImageVolume.USHORT_VOXEL:
+                return 2;
+            default:
+                throw new RuntimeException("Undefined voxel data type");
+        }
+    }
     
-    public ByteBuffer getByteBuffer() { return getByteBuffer(0); }
     
-    public ByteBuffer getByteBuffer(int channel) {
+    public ByteBuffer getByteBuffer() { return getByteBuffer(0, true); }
+    
+    public ByteBuffer getByteBuffer(int channel, boolean direct) {
         
         if (channel < 0 || channel >= this.voxelData.size()) {
             return null;
@@ -165,7 +212,15 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         
         int datasize = getDataSize(channel);
         
-        ByteBuffer buf = ByteBuffer.allocateDirect(datasize);
+        ByteBuffer buf = null;
+        
+        if (direct) {
+            buf = ByteBuffer.allocateDirect(datasize);
+        }
+        else {
+            buf = ByteBuffer.allocate(datasize);
+        }
+        
         buf.order(ByteOrder.nativeOrder());
         
         switch(voxelType.get(channel)) {
@@ -192,10 +247,108 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         return buf;
     }
     
+    public int getFrameSize() {
+        if (dims.length >= 2) {
+            return dims[0].getSize() * dims[1].getSize();
+        }
+        else {
+            return 0;
+        }
+    }
+    
+    public ByteBuffer getFrameAsByteBuffer(ByteBuffer buf, int channel, boolean direct, int frameSize, int nthFrame) {
+        
+        if (channel < 0 || channel >= this.voxelData.size()) {
+            return null;
+        }
+        
+        int datasize = getVoxelDataSize(channel);
+        
+        if (buf == null) {
+            if (direct) {
+                buf = ByteBuffer.allocateDirect(frameSize*datasize);
+            }
+            else {
+                buf = ByteBuffer.allocate(frameSize*datasize);
+            }
+        }
+        
+        buf.rewind();
+        
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+        
+        switch(voxelType.get(channel)) {
+            case ImageVolume.FLOAT_VOXEL:
+                FloatBuffer fb = buf.asFloatBuffer();
+                fb.put((float[])voxelData.get(channel), frameSize*nthFrame, frameSize);
+                break;
+            case ImageVolume.RGBA_VOXEL:
+            case ImageVolume.INT_VOXEL:
+                IntBuffer ib = buf.asIntBuffer();
+                ib.put((int[])voxelData.get(channel), frameSize*nthFrame, frameSize);
+                break;
+            case ImageVolume.UBYTE_VOXEL:
+                buf.put((byte[])voxelData.get(channel), frameSize*nthFrame, frameSize);
+                break;
+            case ImageVolume.USHORT_VOXEL:
+                ShortBuffer sb = buf.asShortBuffer();
+                sb.put((short[])voxelData.get(channel), frameSize*nthFrame, frameSize);
+                break;
+            default:
+                throw new RuntimeException("Undefined voxel data type");            
+        }
+                          
+        return buf;
+    }
+    
+    public ByteBuffer putFrameAsByteBuffer(ByteBuffer buf, int channel, boolean direct, int frameSize, int nthFrame) {
+                
+        if (channel < 0 || channel >= this.voxelData.size()) {
+            return buf;
+        }
+        
+        int datasize = getVoxelDataSize(channel);
+        
+        if (buf == null) {
+            return buf;
+        }
+                
+        buf.order(ByteOrder.LITTLE_ENDIAN);
+        
+        switch(voxelType.get(channel)) {
+            case ImageVolume.FLOAT_VOXEL:
+                FloatBuffer fb = buf.asFloatBuffer();
+                fb.get((float[])voxelData.get(channel), frameSize*nthFrame, frameSize);
+                break;
+            case ImageVolume.RGBA_VOXEL:
+            case ImageVolume.INT_VOXEL:
+                IntBuffer ib = buf.asIntBuffer();
+                ib.get((int[])voxelData.get(channel), frameSize*nthFrame, frameSize);
+                break;
+            case ImageVolume.UBYTE_VOXEL:
+                buf.get((byte[])voxelData.get(channel), frameSize*nthFrame, frameSize);
+                break;
+            case ImageVolume.USHORT_VOXEL:
+                ShortBuffer sb = buf.asShortBuffer();
+                sb.get((short[])voxelData.get(channel), frameSize*nthFrame, frameSize);
+                break;
+            default:
+                throw new RuntimeException("Undefined voxel data type");            
+        }
+                          
+        return buf;
+    }
+    
     public Object getData() { return getData(0); }
     
     public Object getData(int channel) {
         return voxelData.get(channel);
+    }
+    
+    // TODO: not sure this is the best idea, but need something
+    //      fast to initialize the image data from file storage
+    public void setData(int channel, Object data) {
+        voxelData.set(channel, data);
     }
     
     public ImageDimension getDimension(int dimension) {
@@ -257,6 +410,8 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         
         return x + y*rowsize + z*slicesize;
     }
+    
+    public AttributeList getAttributeList() { return this.attributes; }
     
     public Object getAttribute(String name) {
         return attributes.get(name);

@@ -43,22 +43,28 @@ public abstract class Clippable extends Renderable {
     private float dolly = 0f; // TODO: we need a camera model to pass around
     private float cameraZ = 0f;
     
-    private Vector4f[] corners = new Vector4f[4];
-    private Vector4f[] world_corners = new Vector4f[4];
+    private static Vector4f[] corners = null;
+    private static Vector4f[] world_corners = null;
     
     Vector4f clipColor = new Vector4f(0.5f, 0.5f ,0.5f, 1f);
     
     public Clippable() {
         
-        for (int i=0; i<4; i++) {
-            corners[i] = new Vector4f();
-            world_corners[i] = new Vector4f();
+        // only do once for all Clippable objects
+        if (corners == null || world_corners == null) {
+            corners = new Vector4f[4];
+            world_corners = new Vector4f[4];
+            
+            for (int i=0; i<4; i++) {
+                corners[i] = new Vector4f();
+                world_corners[i] = new Vector4f();
+            }
+
+            corners[0].set(-8000f, 5000f, 0.0f, 1.0f);
+            corners[1].set(8000f, 5000f, 0.0f, 1.0f);
+            corners[2].set(8000f, -5000f, 0.0f, 1.0f);
+            corners[3].set(-8000f, -5000f, 0.0f, 1.0f);
         }
-        
-        corners[0].set(-8000f, 5000f, 0.0f, 1.0f);
-        corners[1].set(8000f, 5000f, 0.0f, 1.0f);
-        corners[2].set(8000f, -5000f, 0.0f, 1.0f);
-        corners[3].set(-8000f, -5000f, 0.0f, 1.0f);
 
 //        corners[0].set(-250, 250, 0.0f, 1.0f);
 //        corners[1].set(250, 250, 0.0f, 1.0f);
@@ -99,44 +105,65 @@ public abstract class Clippable extends Renderable {
     
     public void renderClipped() {
             
-        Main.glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_POLYGON_BIT);
+        // assumes each clipped mesh is a manifold with no degenerate topology
+        // otherwise the stencil mask that is created for the clipped end cap
+        // won't be sensible. The object is rendered twice with the clip plane
+        // enabled, alternately culling front faces, then back faces and incrementing
+        // or decrementing the the stencil buffer respectively. Resulting non-zero
+        // stencil buffer values indicate the cut surface.
+        
+        // Could be optimized by using two-sided stencil test I suppose
+        
+        Main.glPushAttrib(GL_ENABLE_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT | GL_POLYGON_BIT | GL_TRANSFORM_BIT | GL_COLOR_BUFFER_BIT | GL_LIGHTING_BIT);
 
             glEnable(GL_CLIP_PLANE0);
             glDisable(GL_CLIP_PLANE1);
 
             glEnable(GL_DEPTH_TEST);
 
-            // 1st pass //////////////////
-            glEnable(GL_CULL_FACE);       
-            glCullFace(GL_BACK);
-
-            render(); ////////////////////
-
-
-            // Turn stencil buffer on
+            glEnable(GL_STENCIL_TEST);
+            
             glClearStencil(0);
             glClear(GL_STENCIL_BUFFER_BIT);
-            glEnable(GL_STENCIL_TEST);
-            glStencilMask(0xff);
-
-            // 2nd pass ///////////////////
-            glCullFace(GL_FRONT);
-            glStencilFunc(GL_ALWAYS, 1, 0xff);
+            glDisable(GL_DEPTH_TEST);
+            
+            // don't update the color or depth buffer values
+            // during the stencil update operations
+            glColorMask(false, false, false, false);
+            glDepthMask(false);
+            
+            //first pass
+            glStencilFunc(GL_ALWAYS, 0, 0);
             glStencilOp(GL_KEEP, GL_KEEP, GL_INCR);
-
-            render(); /////////////////////
-
-            glDisable(GL_CULL_FACE);
+            glEnable(GL_CULL_FACE);       
+            glCullFace(GL_FRONT);
+            
+            // set flag to render unclipped
+            isClipped = false;
+            render();
+            
+            //second pass
+            glStencilOp(GL_KEEP, GL_KEEP, GL_DECR);
+            glCullFace(GL_BACK);
+            render();
 
 
             //End cap ///////////////////////
-            glStencilFunc(GL_NOTEQUAL, 0, 0xff);
+            
+            glStencilFunc(GL_NOTEQUAL, 0, ~0);
             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
             glDisable(GL_CLIP_PLANE0);
             glDisable(GL_CLIP_PLANE1);
+            
+            //back to normal framebuffer mode
+            glDisable(GL_CULL_FACE);       
+            glColorMask(true, true, true, true);
+            glDepthMask(true);
             glEnable(GL_DEPTH_TEST);
 
+            // set the color and draw the stenciled clip plane with
+            // 3D perlin noise shader.
             FloatBuffer c = BufferUtils.createFloatBuffer(4);
             c.put(new float[] { clipColor.x, clipColor.y, clipColor.z, clipColor.w }).flip();
             glMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, c);
@@ -194,12 +221,26 @@ public abstract class Clippable extends Renderable {
 
                 glEnd();
                 shader.stop();
-
-                glDisable(GL_STENCIL_TEST);
-
+                
+               glDisable(GL_STENCIL_TEST);
+ 
             Main.glPopMatrix();
+            
+            glEnable(GL_CLIP_PLANE0);
+            glDisable(GL_CLIP_PLANE1);
+
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_BACK);
+            glEnable(GL_DEPTH_TEST);
+            
+            // end cap is rendered, now render the rest of the unclipped geometry normally
+            render();
+            
+            // restore flag to render clipped
+            isClipped = true;
 
         Main.glPopAttrib();
+        
     }
     
 }

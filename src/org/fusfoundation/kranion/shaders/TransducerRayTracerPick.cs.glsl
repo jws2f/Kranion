@@ -97,6 +97,7 @@ uniform float       waterSpeed;
 uniform float       ct_bone_threshold;
 uniform float       ct_rescale_intercept;
 uniform float       ct_rescale_slope;
+uniform int         elementCount;
 
 const float sqr3 = sqrt(3.0)/3;
 const float sqr2 = sqrt(2.0)/2;
@@ -393,6 +394,8 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 void main()
 {
          uint gid = gl_GlobalInvocationID.x;
+         if (gid >= elementCount) return;
+
          vec3 pos = e[gid].pos.xyz;
          vec3 v = normalize(e[gid].dir.xyz);
 

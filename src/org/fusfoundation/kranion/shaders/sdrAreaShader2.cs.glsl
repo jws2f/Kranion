@@ -66,6 +66,8 @@ uniform sampler3D   ct_tex;
 uniform mat4        ct_tex_matrix;
 uniform float       ct_rescale_intercept;
 uniform float       ct_rescale_slope;
+uniform int         elementCount;
+
 
 #define M_PI 3.1415926535897932384626433832795
 
@@ -79,6 +81,8 @@ float remap( float minval, float maxval, float curval )
 void main()
 {
     uint gid = gl_GlobalInvocationID.x;
+    if (gid >= elementCount) return;
+
     vec3 pos1 = inputv[gid].pos[2].xyz; // point on the outside of the skull
     vec3 pos2 = inputv[gid].pos[3].xyz; // point on the inside of the skull w/ refraction
 

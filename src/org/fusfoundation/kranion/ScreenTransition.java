@@ -41,6 +41,7 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     private boolean isBlending = false;
     private boolean isFading = false;
     private float duration = 0.5f;
+    private boolean doOneLastFrame = false;
     
     public ScreenTransition() {
         doLayout();
@@ -52,6 +53,7 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     
     public void doTransition() {
         animator.set(0f, 1f, duration);
+        doOneLastFrame=true;
         
         //copy the main framebuffer to FBO
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);  
@@ -65,6 +67,7 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     
     public void doFadeFromBlack(float duration) {
         animator.set(0f, 1f, duration);
+        doOneLastFrame=true;
         
         fb.bind();
         glClearColor(0f, 0f, 0f, 1.0f);
@@ -80,7 +83,7 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     
     @Override
     public void render() {
-        if (animator.isAnimationDone()) {
+        if (animator.isAnimationDone() && doOneLastFrame==false) {
             isBlending = isFading = false;
             return;
         }
@@ -100,11 +103,19 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
             
             Main.glPopAttrib();
         }
+        
+        // Make sure we render one last frame to represent the
+        // final state of the transition, otherwise on slower
+        // systems, the transition final state might not get
+        // rendered
+        if (animator.isAnimationDone()) {
+            doOneLastFrame = false;
+        }
     }
 
     @Override
     public boolean getIsDirty() {
-        return !animator.isAnimationDone();
+        return animator.isAnimationDone()== false || doOneLastFrame==true;
     }
     
     @Override

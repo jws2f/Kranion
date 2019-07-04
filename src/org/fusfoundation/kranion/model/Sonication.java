@@ -26,7 +26,7 @@ package org.fusfoundation.kranion.model;
 // import the lwjgl Vector classes specifically
 import org.lwjgl.util.vector.Vector3f;
 
-import com.sun.scenario.effect.impl.BufferUtil;
+//import com.sun.scenario.effect.impl.BufferUtil;
 import java.beans.PropertyChangeEvent;
 import java.io.*;
 import java.util.*;
@@ -71,6 +71,8 @@ public class Sonication extends Observable implements Serializable{
         ImageVolumeUtil.releaseTextures(thermometryPhase);
         thermometryPhase = null;
     }
+    
+    public int getChannelCount() { return phases.length; }
     
     public void setNaturalFocusLocation(Vector3f pos) {
         natural_focus_location = pos;
@@ -143,6 +145,8 @@ public class Sonication extends Observable implements Serializable{
     public Object getAttribute(String name) {
         return attributes.get(name);
     }
+    
+    public AttributeList getAttributeList() { return attributes; }
     
     public Iterator<String> getAttributeKeys() {
         return attributes.keySet().iterator();

@@ -23,7 +23,7 @@
  */
 package org.fusfoundation.kranion;
 
-import com.sun.scenario.effect.impl.BufferUtil;
+//import com.sun.scenario.effect.impl.BufferUtil;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
@@ -799,7 +799,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                     createBackingTexture();
 
 // This doesn't seem to be necessary since we always init the rectangular region specified                    
-                    glClearTexImage(backingTextureName, 0, GL_RGBA, GL_UNSIGNED_BYTE, BufferUtil.newByteBuffer(4));
+                    glClearTexImage(backingTextureName, 0, GL_RGBA, GL_UNSIGNED_BYTE, BufferUtils.createByteBuffer(4));
                     
                     glBindTexture(GL_TEXTURE_2D, backingTextureName);
 //                int textureName = glGenTextures();

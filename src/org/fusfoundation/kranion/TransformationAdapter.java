@@ -37,7 +37,7 @@ import org.lwjgl.util.vector.Quaternion;
  *
  * @author john
  */
-public class TransformationAdapter extends Renderable implements Pickable {
+public class TransformationAdapter extends Clippable implements  Pickable {
 
     private Renderable child;
     
@@ -49,6 +49,12 @@ public class TransformationAdapter extends Renderable implements Pickable {
         this.child = child;
     }
     
+    public void setTransform(Matrix4f m) {
+        rotation.setFromMatrix(m);
+        rotation.normalise();
+        
+        translation.set(m.m30, m.m31, m.m32);
+    }
     
     public void setRotation(Vector3f axis, float angle) {
         rotation = rotation.setIdentity();
@@ -109,9 +115,8 @@ public class TransformationAdapter extends Renderable implements Pickable {
             toMatrix4f(rotation).store(rotationBuffer);
             rotationBuffer.flip();
             glMultMatrix(rotationBuffer);
-        
-        
-            child.render();
+                
+        child.render();
             
         Main.glPopMatrix();
     }
@@ -170,6 +175,16 @@ public class TransformationAdapter extends Renderable implements Pickable {
         child.setIsDirty(dirty);
         return this;
     }
+    
+    
+    // just so we can propagate clip status down through the tree
+    @Override
+    public void setClipped(boolean clipped) { 
+        super.setClipped(clipped);
+        if (child instanceof Clippable) {
+            ((Clippable)child).setClipped(clipped);
+        }
+    }
 
     @Override
     public void renderPickable() {
@@ -190,6 +205,23 @@ public class TransformationAdapter extends Renderable implements Pickable {
                 ((Pickable)child).renderPickable();
 
             Main.glPopMatrix();
+        }
+    }
+    @Override
+    public void setTrackball(Trackball tb)
+    {
+        super.setTrackball(tb);
+        if (child instanceof Clippable) {
+            ((Clippable)child).setTrackball(tb);
+        }
+    }
+    
+    @Override
+    public void setDolly(float c, float d)
+    {
+        super.setDolly(c, d);
+        if (child instanceof Clippable) {
+            ((Clippable)child).setDolly(c, d);
         }
     }
 }

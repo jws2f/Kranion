@@ -117,7 +117,7 @@ public class Main implements ProgressListener {
     public static final boolean GL_DEBUG = false;
 
     private float viewportAspect = 1f;
-    private static List<Plugin> plugins;           
+    private static List<Plugin> plugins = new ArrayList<>();           
     private static List<BackgroundWorker> workers = new ArrayList<>();
     public static void addBackgroundWorker(BackgroundWorker w) {
         workers.add(w);
@@ -156,6 +156,10 @@ public class Main implements ProgressListener {
     public static Model getModel() { return Main.main.model; }
     
     public static void setModel(Model model) {
+        
+        if (model == null) {
+            model = new Model();
+        }
         
         for (int i = 0; i < plugins.size(); i++) {
             plugins.get(i).release();
@@ -231,6 +235,7 @@ public class Main implements ProgressListener {
             main = new Main();
             
             System.out.println("This is build " + getRbTok("app.version") + ":" + getRbTok("app.build"));
+            System.out.println("JVM version: " + System.getProperty("java.vm.name") + " " + System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
 
             main.create();
             
@@ -253,6 +258,15 @@ public class Main implements ProgressListener {
 
     public Main() {
 
+    }
+    
+    public static void setTitle(String title) {
+        if (title == null || title.length() == 0) {
+            Display.setTitle("Kranion");
+        }
+        else {
+            Display.setTitle("Kranion - " + title);
+        }
     }
 
     public static void update() {
@@ -682,6 +696,9 @@ public class Main implements ProgressListener {
 
                 // Render the scene
                 view.render();
+                
+                // swap display buffers
+                Display.update();
                 wasRendered = true;
             }
             else {
@@ -692,19 +709,17 @@ public class Main implements ProgressListener {
         
 
         Display.processMessages();
-        Display.update();
-//        Display.sync(60);
         currentBuffer = (currentBuffer + 1) % 3; // keep track of front/back buffers
 
         try {
-            if (!wasRendered) {
+            if (!wasRendered) { // if no rendering updates, sleep a bit
                 Thread.sleep(10);
             }
             else {
                 Display.sync(60);
             }
         }
-        catch(Exception e) {}
+        catch(Exception e) {}        
     }
     
     public static void checkForGLErrorAndThrow() {
@@ -758,7 +773,7 @@ public class Main implements ProgressListener {
     
     @Override
     public void percentDone(String msg, int percent) {
-        System.out.println(msg + " - " + percent + "%");
+//        System.out.println(msg + " - " + percent + "%");
     }
 
     public static void glPushMatrix() {

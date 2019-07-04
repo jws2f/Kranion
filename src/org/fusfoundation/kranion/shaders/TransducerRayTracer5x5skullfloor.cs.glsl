@@ -106,6 +106,7 @@ uniform float       ct_bone_threshold;
 uniform float       ct_rescale_intercept;
 uniform float       ct_rescale_slope;
 uniform int         selectedElement;
+uniform int         elementCount;
 
 
 const float sqr3 = sqrt(3.0)/3;
@@ -428,6 +429,9 @@ const float TRABECULAR_BONE_ATTENUATION = 148.28; // m^-1
 void main()
 {
          uint gid = gl_GlobalInvocationID.x;
+
+         if (gid>=elementCount) return;
+
          vec3 pos = e[gid].pos.xyz;
          vec3 v = normalize(e[gid].dir.xyz);
 
@@ -457,8 +461,9 @@ void main()
         d[gid].distance = -1;
 
  //        float critAngle = max(asin(waterSpeed/boneSpeed), M_PI/8);//*0.625;
-         float critAngle = min(asin(waterSpeed/boneSpeed), M_PI/4.0);
+//         float critAngle = min(asin(waterSpeed/boneSpeed), M_PI/4.0);
 //         float critAngle = 0.436; // 25 degrees
+         float critAngle = asin(waterSpeed/boneSpeed);
 
          if (firstCollision != pos)
 		{

@@ -227,6 +227,7 @@ public class ImageVolumeUtil {
     public static void releaseTextures(ImageVolume image) {
         releaseTexture(image, "textureName");
         releaseTexture(image, "gradientTexName");
+        releaseTexture(image, "maskTexName");
     }
 
     public static void releaseTexture(ImageVolume image, String texAttribName) {

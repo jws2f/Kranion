@@ -102,7 +102,7 @@ public class PlyFileReader extends Clippable {
         color.x = r;
         color.y = g;
         color.z = b;
-        color.w = a;
+        color.w = a;        
     }
     
     public float getXpos() { return posX; }
@@ -140,6 +140,9 @@ public class PlyFileReader extends Clippable {
     public void readObject() throws FileNotFoundException, IOException {
     	
         InputStream rstm = this.getClass().getResourceAsStream(plyfile);
+        if (rstm == null) {
+            rstm = new FileInputStream(new File(plyfile));
+        }
         PushbackInputStream stream = new PushbackInputStream(rstm);
 
         readPlyHeader(stream);
@@ -408,17 +411,28 @@ System.out.println("ply vert count = " + vertcount);
  
     public void render() {
         
+        if (vertsID == 0) {
+            try {
+                readObject(); // lazy loading
+            }
+            catch(IOException e) {
+                vertsID = 0;
+                normsID = 0;
+            }
+        }
+        
         setIsDirty(false);
                 
         if (!getVisible() || vertsID == 0 || normsID == 0) return;
         
+        
         if (getClipped()) {
-            setClipped(false);
+//            setClipped(false);
             renderClipped();
-            setClipped(true);
+//            setClipped(true);
             return;
         }
-        
+                
         glMatrixMode(GL_MODELVIEW);
     	Main.glPushMatrix();
     	
@@ -427,6 +441,7 @@ System.out.println("ply vert count = " + vertcount);
 	FloatBuffer c = BufferUtils.createFloatBuffer(4);
 	c.put(new float[] { color.x, color.y, color.z, color.w }).flip();
         glMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, c);
+//	    glColor4f(color.x, color.y, color.z, color.w);
     	
 //    		    glShadeModel(GL_SMOOTH);
 //    		    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );

@@ -104,7 +104,7 @@ public class ShaderProgram {
         if (resultValidate.get() == 0) {
             System.out.println("Shader validaiton error:");
             System.out.println(GetProgramInfoLog());
-            System.exit(-1); // TODO: throw an exception so caller can handle
+//            System.exit(-1); // TODO: throw an exception so caller can handle
         }         
     }
     

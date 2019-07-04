@@ -59,6 +59,10 @@ public class InsightecTxdrGeomReader {
 
     }
     
+    public void setName(String newName) {
+        name = newName;
+    }
+    
     private void parseFile(BufferedReader in) throws IOException {
         String line;
         do {
@@ -91,7 +95,7 @@ public class InsightecTxdrGeomReader {
             channels[channelNumber] = new Vector4f(
                     Float.parseFloat(tok.nextToken()),
                     Float.parseFloat(tok.nextToken()),
-                    Float.parseFloat(tok.nextToken()) - 150f,
+                    Float.parseFloat(tok.nextToken()) - 150f, // Insightec puts the origin at the bottom of the transducer, not the focus
                     Float.parseFloat(tok.nextToken())
             );
 
@@ -107,7 +111,7 @@ public class InsightecTxdrGeomReader {
             else {
                 channelActive[channelNumber] = true;
             }
-            //System.out.println("Channel desc " + channelNumber + " = " + channels[channelNumber]);
+//            System.out.println("Channel desc " + channelNumber + " = " + channels[channelNumber]);
             channelCount++;
         }        
     }
@@ -124,6 +128,10 @@ public class InsightecTxdrGeomReader {
             return false;
         }
         return channelActive[channelNum];      
+    }
+    
+    public void setChannelActive(int channelNum, boolean isActive) {
+        channelActive[channelNum] = isActive;
     }
 
     public int getChannelCount() {

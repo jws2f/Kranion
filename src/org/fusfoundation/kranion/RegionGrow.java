@@ -83,9 +83,9 @@ public class RegionGrow {
     public void setSourceImage(ImageVolume4D image) {
         src = image;
         
-        if (src != null) {
-            src.addChannel(ImageVolume.UBYTE_VOXEL);
-        }
+//        if (src != null) {
+//            src.addChannel(ImageVolume.UBYTE_VOXEL);
+//        }
         
 //        growQ.add(thing); // push
 //        thing = growQ.remove() // pop
@@ -93,9 +93,9 @@ public class RegionGrow {
     }
     
     public void grow(int x, int y, int z) {
-        
+                        
         if (useGpuAcceleration) {
-            gpu_calculate();        
+            gpu_calculate();
             return;
         }
         
@@ -258,6 +258,8 @@ public class RegionGrow {
         // build mask texture
         this.buildTexture(src);
         
+        int maskChannel = src.addChannel(org.fusfoundation.kranion.model.image.ImageVolume.UBYTE_VOXEL);
+        
         if (Main.OpenGLVersion < 4f) return;
                 
         // bind input image textures for image and mask
@@ -361,6 +363,7 @@ public class RegionGrow {
         
         // release channel 1 so it will get rebuilt
         this.releaseTexture();
+        src.freeChannel(maskChannel);
 
     }
     
@@ -375,7 +378,7 @@ public class RegionGrow {
     
         Integer tn = (Integer) src.getAttribute("maskTexName");
         glBindTexture(GL_TEXTURE_3D, tn);
-        ByteBuffer voxelData = src.getByteBuffer(1); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
+        ByteBuffer voxelData = src.getByteBuffer(1, true); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
         glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, width, height, depth, 0, GL_RED, GL_UNSIGNED_BYTE, voxelData);
         glBindTexture(GL_TEXTURE_3D, tn);
 
@@ -402,7 +405,7 @@ public class RegionGrow {
                 value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_DEPTH);
                 System.out.println("Texture Depth = " + value);
         
-        ShortBuffer voxelData = src.getByteBuffer(0).asShortBuffer(); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
+        ShortBuffer voxelData = src.getByteBuffer(0, true).asShortBuffer(); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
         
         voxelData.clear();
         
@@ -432,7 +435,12 @@ public class RegionGrow {
            
         glBindTexture(GL_TEXTURE_3D, tn);
         
-        ByteBuffer voxelData = src.getByteBuffer(1); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
+        ByteBuffer voxelData = src.getByteBuffer(1, true); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
+        
+        if (voxelData == null) {
+            System.out.println("RegionGrow: there was now mask channel in the src!");
+            return;
+        }
         
         voxelData.clear();
         
@@ -473,7 +481,7 @@ public class RegionGrow {
 
                 glBindTexture(GL_TEXTURE_3D, textureName);
 
-                image.setAttribute("maskTexName", textureName);
+                image.setAttribute("maskTexName", textureName, true); // transient texture name attribute
 
                 glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
                 glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);

@@ -26,7 +26,7 @@ varying vec4 ecPos;
 varying vec4 wPos, color;
 varying vec3 normal;
 uniform vec3 offset;
-uniform float transducerAngle;
+uniform float transducerAngleX;
 
 mat4 rotationMatrix(vec3 axis, float angle)
 {
@@ -48,7 +48,7 @@ void main()
     normal = normalize(gl_NormalMatrix * gl_Normal);
     color = gl_Color;
 
-    mat4 rot = rotationMatrix(vec3(1, 0, 0), transducerAngle);
+    mat4 rot = rotationMatrix(vec3(1, 0, 0), transducerAngleX);
  
     /* compute the vertex position  in camera space. */
     gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;

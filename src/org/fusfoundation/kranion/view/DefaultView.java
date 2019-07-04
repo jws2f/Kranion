@@ -23,6 +23,7 @@
  */
 package org.fusfoundation.kranion.view;
 
+import com.thoughtworks.xstream.XStream;
 import org.fusfoundation.kranion.model.image.io.Loader;
 import org.fusfoundation.kranion.Landmark;
 import org.fusfoundation.kranion.FloatParameter;
@@ -118,12 +119,22 @@ import static org.lwjgl.opengl.GL20.glUniform3f;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
 
 import java.util.prefs.Preferences;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+import org.fusfoundation.kranion.CompositeRenderable;
 import org.fusfoundation.kranion.DicomSeriesDialog;
 import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.FlyoutDialog;
 import org.fusfoundation.kranion.GUIControlModelBinding;
 import org.fusfoundation.kranion.MessageBoxDialog;
+import org.fusfoundation.kranion.ProgressListener;
 import org.fusfoundation.kranion.Rectangle;
+import org.fusfoundation.kranion.model.AttributeList;
+import org.fusfoundation.kranion.model.AttributeListXStreamConverter;
+import org.fusfoundation.kranion.model.ModelXStreamConverter;
+import org.fusfoundation.kranion.model.SonicationXStreamConverter;
 import org.fusfoundation.kranion.model.image.io.DicomImageLoader;
 
 
@@ -133,7 +144,7 @@ public class DefaultView extends View {
 
     @Override
     public void percentDone(String msg, int percent) {
-        System.out.println(msg + " - " + percent + "%");
+//        System.out.println(msg + " - " + percent + "%");
         statusBar.setFormatString(msg + ": %3.0f%%");
         statusBar.setValue(percent);
         
@@ -163,11 +174,13 @@ public class DefaultView extends View {
     private boolean doMRI = false;
     private boolean showScanner = false;
     private FloatParameter dolly = new FloatParameter(-100f);
-    private float transducerTilt = 0f;
+    private float transducerTiltX = 0f;
+    private float transducerTiltY = 0f;
     private float viewportAspect = 1f;
     
     private boolean attenuation_term_on = false ;
     private boolean transmissionLoss_term_on = false ;
+    private boolean pressureCalcNeedsUpdate = false;
 
     private Loader ctloader, mrloader;
 //    private ImageVolume4D ctImage, mrImage;
@@ -179,8 +192,8 @@ public class DefaultView extends View {
     private PlyFileReader mrPedestal = new PlyFileReader("/org/fusfoundation/kranion/meshes/Pedestal.ply");
     private Landmark currentTarget = new Landmark();
     private Landmark currentSteering = new Landmark();
-    private Cylinder mrBore, mrBoreOuter;
-    private Ring mrBoreFront, mrBoreBack;
+//    private Cylinder mrBore, mrBoreOuter;
+//    private Ring mrBoreFront, mrBoreBack;
     private TransformationAdapter mrBoreTransform, frameTransform, frameOffsetTransform, steeringTransform;
     private CrossHair crosshair, steeringCrossHair;
     
@@ -380,12 +393,14 @@ public class DefaultView extends View {
         
         textbox = (TextBox)new TextBox(100, 300, 70, 25, "", controller).setTitle("Max Temp").setCommand("sonicationMaxTemp");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTag("tbSonicationMaxTemp");
         textbox.setTextEditable(false);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
         textbox = (TextBox)new TextBox(260, 300, 125, 25, "", controller).setTitle("Max Dose").setCommand("sonicationMaxDose");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTag("tbSonicationMaxDose");
         textbox.setTextEditable(false);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
@@ -502,10 +517,8 @@ public class DefaultView extends View {
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 10, 205, 200, 25, this).setTitle("Save...").setCommand("saveKranionFile"));
       
         
-        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 230, 240, 200, 25, this).setTitle("Import DICOM CT...").setCommand("loadCT"));
-        
-        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON,230, 205, 200, 25, this).setTitle("Import DICOM MR...").setCommand("loadMR"));
-        
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 230, 240, 200, 25, this).setTitle("Import DICOM Series...").setCommand("loadDicom"));
+                
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 445, 240, 150, 25, this).setTitle("Filter CT").setCommand("filterCT"));
 
         Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 80, 205, 150, 25, this);
@@ -546,7 +559,7 @@ public class DefaultView extends View {
         flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 80, 220, 25, this).setTitle("Save CPC ACT file...").setCommand("saveACTfile"));
         flyout2.addChild("File",new Button(Button.ButtonType.BUTTON, 445, 45, 220, 25, this).setTitle("Save Workstation ACT file...").setCommand("saveACTfileWS"));
         
-        Slider slider1 = new Slider(750, 100, 410, 25, controller);
+        Slider slider1 = new Slider(750, 90, 410, 25, controller);
         slider1.setTitle("Average bone speed");
         slider1.setCommand("boneSOS"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -557,7 +570,36 @@ public class DefaultView extends View {
         flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
         
-        slider1 = new Slider(750, 50, 410, 25, controller);
+        slider1 = new Slider(1250, 90, 410, 25, controller);
+        slider1.setTitle("Phase Correction");
+        slider1.setTag("phaseCorrectionSlider");
+        slider1.setCommand("phaseCorrectionAmount"); // controller will set command name as propery on model
+        slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        slider1.setMinMax(0, 1);
+        slider1.setLabelWidth(180);
+        slider1.setFormatString("%1.2f");
+        slider1.setCurrentValue(1);
+        flyout2.addChild("Transducer", slider1);
+        model.addObserver(slider1);
+        
+        Button pressureSimButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 1250, 60, 150, 25, this);        
+        pressureSimButton.setTitle("Show Pressure").setCommand("showPressure");
+        pressureSimButton.setPropertyPrefix("Model.Attribute");
+        flyout2.addChild("Transducer", pressureSimButton);
+        model.addObserver(pressureSimButton);
+        pressureSimButton.setIndicator(false);
+        model.setAttribute(pressureSimButton.getCommand(), false);
+        
+        Button pressureEnvelopeButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 1410, 60, 150, 25, this);
+        pressureEnvelopeButton.setTitle("Show Envelope").setCommand("showPressureEnvelope");
+        pressureEnvelopeButton.setDrawBackground(false);
+        pressureEnvelopeButton.setPropertyPrefix("Model.Attribute");
+        flyout2.addChild("Transducer", pressureEnvelopeButton);
+        model.addObserver(pressureEnvelopeButton);
+        pressureEnvelopeButton.setIndicator(true);
+        model.setAttribute(pressureEnvelopeButton.getCommand(), true);
+        
+        slider1 = new Slider(750, 45, 410, 25, controller);
         slider1.setTitle("Cortical bone speed");
         slider1.setCommand("boneRefractionSOS"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -568,9 +610,20 @@ public class DefaultView extends View {
         flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
         
-        slider1 = new Slider(750, 175, 410, 25, controller);
-        slider1.setTitle("Transducer tilt");
+        slider1 = new Slider(750, 180, 410, 25, controller);
+        slider1.setTitle("Transducer X tilt");
         slider1.setCommand("transducerXTilt"); // controller will set command name as propery on model
+        slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        slider1.setMinMax(-45, 45);
+        slider1.setLabelWidth(180);
+        slider1.setFormatString("%4.0f degrees");
+        slider1.setCurrentValue(0);
+        flyout2.addChild("Transducer", slider1);
+        model.addObserver(slider1);
+        
+        slider1 = new Slider(750, 135, 410, 25, controller);
+        slider1.setTitle("Transducer Y tilt");
+        slider1.setCommand("transducerYTilt"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         slider1.setMinMax(-45, 45);
         slider1.setLabelWidth(180);
@@ -806,21 +859,24 @@ public class DefaultView extends View {
         model.addObserver(button);
         flyout2.addChild("Preferences", button);
         
-        mrBore = new Cylinder(300.0f, 50.0f, -25.0f, -1f);
-        mrBoreOuter = new Cylinder(310.0f, 50.0f, -25.0f, 1f);
-        mrBoreFront = new Ring(310.0f, 10.0f, -25.0f, -1f);
-        mrBoreBack = new Ring(310.0f, 10.0f, 25.0f, 1f);
-
-        mrBore.setColor(0.7f, 0.7f, 0.8f);
-        mrBoreOuter.setColor(0.7f, 0.7f, 0.8f);
-        mrBoreFront.setColor(0.7f, 0.7f, 0.8f);
-        mrBoreBack.setColor(0.7f, 0.7f, 0.8f);
+//        mrBore = new Cylinder(300.0f, 50.0f, -25.0f, -1f);
+//        mrBoreOuter = new Cylinder(310.0f, 50.0f, -25.0f, 1f);
+//        mrBoreFront = new Ring(310.0f, 10.0f, -25.0f, -1f);
+//        mrBoreBack = new Ring(310.0f, 10.0f, 25.0f, 1f);
+//
+//        mrBore.setColor(0.7f, 0.7f, 0.8f);
+//        mrBoreOuter.setColor(0.7f, 0.7f, 0.8f);
+//        mrBoreFront.setColor(0.7f, 0.7f, 0.8f);
+//        mrBoreBack.setColor(0.7f, 0.7f, 0.8f);
         
+//        mrBoreGroup.add(mrBore);
+//        mrBoreGroup.add(mrBoreOuter);
+//        mrBoreGroup.add(mrBoreFront);
+//        mrBoreGroup.add(mrBoreBack);
+        PlyFileReader mrBore = new PlyFileReader("/org/fusfoundation/kranion/meshes/mrBoreRing.ply");
+        mrBore.setColor(0.7f, 0.7f, 0.8f, 1f);
+        mrBore.setClipColor(0.35f, 0.35f, 0.4f, 1f);
         mrBoreGroup.add(mrBore);
-        mrBoreGroup.add(mrBoreOuter);
-        mrBoreGroup.add(mrBoreFront);
-        mrBoreGroup.add(mrBoreBack);
-        mrBoreGroup.setClipColor(0.7f, 0.7f, 0.8f, 1f);
 
         
         try {
@@ -829,14 +885,14 @@ public class DefaultView extends View {
 
 //            transducer220.setTrackball(trackball);
 
-            stereotacticFrame.readObject();
+//            stereotacticFrame.readObject();
             stereotacticFrame.setColor(0.65f, 0.65f, 0.65f, 1f);
             
-            mrBore2.readObject();
+//            mrBore2.readObject();
             mrBore2.setColor(0.80f, 0.80f, 0.80f, 1f);
-            mrHousing.readObject();
+//            mrHousing.readObject();
             mrHousing.setColor(0.55f, 0.55f, 0.55f, 1f);
-            mrPedestal.readObject();
+//            mrPedestal.readObject();
             mrPedestal.setColor(0.25f, 0.25f, 0.25f, 1f);
                                
             ShaderProgram shader = new ShaderProgram();
@@ -1306,57 +1362,18 @@ public class DefaultView extends View {
     private void saveScene() {
         try {
             File selectedFile;
-            
-//            JFileChooser fileChooser = new JFileChooser() {
-//                @Override
-//                public void approveSelection(){
-//                    File f = getSelectedFile();
-//                    String fname = f.getAbsolutePath();
-//                    if(!fname.endsWith(".kranion") && !fname.endsWith(".krn")) {
-//                        f = new File(fname + ".krn");
-//                    }
-//                    this.setSelectedFile(f);
-//                    if(f.exists() && getDialogType() == SAVE_DIALOG){
-//                        int result = JOptionPane.showConfirmDialog(this,"The file exists, overwrite?","Existing file",JOptionPane.YES_NO_CANCEL_OPTION);
-//                        switch(result){
-//                            case JOptionPane.YES_OPTION:
-//                                super.approveSelection();
-//                                return;
-//                            case JOptionPane.CANCEL_OPTION:
-//                                cancelSelection();
-//                                return;
-//                            default:
-//                                return;
-//                        }
-//                    }
-//                    super.approveSelection();
-//                }                        
-//            };
-//            fileChooser.setDialogTitle(new String("Save Kranion file..."));
-////            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-//            FileNameExtensionFilter filter = new FileNameExtensionFilter("Kranion file", "kranion", "krn");
-//            fileChooser.addChoosableFileFilter(filter);
-//            fileChooser.setFileFilter(filter);
-////            fileChooser.setAcceptAllFileFilterUsed(false);    
-//            
-//            if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
-//                selectedFile = fileChooser.getSelectedFile();
-//            }
-//            else {
-//                return;
-//            }
-            
+                       
             fileDialog.setDialogTitle("Save to a Kranion scene file");
             fileDialog.setFileChooseMode(FileDialog.fileChooseMode.FILES);
-            String filters[] = {".krn", ".kranion"};
+            String filters[] = {".krn", ".kranion", ".krx"};
             selectedFile = fileDialog.open(filters);
             if (selectedFile == null) {
                 return;
             }
             
             String selectedFileName = selectedFile.getName();
-            if (!selectedFileName.endsWith(".krn") && !selectedFileName.endsWith(".kranion")) {
-                selectedFile = new File(selectedFile.getPath() + ".krn");
+            if (!selectedFileName.endsWith(".krx")) {
+                selectedFile = new File(selectedFile.getPath() + ".krx");
             }
             
             //check for existing file that would be overwritten
@@ -1368,62 +1385,21 @@ public class DefaultView extends View {
                 }
             }
                                     
-            ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(selectedFile));
-            os.writeObject(model);
-            os.close();
+//            ObjectOutputStream os = new ObjectOutputStream(new FileOutputStream(selectedFile));
+//            os.writeObject(model);
+//            os.close();
+            
+            model.saveModel(selectedFile, this);
+            
             
             return;
-            
-//            FileWriter saveFile = new FileWriter(selectedFile);
-//            PrintWriter writer = new PrintWriter(saveFile);
-//            
-//            Quaternion orient = ((Quaternion)model.getCtImage().getAttribute("ImageOrientationQ"));
-//            Vector3f trans = (Vector3f)model.getCtImage().getAttribute("ImageTranslation");
-//            
-//            writer.println(orient.x);
-//            writer.println(orient.y);
-//            writer.println(orient.z);
-//            writer.println(orient.w);
-//            
-//            writer.println(trans.x);
-//            writer.println(trans.y);
-//            writer.println(trans.z);
-//            
-//            try {
-//                orient = ((Quaternion)model.getMrImage(0).getAttribute("ImageOrientationQ"));
-//            }
-//            catch(NullPointerException e) {
-//                orient = new Quaternion().setIdentity();
-//            }
-//            
-//            try {
-//                trans = (Vector3f)model.getMrImage(0).getAttribute("ImageTranslation");
-//            }
-//            catch(NullPointerException e) {
-//                trans = new Vector3f();
-//            }
-//            
-//            writer.println(orient.x);
-//            writer.println(orient.y);
-//            writer.println(orient.z);
-//            writer.println(orient.w);
-//            
-//            writer.println(trans.x);
-//            writer.println(trans.y);
-//            writer.println(trans.z);
-//            
-//            writer.println(this.center);
-//            writer.println(this.window);
-//            writer.println(this.mr_center);
-//            writer.println(this.mr_window);
-//
-//            //Close writer
-//            writer.close();
-//            saveFile.close();
         }
         catch (Exception e) {
             System.out.println("Error writing scene file.");
             e.printStackTrace();
+        }
+        finally {
+            percentDone("Ready.", -1);
         }
         
     }
@@ -1490,38 +1466,37 @@ public class DefaultView extends View {
         try {
             
             File selectedFile;
-            
-//            JFileChooser fileChooser = new JFileChooser();
-//            fileChooser.setDialogTitle(new String("Load Kranion file..."));
-//            FileNameExtensionFilter filter = new FileNameExtensionFilter("Kranion file", "kranion", "krn");
-//            fileChooser.addChoosableFileFilter(filter);
-//            fileChooser.setFileFilter(filter);
-////            fileChooser.setAcceptAllFileFilterUsed(false);    
-////            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-//            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-//                selectedFile = fileChooser.getSelectedFile();
-//            }
-//            else {
-//                return;
-//            }
 
             fileDialog.setDialogTitle("Open a Kranion scene file");
             fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_FILES);
-            String[] filters = {".krn", ".kranion"};
+            String[] filters = {".krn", ".kranion", ".krx"};
             selectedFile = fileDialog.open(filters);
             if (selectedFile == null) {
                 return;
             }
-                                    
-            ObjectInputStream is = new ObjectInputStream(new FileInputStream(selectedFile));
-            Model newModel = (Model)is.readObject();
-            is.close();
+                             
+            Model newModel = null;
+            ObjectInputStream is = null;
+            
+            newModel = Model.loadModel(selectedFile, this);
+            
+            int tmpMRselected = newModel.getSelectedMR();
+            int tmpSonicationSelected = newModel.getSelectedSonication();
             
             enumSavedClasses(newModel);
+            
+            Main.setTitle(selectedFile.getName());
+
             
             // re-plumb everything for the new model...
             
             Main.setModel(newModel); // should update M,V,C
+            
+            // defensive release of texture resources and names
+            // means texutres have to be built, but doesn't take long
+            // and prevents weird texture problems that intermittently
+            // happen upon model load
+            canvas.release();
                         
             ImageVolumeUtil.releaseTextures(model.getCtImage());
             
@@ -1532,7 +1507,7 @@ public class DefaultView extends View {
             }
             
             this.setDisplayCTimage(model.getCtImage());
-            this.setDisplayMRimage(model.getMrImage(0));
+            this.setDisplayMRimage(model.getMrImage(tmpMRselected));
             
             try {
                 System.out.println("CT registration stored:");
@@ -1565,7 +1540,7 @@ public class DefaultView extends View {
             
             this.updateMRlist();
             this.updateSonicationList();
-            model.setAttribute("currentSonication", 0);
+//            model.setAttribute("currentSonication", 0);
             
             // This is to make sure that any controls that had no saved values
             // in the loaded model get a chance to update their current values
@@ -1642,6 +1617,9 @@ public class DefaultView extends View {
             System.out.println("Error reading scene file.");
             e.printStackTrace();
         }
+        finally {
+            percentDone("Ready", -1);
+        }
         
     }
 
@@ -1672,6 +1650,7 @@ public class DefaultView extends View {
         }
         
         canvas.setShowPressure(false);
+        model.setAttribute("showPressure", false);
         
         if (model.getAttribute("showThermometry") != null) {
             boolean bShow = (Boolean)model.getAttribute("showThermometry");
@@ -1735,11 +1714,12 @@ public class DefaultView extends View {
             
             this.transRayTracer.setTextureRotatation(naturalFocusPosition, trackball);
             
+            this.pressureCalcNeedsUpdate = true;            
             //zeroImageTranslations();
     }
     
     private void updatePressureCalc() {
-        if (canvas.getShowPressure()) {
+        if (canvas.getShowPressure() && pressureCalcNeedsUpdate) {
                        
             this.transRayTracer.calcPressureEnvelope(new Quaternion(this.trackball.getCurrent()));
 
@@ -1749,6 +1729,8 @@ public class DefaultView extends View {
             canvas1.setOverlayImage(null);
             canvas2.setOverlayImage(null);
             canvas3.setOverlayImage(null);
+            
+            pressureCalcNeedsUpdate = false;
         }
     }
     
@@ -1980,13 +1962,15 @@ public class DefaultView extends View {
             int uniformLoc = glGetUniformLocation(stereotacticFrame.getShader().getShaderProgramID(), "offset");
             glUniform3f(uniformLoc, loc.x, loc.y, loc.z); // 300 - 220 = 80
 
-            uniformLoc = glGetUniformLocation(stereotacticFrame.getShader().getShaderProgramID(), "transducerAngle");
-            glUniform1f(uniformLoc, (float) (transducerTilt / 180f * Math.PI));
+            uniformLoc = glGetUniformLocation(stereotacticFrame.getShader().getShaderProgramID(), "transducerAngleX");
+            glUniform1f(uniformLoc, (float) (transducerTiltX / 180f * Math.PI));
 
             stereotacticFrame.getShader().stop();
 
             if (doClip) {
                 stereotacticFrame.setClipped(false);
+//                stereotacticFrame.setDolly(cameraZ, dolly.getValue());
+//                stereotacticFrame.setTrackball(trackball);
             } else {
                 stereotacticFrame.setClipped(false);
             }
@@ -2032,16 +2016,23 @@ public class DefaultView extends View {
             transducerModel.setClipped(true);
             transducerModel.setTrackball(trackball);
             transducerModel.setDolly(cameraZ, dolly.getValue());
+            
+            mrBoreGroup.setClipped(true);
+            mrBoreGroup.setTrackball(trackball);
+            mrBoreGroup.setDolly(cameraZ, dolly.getValue());
         } else {
             transducerModel.setClipped(false);
+            mrBoreGroup.setClipped(false);
         }
 
-        transducerModel.setTransducerXTilt(transducerTilt);
+        transducerModel.setTransducerXTilt(transducerTiltX);
+        transducerModel.setTransducerYTilt(transducerTiltY);
 
+        transRayTracer.setTransducerTiltX(-transducerTiltX);
+        transRayTracer.setTransducerTiltY(transducerTiltY);
         if (showRayTracer) {
             transRayTracer.setVisible(true);
             transRayTracer.setTextureRotatation(naturalFocusPosition, trackball);
-            transRayTracer.setTransducerTilt(-transducerTilt);
 
             activeElementsBar.setValue(transRayTracer.getActiveElementCount());
             sdrBar.setValue(transRayTracer.getSDR());
@@ -2116,9 +2107,13 @@ public class DefaultView extends View {
             transFuncDisplay.setVisible(false);
         }
         
-        if (this.canvas.getShowPressure() && this.trackball.getIsDirty()) {
-            this.updatePressureCalc();
-            System.out.println("update pressure calc");
+        // update pressure map if animating an orientation change
+        if (!orientAnimator.isAnimationDone()) {
+            pressureCalcNeedsUpdate = true;
+        }
+        
+        if (pressureCalcNeedsUpdate) {
+            updatePressureCalc();
         }
         
         if (doTransition) {
@@ -2166,6 +2161,8 @@ public class DefaultView extends View {
 
                 if (currentMouseMode == mouseMode.SCENE_ROTATE) {
                     trackball.mouseDragged(x, y);
+                    //updatePressureCalc();
+                    pressureCalcNeedsUpdate = true;
                     return true;
                 }
                 
@@ -2626,8 +2623,12 @@ public class DefaultView extends View {
                 case "currentTargetSteering":
                 case "boneSOS":
                 case "boneRefractionSOS":
+                case "phaseCorrectionAmount":
+                    Slider phaseSlider = (Slider)Renderable.lookupByTag("phaseCorrectionSlider");
+                    if (phaseSlider != null) {
+                        this.transRayTracer.setPhaseCorrectionAmount(phaseSlider.getCurrentValue());
+                    }
                     updateTargetAndSteering();
-                    updatePressureCalc();
                     this.setIsDirty(true);
                     return;
                 case "doFrame":
@@ -2646,6 +2647,7 @@ public class DefaultView extends View {
                     break;
                 case "currentSonication":
                     int sonicationIndex = (Integer)model.getAttribute("currentSonication");
+                    model.setSelectedSonication(sonicationIndex);
                     if (sonicationIndex>=0 && model.getSonication(sonicationIndex) != null) {
                         model.setAttribute("currentTargetPoint", new Vector3f(model.getSonication(sonicationIndex).getNaturalFocusLocation()));
                         model.setAttribute("currentTargetSteering", new Vector3f(model.getSonication(sonicationIndex).getFocusSteering()));
@@ -2683,12 +2685,44 @@ public class DefaultView extends View {
                     break;
                 case "transducerXTilt":
                     this.transducerModel.setTransducerXTilt((float)event.getNewValue());
-                    this.transducerTilt = (float)event.getNewValue();
+                    this.transducerTiltX = (float)event.getNewValue();
+                    updateTargetAndSteering();
+                    this.setIsDirty(true);
+                    break;
+                case "transducerYTilt":
+                    this.transducerModel.setTransducerYTilt((float)event.getNewValue());
+                    this.transducerTiltY = (float)event.getNewValue();
+                    updateTargetAndSteering();
+                    this.setIsDirty(true);
                     break;
                 case "showTargets":
                     boolean bShow = (Boolean)model.getAttribute("showTargets");
                     Renderable.lookupByTag("targetRenderer").setVisible(bShow);
                     this.setDoTransition(true);
+                    break;
+                case "showPressure":
+                    boolean bDoPressure = (Boolean)event.getNewValue();
+                    if (bDoPressure) {
+                        transRayTracer.setShowEnvelope(false); // TODO: this is probably overtaken by events now. remove?
+                        canvas.setShowPressure(true);
+                        canvas.setShowThermometry(false);
+                        model.setAttribute("showThermometry", false);
+                        updateTargetAndSteering();
+                        setDoTransition(true);
+                    }
+                    else {
+                        transRayTracer.setShowEnvelope(false);
+                        canvas.setShowPressure(false);
+                        canvas.setShowThermometry(false);
+                        setDoTransition(true);
+                    }
+                    break;
+                case "showPressureEnvelope":
+                    boolean bDoPressureEnvelope = (Boolean)event.getNewValue();
+                    transRayTracer.setShowPressureEnvelope(bDoPressureEnvelope);
+                    canvas.setIsDirty(true);
+                    updateTargetAndSteering();
+                    setDoTransition(true);
                     break;
             }
             
@@ -2774,9 +2808,10 @@ public class DefaultView extends View {
     private void updateTransducerModel(int sonicationIndex) {
         try {
             String txdrGeomFileName = (String) model.getSonication(sonicationIndex).getAttribute("txdrGeomFileName");
-            
-            if (txdrGeomFileName == null) return; // TODO: do some error handling and notify user that something is missing
-            
+
+            if (txdrGeomFileName == null) {
+                return; // TODO: do some error handling and notify user that something is missing
+            }
             Vector3f tdXdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltXdir");
             Vector3f tdYdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltYdir");
             Vector3f tdZdir = Vector3f.cross(tdXdir, tdYdir, null);
@@ -2784,11 +2819,16 @@ public class DefaultView extends View {
             this.transducerModel.buildElements(new InsightecTxdrGeomReader(new File(txdrGeomFileName)));
             this.transducerModel.setTransducerTilt(tdXdir, tdYdir);
             this.transRayTracer.init(transducerModel);
-            
+
             float tiltXAngleDeg = Vector3f.angle(new Vector3f(0, tdZdir.y, tdZdir.z), new Vector3f(0, 0, -1)) / ((float) Math.PI * 2f) * 360f;
+            float tiltYAngleDeg = Vector3f.angle(new Vector3f(tdZdir.x, 0, tdZdir.z), new Vector3f(0, 0, -1)) / ((float) Math.PI * 2f) * 360f;
+
             model.setAttribute("transducerXTilt", tiltXAngleDeg);
-                    
-    } catch (IOException e) {
+            model.setAttribute("transducerYTilt", tiltYAngleDeg);
+            
+            updateTargetAndSteering();
+
+        } catch (IOException e) {
             e.printStackTrace();
             return;
         }
@@ -3017,17 +3057,17 @@ public class DefaultView extends View {
         System.out.println("updateMRList");
         
         // registration image selection lists too
-        PullDownSelection sel1 = (PullDownSelection)Renderable.lookupByTag("movingImageSel");
-        if (sel1 != null) {
-            sel1.clear();
-            sel1.addItem(0, "CT", model.getCtImage());
-            sel1.setSelectionIndex(0);
+        PullDownSelection registrationMovingSelection = (PullDownSelection)Renderable.lookupByTag("movingImageSel");
+        if (registrationMovingSelection != null) {
+            registrationMovingSelection.clear();
+            registrationMovingSelection.addItem(0, "CT", model.getCtImage());
+            registrationMovingSelection.setSelectionIndex(0);
         }
         
-        PullDownSelection sel2 = (PullDownSelection)Renderable.lookupByTag("staticImageSel");
-        if (sel2 != null) {
-            sel2.clear();
-            sel2.addItem(0, "CT", model.getCtImage());
+        PullDownSelection registrationStaticSelection = (PullDownSelection)Renderable.lookupByTag("staticImageSel");
+        if (registrationStaticSelection != null) {
+            registrationStaticSelection.clear();
+            registrationStaticSelection.addItem(0, "CT", model.getCtImage());
         }
         
         this.mrSeriesSelector.clear();
@@ -3037,26 +3077,26 @@ public class DefaultView extends View {
                 mrSeriesSelector.addItem(i, model.getMrImage(i).getAttribute("ProtocolName").toString());
                 
                 // registration image selection lists too
-                if (sel1 != null) {
-                    sel1.addItem("MR - " + model.getMrImage(i).getAttribute("ProtocolName").toString(), model.getMrImage(i));
+                if (registrationMovingSelection != null) {
+                    registrationMovingSelection.addItem("MR - " + model.getMrImage(i).getAttribute("ProtocolName").toString(), model.getMrImage(i));
                 }
-                if (sel2 != null) {
-                    sel2.addItem("MR - " + model.getMrImage(i).getAttribute("ProtocolName").toString(), model.getMrImage(i));
-                    sel2.setSelectionIndex(1);
+                if (registrationStaticSelection != null) {
+                    registrationStaticSelection.addItem("MR - " + model.getMrImage(i).getAttribute("ProtocolName").toString(), model.getMrImage(i));
+                    registrationStaticSelection.setSelectionIndex(1);
                 }
             }
             catch(Exception e) {
                 mrSeriesSelector.addItem(i, "Unspecified MR protocol");                
-                 if (sel1 != null) {
-                    sel1.addItem("MR - " + "Unspecified MR protocol", model.getMrImage(i));
+                 if (registrationMovingSelection != null) {
+                    registrationMovingSelection.addItem("MR - " + "Unspecified MR protocol", model.getMrImage(i));
                 }
-                if (sel2 != null) {
-                    sel2.addItem("MR - " + "Unspecified MR protocol", model.getMrImage(i));
+                if (registrationStaticSelection != null) {
+                    registrationStaticSelection.addItem("MR - " + "Unspecified MR protocol", model.getMrImage(i));
                 }
            }
         }
 //        if (mrSeriesSelector.getSelectionIndex() != 0) {
-            mrSeriesSelector.setSelectionIndex(0);
+            mrSeriesSelector.setSelectionIndex(model.getSelectedMR());
 //        }
 
     }
@@ -3082,7 +3122,7 @@ public class DefaultView extends View {
             catch(Exception e) {
             }
         }
-        sonicationSelector.setSelectionIndex(0);
+        sonicationSelector.setSelectionIndex(model.getSelectedSonication());
     }
 
     @Override
@@ -3106,7 +3146,7 @@ public class DefaultView extends View {
             if (steering == null) {
                 steering = new Vector3f();
             }
-           // model.setAttribute("currentTargetSteering", steering.translate(-0.1f, 0f, 0f));
+            model.setAttribute("currentTargetSteering", steering.translate(-0.1f, 0f, 0f));
             
            // updateTargetAndSteering();
            // updatePressureCalc();
@@ -3128,7 +3168,7 @@ public class DefaultView extends View {
             if (steering == null) {
                 steering = new Vector3f();
             }
-            //model.setAttribute("currentTargetSteering", steering.translate(0.1f, 0f, 0f));
+            model.setAttribute("currentTargetSteering", steering.translate(0.1f, 0f, 0f));
             
 //            System.out.println("************** Steering: " + steering);
             
@@ -3262,15 +3302,15 @@ public class DefaultView extends View {
         }
         if (Keyboard.isKeyDown(Keyboard.KEY_T)) {
 //            needsRendering = true;
-            transducerTilt += 0.5f;
-            transducerModel.setTransducerXTilt(transducerTilt);
-            model.setAttribute("transducerXTilt", transducerTilt);
+            transducerTiltX += 0.5f;
+            transducerModel.setTransducerXTilt(transducerTiltX);
+            model.setAttribute("transducerXTilt", transducerTiltX);
         }
         if (Keyboard.isKeyDown(Keyboard.KEY_G)) {
 //            needsRendering = true;
-            transducerTilt -= 0.5f;
-            transducerModel.setTransducerXTilt(transducerTilt);
-            model.setAttribute("transducerXTilt", transducerTilt);
+            transducerTiltX -= 0.5f;
+            transducerModel.setTransducerXTilt(transducerTiltX);
+            model.setAttribute("transducerXTilt", transducerTiltX);
         }
 
         while (Keyboard.next()) {
@@ -3443,21 +3483,14 @@ public class DefaultView extends View {
             }
             if (Keyboard.getEventKeyState()) {
                 if (Keyboard.getEventKey() == Keyboard.KEY_L) {
-                    boolean bDoPressure = canvas.getShowPressure();
-                    if (bDoPressure == false) {
-                        transRayTracer.setShowEnvelope(false); // TODO: this is probably overtaken by events now. remove?
-                        canvas.setShowPressure(true);
-                        canvas.setShowThermometry(false);
-                        updateTargetAndSteering();
-                        updatePressureCalc();
-                        setDoTransition(true);
+                    boolean bDoPressure;
+                    try {
+                        bDoPressure = (Boolean)model.getAttribute("showPressure");
                     }
-                    else {
-                        transRayTracer.setShowEnvelope(false);
-                        canvas.setShowPressure(false);
-                        canvas.setShowThermometry(false);
-                        setDoTransition(true);
+                    catch(Exception e) {
+                        bDoPressure = false;
                     }
+                    model.setAttribute("showPressure", !bDoPressure);
                 }
             }
 //            if (Keyboard.getEventKeyState()) {
@@ -3992,8 +4025,22 @@ public class DefaultView extends View {
                         model.setAttribute("currentTargetPoint", new Vector3f());
                         model.setAttribute("currentTargetSteering", new Vector3f());
                         model.setAttribute("currentSonication", -1);
+                        
+                        // clear thermometry graph
+                        this.thermometryChart.newChart();
+                        this.thermometryChart.generateChart();
+                        
+                        try {
+                            ((TextBox)(Renderable.lookupByTag("tbSonicationMaxTemp"))).setText("");
+                            ((TextBox)(Renderable.lookupByTag("tbSonicationMaxDose"))).setText("");
+                        }
+                        catch(Exception npe){}
+
+                        
                         updateSonicationList();
                         updateMRlist();
+                        
+                        Main.setTitle(null);
                     }
                 }
                 break;
@@ -4103,7 +4150,10 @@ public class DefaultView extends View {
                 selTrans = this.transducerPatternSelector.getSelectionIndex();
                 transRayTracer.release();
                 setDoTransition(true);
+                transducerModel.setTransducerDefinitionIndex(selTrans);
                 transRayTracer.init(transducerModel.buildElements(Transducer.getTransducerDef(selTrans)));
+                activeElementsBar.setMinMax(0, transducerModel.getElementCount());
+                updateTargetAndSteering();
                 break;
             case "calcEnvelope":
                 calcTreatmentEnvelope();
@@ -4123,13 +4173,13 @@ public class DefaultView extends View {
                 doTransition = true;
 
                 break;
-            case "loadCT":
+            case "loadDicom":
 //            JFileChooser fileChooser = new JFileChooser();
 //            fileChooser.setDialogTitle(new String("Choose CT file..."));
 //            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
 //            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 File ctfile = null;
-                fileDialog.setDialogTitle("Choose a directory from which to import DICOM CT");
+                fileDialog.setDialogTitle("Choose a directory from which to import DICOM series");
                 fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_DIRECTORIES);
                 ctfile = fileDialog.open();
                 if (ctfile != null) {
@@ -4145,35 +4195,40 @@ public class DefaultView extends View {
                     
                     if (desc != null && desc.sliceFiles.size() > 0) {                        
                         Loader ctloader = new Loader();
-                        ctloader.load(desc.sliceFiles, "CT_IMAGE_LOADED", getController());
+                        if (desc.modality.equalsIgnoreCase("CT")) {
+                            ctloader.load(desc.sliceFiles, "CT_IMAGE_LOADED", getController());
+                        }
+                        else if (desc.modality.equalsIgnoreCase("MR")) {
+                            ctloader.load(desc.sliceFiles, "MR_IMAGE_0_LOADED", getController());
+                        }
                     }
                 }
                 break;
-            case "loadMR":
-//            JFileChooser fileChooser = new JFileChooser();
-//            fileChooser.setDialogTitle(new String("Choose MR file..."));
-//            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
-//            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-                File mrfile = null;
-                fileDialog.setDialogTitle("Choose a directory from which to import DICOM MR");
-                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_DIRECTORIES);
-                mrfile = fileDialog.open();
-                if (mrfile != null) {
-                    System.out.println("Selected file: " + mrfile.getAbsolutePath());
-
-                    DicomImageLoader dicomLoader = new DicomImageLoader();
-                    Map<String, DicomImageLoader.seriesDescriptor> descriptorMap = dicomLoader.scanDirectoryForSeries(mrfile, this);
-                    
-                    dicomSeriesDialog.populateList(descriptorMap);
-                    String selectedSeriesUID = dicomSeriesDialog.open();
-                    
-                    DicomImageLoader.seriesDescriptor desc = descriptorMap.get(selectedSeriesUID);
-                    
-                    if (desc != null && desc.sliceFiles.size() > 0) {                        
-                        Loader mrloader = new Loader();
-                        mrloader.load(desc.sliceFiles, "MR_IMAGE_0_LOADED", getController());
-                    }                }
-                break;
+//            case "loadMR":
+////            JFileChooser fileChooser = new JFileChooser();
+////            fileChooser.setDialogTitle(new String("Choose MR file..."));
+////            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
+////            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+//                File mrfile = null;
+//                fileDialog.setDialogTitle("Choose a directory from which to import DICOM MR");
+//                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_DIRECTORIES);
+//                mrfile = fileDialog.open();
+//                if (mrfile != null) {
+//                    System.out.println("Selected file: " + mrfile.getAbsolutePath());
+//
+//                    DicomImageLoader dicomLoader = new DicomImageLoader();
+//                    Map<String, DicomImageLoader.seriesDescriptor> descriptorMap = dicomLoader.scanDirectoryForSeries(mrfile, this);
+//                    
+//                    dicomSeriesDialog.populateList(descriptorMap);
+//                    String selectedSeriesUID = dicomSeriesDialog.open();
+//                    
+//                    DicomImageLoader.seriesDescriptor desc = descriptorMap.get(selectedSeriesUID);
+//                    
+//                    if (desc != null && desc.sliceFiles.size() > 0) {                        
+//                        Loader mrloader = new Loader();
+//                        mrloader.load(desc.sliceFiles, "MR_IMAGE_0_LOADED", getController());
+//                    }                }
+//                break;
             case "showTransducer":
             case "showCrosshair":
                 this.transducerModel.setVisible(!this.transducerModel.getVisible());
@@ -4194,6 +4249,7 @@ public class DefaultView extends View {
         Vector3f CofR = new Vector3f(currentTarget.getXpos(), currentTarget.getYpos(), currentTarget.getZpos());
 
         canvas.setShowPressure(false);
+        model.setAttribute("showPressure", false);
         canvas.setTextureRotatation(CofR.translate(currentSteering.getXpos(), currentSteering.getYpos(), currentSteering.getZpos()), trackball);
 
         transRayTracer.setTextureRotatation(CofR, trackball);

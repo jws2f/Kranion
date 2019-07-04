@@ -205,7 +205,7 @@ public class DicomImageLoader implements ImageLoader {
                     }
                     
                     if (listener != null) {
-                        System.out.println("scanning " + i + " of " + listOfFiles.length);
+                        //System.out.println("scanning " + i + " of " + listOfFiles.length);
                         listener.percentDone("Scanning for dicom series", (int)Math.round((double)(i+1)/(listOfFiles.length)*100.0));
                     }
                     

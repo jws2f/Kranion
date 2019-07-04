@@ -23,9 +23,14 @@
  */
 package org.fusfoundation.kranion.model;
 
+import com.thoughtworks.xstream.XStream;
 import java.io.*;
 import java.util.*;
 import java.beans.PropertyChangeEvent;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
+import org.fusfoundation.kranion.ProgressListener;
 import org.fusfoundation.kranion.model.image.*;
 
 /**
@@ -34,6 +39,7 @@ import org.fusfoundation.kranion.model.image.*;
  */
 public class Model extends Observable implements Serializable, Observer {
     //private HashMap<String, Object> attributes = new HashMap<String, Object>();
+    
     private AttributeList attributes = new AttributeList();
     
     private static final long serialVersionUID = -729845232606031972L;
@@ -102,6 +108,8 @@ public class Model extends Observable implements Serializable, Observer {
             notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+key+"]", null, value));
         }
     }
+    
+    public AttributeList getAttributeList() { return attributes; }
     
     
     public int getSelectedMR() { return selectedMR; }
@@ -306,6 +314,107 @@ public class Model extends Observable implements Serializable, Observer {
             notifyObservers(new PropertyChangeEvent(this, "Model." + childName + propEvt.getPropertyName(), null, propEvt.getNewValue()));
        }
         
+    }
+    
+    public void saveModel(File file, ProgressListener listener) throws IOException {
+        
+            ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(file));
+            
+            ImageVolume4DXStreamConverter imageConverter = new ImageVolume4DXStreamConverter();
+                    
+            XStream xstream = new XStream();
+            xstream.alias("Model", Model.class);
+            xstream.alias("Sonication", Sonication.class);
+            xstream.alias("AttributeList", AttributeList.class);
+            xstream.alias("Vector2f", org.fusfoundation.kranion.model.Vector2f.class);
+            xstream.alias("Vector3f", org.fusfoundation.kranion.model.Vector3f.class);
+            xstream.alias("Matrix3f", org.fusfoundation.kranion.model.Matrix3f.class);
+            xstream.alias("Matrix4f", org.fusfoundation.kranion.model.Matrix4f.class);
+            xstream.alias("Quaternionf", org.fusfoundation.kranion.model.Quaternionf.class);
+            xstream.alias("ImageVolume4D", ImageVolume4D.class);
+            xstream.registerConverter(new ModelXStreamConverter());
+            xstream.registerConverter(new SonicationXStreamConverter());
+            xstream.registerConverter(imageConverter);
+            xstream.registerConverter(new AttributeListXStreamConverter());
+                        
+            if (listener != null) {
+                listener.percentDone("Saving scene", 0);
+            }
+            
+            zos.putNextEntry(new ZipEntry("model.xml"));                       
+            xstream.toXML(this, zos);            
+            zos.closeEntry();
+            
+            imageConverter.marshalVoxelData(zos, listener);
+            
+            zos.close();
+    }
+    
+    public static Model loadModel(File file, ProgressListener listener) throws IOException, ClassNotFoundException {
+        
+            Model newModel = null;
+            ObjectInputStream is = null;
+                    
+            // Try first to load the model using old Serialization mechanism.
+            // This is simple and fast, but opaque and brittle
+            try {
+                is = new ObjectInputStream(new FileInputStream(file));
+                newModel = (Model)is.readObject();
+            }
+            catch(Exception e) {
+                newModel = null;
+            }
+            finally {
+                if (is != null) {
+                    is.close();
+                }
+            }
+
+            // If Java Serialization loading failed then try the new style
+            // Zip archive with XML model serialization and raw voxel data streams.
+            // This is slower but more archival in that the XML is human readable
+            // and raw voxel data should be readable by other applications.
+            if (newModel == null) {
+                ImageVolume4DXStreamConverter imageConverter = new ImageVolume4DXStreamConverter();
+
+                XStream xstream = new XStream();
+                xstream.alias("Model", Model.class);
+                xstream.alias("Sonication", Sonication.class);
+                xstream.alias("AttributeList", AttributeList.class);
+                xstream.alias("Vector2f", org.fusfoundation.kranion.model.Vector2f.class);
+                xstream.alias("Vector3f", org.fusfoundation.kranion.model.Vector3f.class);
+                xstream.alias("Matrix3f", org.fusfoundation.kranion.model.Matrix3f.class);
+                xstream.alias("Matrix4f", org.fusfoundation.kranion.model.Matrix4f.class);
+                xstream.alias("Quaternionf", org.fusfoundation.kranion.model.Quaternionf.class);
+                xstream.alias("ImageVolume4D", ImageVolume4D.class);
+                xstream.registerConverter(new ModelXStreamConverter());
+                xstream.registerConverter(new SonicationXStreamConverter());
+                xstream.registerConverter(imageConverter);
+                xstream.registerConverter(new AttributeListXStreamConverter());
+
+                if (listener != null) {
+                    listener.percentDone("Loading scene", 0);
+                }
+                
+                // read the model XML entry
+                ZipFile modelFile = new ZipFile(file);
+                ZipEntry modelxml = modelFile.getEntry("model.xml");
+                InputStream modelxmlstream = modelFile.getInputStream(modelxml);
+                newModel = (Model)xstream.fromXML(modelxmlstream);
+                modelxmlstream.close();
+
+                // read entries for each image data channel
+                imageConverter.unmarshalVoxelData(modelFile, listener);
+                
+                modelFile.close();
+                
+                if (listener != null) {
+                    listener.percentDone("Ready.", -1);
+                }
+            }
+            
+            
+            return newModel;
     }
     
 }

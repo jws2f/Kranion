@@ -111,11 +111,20 @@ void main(void)
 */
 
         // computing normalized pressure^2 (0-1)
-        if (ovlyTexVal < 0.05) {
-            ovlyColor = mix(vec4(0.05, 0.05, 0.3, 0f), vec4(0.01, 1, 0.1, 1), clamp(ovlyTexVal/0.05, 0, 1));
+        if (ovlyTexVal < 0.015) {
+            ovlyColor = mix(vec4(0.1, 0.1, 0.3, 0.0f), vec4(0, 0, 1, 0.4), clamp((ovlyTexVal)/0.015, 0, 1));
+        }
+        else if (ovlyTexVal > 0.015 && ovlyTexVal <= 0.1) {
+            ovlyColor = mix(vec4(0, 0, 1, 0.4), vec4(0, 1, 1, 0.5), clamp((ovlyTexVal-0.015)/0.085, 0, 1));
+        }
+        else if (ovlyTexVal > 0.1 && ovlyTexVal <= 0.2) {
+            ovlyColor = mix(vec4(0, 1, 1, 0.5), vec4(1, 1, 0, 0.8), clamp((ovlyTexVal-0.1)/0.1, 0, 1));
+        }
+        else if (ovlyTexVal > 0.2 && ovlyTexVal <= 0.5) {
+            ovlyColor = mix(vec4(1, 1, 0, 0.8), vec4(1, 0, 0, 1), clamp((ovlyTexVal-0.2)/0.3, 0, 1));
         }
         else {
-            ovlyColor = mix(vec4(0.01, 1, 0.1, 1), vec4(1, 0.2, 0.2, 1), clamp((ovlyTexVal-0.05)/0.15, 0, 1));
+            ovlyColor = mix(vec4(1,0, 0, 1), vec4(0.8, 0.2, 0.2, 1), clamp((ovlyTexVal-0.5)/0.1, 0, 1));
         }
 
         if (slice==last_slice) {

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>true</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>.\Kranion.jar</jar>
+  <outfile>C:\Users\John.FUSF\Desktop\Kranion\Kranion.exe</outfile>
+  <errTitle>Kranion</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>http://java.com/download</downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>D:\Documents\NetBeansProjects\Kranion\src\org\fusfoundation\kranion\images\Kranion.ico</icon>
+  <jre>
+    <path></path>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <bundledJreAsFallback>false</bundledJreAsFallback>
+    <minVersion>8</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64</runtimeBits>
+    <initialHeapSize>1800</initialHeapSize>
+    <maxHeapSize>6000</maxHeapSize>
+    <opt>-cp ./lib -Djava.library.path=./lib -javaagent:./lib/jar-loader.jar</opt>
+  </jre>
+</launch4jConfig>

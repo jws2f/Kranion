@@ -29,6 +29,7 @@ import java.io.Serializable;
  * @author  jsnell
  */
 public class ImageDimension implements Serializable {
+    private static final long  serialVersionUID = 4003385660612642331L;
     
     public static final int DIMENSION_TYPE_SPATIAL = 0;
     public static final int DIMENSION_TYPE_TEMPORAL = 1;
@@ -47,6 +48,18 @@ public class ImageDimension implements Serializable {
     
     
     /** Creates a new instance of ImageDimension */
+    
+    public ImageDimension() {
+        dimensionSize = 1;
+        
+        type = DIMENSION_TYPE_SPATIAL;
+        
+        regularSampleWidth = true;
+        regularWidth = new Float(1.0f);
+        regularSampleSpacing = true;
+        regularSpacing = new Float(1.0f);
+    }
+    
     public ImageDimension(int size) {
         dimensionSize = Math.max(1, size);
         
@@ -81,6 +94,7 @@ public class ImageDimension implements Serializable {
     }
     
     public int getSize() { return dimensionSize; }
+    public void setSize(int size) { dimensionSize = size; }
     
     public int getType() { return type; }
     public void setType(int t) { type = t; }

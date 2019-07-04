@@ -23,7 +23,7 @@
  */
 package org.fusfoundation.kranion;
 
-import com.sun.scenario.effect.impl.BufferUtil;
+//import com.sun.scenario.effect.impl.BufferUtil;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
