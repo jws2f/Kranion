@@ -159,10 +159,12 @@ public class DicomImageLoader implements ImageLoader {
                 Map<String, seriesDescriptor> seriesMap = new HashMap<>();
                 
                 if (file.isDirectory()) {
+                    System.out.println("Scanning directory: " + file.getPath());
                     listOfFiles = file.listFiles();
                 }
                 else {
-                    listOfFiles = parentDir.listFiles();
+                    //listOfFiles = parentDir.listFiles();
+                    return seriesMap;
                 }
 
                 for (int i = 0; i < listOfFiles.length; i++) {
@@ -202,6 +204,11 @@ public class DicomImageLoader implements ImageLoader {
                             }
 
                         }
+                    }
+                    else if (theFile.isDirectory()) {
+                        System.out.println("   Scanning subdir: " + theFile.getPath());
+                        Map<String, seriesDescriptor> subdirMap = this.scanDirectoryForSeries(theFile, listener);
+                        seriesMap.putAll(subdirMap);
                     }
                     
                     if (listener != null) {
