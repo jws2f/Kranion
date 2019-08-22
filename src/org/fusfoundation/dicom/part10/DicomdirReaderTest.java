@@ -29,6 +29,7 @@ import java.util.Iterator;
 import org.fusfoundation.dicom.DicomException;
 import org.fusfoundation.dicom.DicomObject;
 import org.fusfoundation.dicom.DicomObjectReader;
+import org.fusfoundation.dicom.VR;
 
 /**
  *
@@ -82,6 +83,13 @@ public class DicomdirReaderTest {
                             System.out.println("      SERIES " + seriesCount++ + ": " + subobj.getVR("SeriesDescription").getValue());
                             break;
                         case "IMAGE":
+                            VR fileSpec = subobj.getVR("ReferencedFileID");
+                            int f = fileSpec.getValueMultiplicity();
+                            System.out.print("         ");
+                            for (int i=0; i<f; i++) {
+                                System.out.print("/" + fileSpec.getValue(i));
+                            }
+                            System.out.println();
                         
                     }
                 }

@@ -1538,7 +1538,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         Vector4f offset = new Vector4f();
         
-        envelopeImage.setAttribute("ImageTranslation", new Vector3f(-centerOfRotation.x, -centerOfRotation.y, -centerOfRotation.z));
+        envelopeImage.setAttribute("ImageTranslation", new Vector3f(-centerOfRotation.x - steering.x, -centerOfRotation.y + steering.y, -centerOfRotation.z + steering.z));
         if (pressureFieldOrientation == null) {
             pressureFieldOrientation = new Quaternion();
         }
@@ -1587,6 +1587,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     //TODO: seems fishy. check coord system and xfrm
 //                    offset.z = -offset.z;
                     offset.x = -offset.x;
+                    
+                    offset.x += steering.x;
+                    offset.y += steering.y;
+                    offset.z += steering.z;
                                         
                         pressure = calcSamplePressure(new Vector3f(0, 0, 0), offset);
     //                    pressure = Math.abs(pressure);

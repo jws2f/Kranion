@@ -335,6 +335,14 @@ public class VR implements Serializable, Comparable {
         }
     }
     
+    public int getSequenceLength() {
+        if (seqItems == null) {
+            return 0;
+        } else {
+            return seqItems.size();
+        }
+    }
+    
     // Hack for multi-frame, encapsulated image data
     public void addImageFrame(byte[] frameData) {
         if (imageFrames == null) {

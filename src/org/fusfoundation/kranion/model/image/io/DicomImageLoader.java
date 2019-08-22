@@ -153,6 +153,162 @@ public class DicomImageLoader implements ImageLoader {
         return result;
     }
     
+    private void parseDicomFile(File file, Map<String, seriesDescriptor> seriesMap) {
+        if (file.isFile()) {
+            DicomObject selectedDicomObj = openDicomFile(file, false);
+            if (selectedDicomObj != null) {
+                String seriesUID;
+                seriesUID = safeGetVRStringValue(selectedDicomObj, "SeriesInstanceUID");
+
+                if (seriesUID != null) {
+                    seriesDescriptor descriptor = seriesMap.get(seriesUID);
+                    if (descriptor == null) {
+                        descriptor = new seriesDescriptor();
+                        seriesMap.put(seriesUID, descriptor);
+                    }
+
+                    Float sliceLocation = null;
+                    try {
+                        sliceLocation = new Float(selectedDicomObj.getVR("SliceLocation").getFloatValue());
+                    } catch (Exception e) {
+                    }
+
+                    descriptor.sliceFiles.add(file);
+                    descriptor.sliceLocations.add(sliceLocation);
+                    descriptor.seriesUID = seriesUID;
+                    descriptor.modality = safeGetVRStringValue(selectedDicomObj, "Modality");
+                    descriptor.protocolName = safeGetVRStringValue(selectedDicomObj, "ProtocolName");
+                    descriptor.patientName = safeGetVRStringValue(selectedDicomObj, "PatientName");
+                    descriptor.acquisitionDate = safeGetVRStringValue(selectedDicomObj, "AcquisitionDate");
+                    descriptor.seriesDescription = safeGetVRStringValue(selectedDicomObj, "SeriesDescription");
+                    String filterName = safeGetVRStringValue(selectedDicomObj, "ConvolutionKernel");
+                    if (filterName != null) {
+                        descriptor.seriesDescription = descriptor.seriesDescription + " - " + filterName;
+                    }
+                }
+            }
+        }
+    }
+    
+    private void parseDicomDir(File file, Map<String, seriesDescriptor> seriesMap, ProgressListener listener) {
+        try {
+            DicomFileReader dfr = new DicomFileReader(file);
+            DicomObjectReader objFileStream = new DicomObjectReader(dfr);
+            DicomObject dicomDir = objFileStream.read();
+            
+//            System.out.println(dicomDir);
+            
+            String fileSetID = dicomDir.getVR("FileSetID").getStringValue();
+            System.out.println("FileSetID = " + fileSetID);
+//            if (fileSetID.equalsIgnoreCase("STDSET")) {
+                Iterator items = dicomDir.getVR("DirectoryRecordSequence").getSequenceItems();
+                
+//                DicomObject obj = (DicomObject)items.next();
+//                System.out.println(obj.getVR("DirectoryRecordType").getStringValue());
+                
+                int patientCount = 0;
+                int studyCount = 0;
+                int seriesCount = 0;
+                int imageCount = 0;
+                
+                int itemCount = dicomDir.getVR("DirectoryRecordSequence").getSequenceLength();
+                int currentCount = 0;
+                
+                String modality = "";
+                String protocolName = "";
+                String patientName = "";
+                String acquisitionDate = "";
+                String seriesDescription = "";
+                String seriesUID = "";
+                Float sliceLocation = null;
+                
+                while (items.hasNext()) {
+                    DicomObject subobj = (DicomObject)items.next();
+                    String recordType = subobj.getVR("DirectoryRecordType").getStringValue();
+                    
+                    switch(recordType) {
+                        case "PATIENT":
+                            studyCount = 0;
+                            seriesCount = 0;
+                            imageCount = 0;
+//                            System.out.println("PATIENT " + patientCount++ + ": " + subobj.getVR("PatientName").getValue());
+//                            System.out.println(subobj);
+                            patientName = safeGetVRStringValue(subobj, "PatientName"); 
+                            break;
+                        case "STUDY":
+                            seriesCount = 0;
+                            imageCount = 0;
+//                            System.out.println("   STUDY " + studyCount++ + ": " + subobj.getVR("StudyDate").getValue());
+//                            System.out.println(subobj);
+                            protocolName = safeGetVRStringValue(subobj, "StudyDescription");
+                            acquisitionDate = safeGetVRStringValue(subobj, "StudyDate");
+                            break;
+                        case "SERIES":
+                            imageCount = 0;
+//                            System.out.println("      SERIES " + seriesCount++ + ": " + subobj.getVR("SeriesDescription").getValue());
+//                            System.out.println(subobj);
+                            modality = safeGetVRStringValue(subobj, "Modality");
+                            seriesUID = subobj.getVR("SeriesInstanceUID").getStringValue();
+                            seriesDescription = safeGetVRStringValue(subobj, "SeriesDescription");
+                            String filterName = safeGetVRStringValue(subobj, "ConvolutionKernel");
+                            if (filterName != null) {
+                                seriesDescription = seriesDescription + " - " + filterName;
+                            }
+                            break;
+                        case "IMAGE":
+                            VR fileSpec = subobj.getVR("ReferencedFileID");
+                            int f = fileSpec.getValueMultiplicity();
+                            String filename = file.getParentFile().getPath();
+                            for (int i=0; i<f; i++) {
+                                filename = new String(filename + File.separator + fileSpec.getValue(i));
+                            }
+//                            System.out.println(filename);
+//                            System.out.println(subobj);
+                            sliceLocation = null;
+                            try {
+                                sliceLocation = new Float(subobj.getVR("SliceLocation").getFloatValue());
+                            } catch (Exception e) {
+                            }
+                            
+                            
+                            seriesDescriptor descriptor = seriesMap.get(seriesUID);
+                            if (descriptor == null) {
+                                descriptor = new seriesDescriptor();
+                                seriesMap.put(seriesUID, descriptor);
+                            }
+
+                            descriptor.sliceFiles.add(new File(filename));
+                            descriptor.sliceLocations.add(sliceLocation);
+                            descriptor.seriesUID = seriesUID;
+                            descriptor.modality = modality;
+                            descriptor.protocolName = protocolName;
+                            descriptor.patientName = patientName;
+                            descriptor.acquisitionDate = acquisitionDate;
+                            descriptor.seriesDescription = seriesDescription;
+                            
+                            if (listener != null && currentCount%10==0) {
+                                listener.percentDone("Parsing DICOMDIR", (int)((float)currentCount/itemCount*100));
+                            }
+                        
+                    }
+                    
+                    currentCount++;
+                }
+                
+//            }
+//            else {
+//                System.out.println("Wrong fileSetID: " + fileSetID);
+//            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        if (listener != null) {
+            listener.percentDone("Ready", -1);
+        }
+    }
+    
     public Map<String, seriesDescriptor> scanDirectoryForSeries(File file, ProgressListener listener) {
                 File parentDir = new File(file.getParent());
                 File[] listOfFiles;
@@ -162,6 +318,10 @@ public class DicomImageLoader implements ImageLoader {
                     System.out.println("Scanning directory: " + file.getPath());
                     listOfFiles = file.listFiles();
                 }
+                else if (file.getName().equalsIgnoreCase("DICOMDIR")) {
+                    parseDicomDir(file, seriesMap, listener);
+                    return seriesMap;
+                }
                 else {
                     //listOfFiles = parentDir.listFiles();
                     return seriesMap;
@@ -170,46 +330,48 @@ public class DicomImageLoader implements ImageLoader {
                 for (int i = 0; i < listOfFiles.length; i++) {
                     File theFile = listOfFiles[i];
                     
-                    if (theFile.isFile()) {
-                        DicomObject selectedDicomObj = openDicomFile(listOfFiles[i], false);
-                        if (selectedDicomObj != null) {
-                            String seriesUID;
-                            seriesUID = safeGetVRStringValue(selectedDicomObj, "SeriesInstanceUID");
-
-                            if (seriesUID != null) {
-                                seriesDescriptor descriptor = seriesMap.get(seriesUID);
-                                if (descriptor == null) {
-                                    descriptor = new seriesDescriptor();
-                                    seriesMap.put(seriesUID, descriptor);
-                                }
-
-                                Float sliceLocation = null;
-                                try {
-                                    sliceLocation = new Float(selectedDicomObj.getVR("SliceLocation").getFloatValue());
-                                }
-                                catch(Exception e) {}
-                                
-                                descriptor.sliceFiles.add(theFile);
-                                descriptor.sliceLocations.add(sliceLocation);
-                                descriptor.seriesUID = seriesUID;
-                                descriptor.modality = safeGetVRStringValue(selectedDicomObj, "Modality");
-                                descriptor.protocolName = safeGetVRStringValue(selectedDicomObj, "ProtocolName");
-                                descriptor.patientName = safeGetVRStringValue(selectedDicomObj, "PatientName");
-                                descriptor.acquisitionDate = safeGetVRStringValue(selectedDicomObj, "AcquisitionDate");
-                                descriptor.seriesDescription = safeGetVRStringValue(selectedDicomObj, "SeriesDescription");
-                                String filterName = safeGetVRStringValue(selectedDicomObj, "ConvolutionKernel");
-                                if (filterName != null) {
-                                    descriptor.seriesDescription = descriptor.seriesDescription + " - " + filterName;
-                                }
-                            }
-
-                        }
-                    }
-                    else if (theFile.isDirectory()) {
-                        System.out.println("   Scanning subdir: " + theFile.getPath());
-                        Map<String, seriesDescriptor> subdirMap = this.scanDirectoryForSeries(theFile, listener);
-                        seriesMap.putAll(subdirMap);
-                    }
+                      parseDicomFile(theFile, seriesMap);
+//                    if (theFile.isFile()) {
+//                        DicomObject selectedDicomObj = openDicomFile(listOfFiles[i], false);
+//                        if (selectedDicomObj != null) {
+//                            String seriesUID;
+//                            seriesUID = safeGetVRStringValue(selectedDicomObj, "SeriesInstanceUID");
+//
+//                            if (seriesUID != null) {
+//                                seriesDescriptor descriptor = seriesMap.get(seriesUID);
+//                                if (descriptor == null) {
+//                                    descriptor = new seriesDescriptor();
+//                                    seriesMap.put(seriesUID, descriptor);
+//                                }
+//
+//                                Float sliceLocation = null;
+//                                try {
+//                                    sliceLocation = new Float(selectedDicomObj.getVR("SliceLocation").getFloatValue());
+//                                } catch (Exception e) {
+//                                }
+//
+//                                descriptor.sliceFiles.add(theFile);
+//                                descriptor.sliceLocations.add(sliceLocation);
+//                                descriptor.seriesUID = seriesUID;
+//                                descriptor.modality = safeGetVRStringValue(selectedDicomObj, "Modality");
+//                                descriptor.protocolName = safeGetVRStringValue(selectedDicomObj, "ProtocolName");
+//                                descriptor.patientName = safeGetVRStringValue(selectedDicomObj, "PatientName");
+//                                descriptor.acquisitionDate = safeGetVRStringValue(selectedDicomObj, "AcquisitionDate");
+//                                descriptor.seriesDescription = safeGetVRStringValue(selectedDicomObj, "SeriesDescription");
+//                                String filterName = safeGetVRStringValue(selectedDicomObj, "ConvolutionKernel");
+//                                if (filterName != null) {
+//                                    descriptor.seriesDescription = descriptor.seriesDescription + " - " + filterName;
+//                                }
+//                            }
+//
+//                        }
+//                    }
+                    // recurse into subdirectories. not sure this is a good idea or not
+//                    else if (theFile.isDirectory()) {
+//                        System.out.println("   Scanning subdir: " + theFile.getPath());
+//                        Map<String, seriesDescriptor> subdirMap = this.scanDirectoryForSeries(theFile, listener);
+//                        seriesMap.putAll(subdirMap);
+//                    }
                     
                     if (listener != null) {
                         //System.out.println("scanning " + i + " of " + listOfFiles.length);

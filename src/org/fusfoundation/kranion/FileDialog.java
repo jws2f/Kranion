@@ -60,7 +60,7 @@ public class FileDialog extends FlyoutDialog {
     
     private fileChooseMode chooseMode = fileChooseMode.EXISTING_FILES;
     
-    public static enum fileChooseMode {EXISTING_FILES, EXISTING_DIRECTORIES, FILES};
+    public static enum fileChooseMode {EXISTING_FILES, EXISTING_DIRECTORIES, EXISTING_FILES_AND_DIRECTORIES, FILES};
     
     public FileDialog() {
         this.setBounds(0, 0, 512, 256);
@@ -137,6 +137,11 @@ public class FileDialog extends FlyoutDialog {
     public File open(String[] filters) {
         if (chooseMode == fileChooseMode.FILES) {
             this.selectedFileDisplay.setTextEditable(true);
+            this.fileList.setIsEnabled(true);
+            selectedFileDisplay.setTitle("Selected file:");
+
+        } else if (chooseMode == fileChooseMode.EXISTING_FILES_AND_DIRECTORIES) {
+            this.selectedFileDisplay.setTextEditable(false);
             this.fileList.setIsEnabled(true);
             selectedFileDisplay.setTitle("Selected file:");
 
@@ -262,12 +267,12 @@ public class FileDialog extends FlyoutDialog {
                 break;
             case "OK":
                 if (selectedFileDisplay.getText().length() > 0) {
-                    if (chooseMode == fileChooseMode.EXISTING_DIRECTORIES) {
+//                    if (chooseMode == fileChooseMode.EXISTING_DIRECTORIES) {
                         selectedFile = new File(selectedFileDisplay.getText());
-                    }
-                    else {
-                        selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
-                    }
+//                    }
+//                    else {
+//                        selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
+//                    }
 //                    System.out.println(selectedFile);
                 }
                 else {
@@ -308,12 +313,12 @@ public class FileDialog extends FlyoutDialog {
             case "fileSelected":
                 File thisSelection = (File)(fileList.getSelectedValue());
                 if (thisSelection != null) {
-                    selectedFileDisplay.setText(thisSelection.getName());
+                    selectedFileDisplay.setText(currentLocation.getText() + File.separator + thisSelection.getName());
                     okButton.setIsEnabled(true);
                 }
                 break;
             case "dirSelected":
-                if (chooseMode == fileChooseMode.EXISTING_DIRECTORIES) {
+                if (chooseMode == fileChooseMode.EXISTING_DIRECTORIES || chooseMode == fileChooseMode.EXISTING_FILES_AND_DIRECTORIES) {
                     String selectedDisplayDirName = ((String)dirList.getSelectedKey());
                     String selectedDirPath = ((File)dirList.getSelectedValue()).getPath();
                     if (selectedDisplayDirName.equalsIgnoreCase("[Parent directory]")) {
@@ -341,7 +346,7 @@ public class FileDialog extends FlyoutDialog {
                         }
                     }
                     else if (lc == fileList) {
-                        selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
+                        selectedFile = new File(selectedFileDisplay.getText());
                         flyin();
                         isClosed = true;
                     }

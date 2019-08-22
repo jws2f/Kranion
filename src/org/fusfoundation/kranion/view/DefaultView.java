@@ -4179,8 +4179,8 @@ public class DefaultView extends View {
 //            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home")));
 //            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
                 File ctfile = null;
-                fileDialog.setDialogTitle("Choose a directory from which to import DICOM series");
-                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_DIRECTORIES);
+                fileDialog.setDialogTitle("Choose a DICOMDIR or directory from which to import DICOM series");
+                fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_FILES_AND_DIRECTORIES);
                 ctfile = fileDialog.open();
                 if (ctfile != null) {
                     System.out.println("Selected file: " + ctfile.getAbsolutePath());
