@@ -1530,6 +1530,7 @@ public class DefaultView extends View {
             canvas.setVolumeRender(true);
             canvas.setIsDirty(true);
 
+            ctHistogram.setImage(model.getCtImage());
             ctHistogram.calculate();
             transFuncDisplay.setHistogram(ctHistogram.getData());
             ctHistogram.release();
@@ -2734,6 +2735,7 @@ public class DefaultView extends View {
                     model.setAttribute("doMRI", true);
                     canvas.setVolumeRender(true);
                     canvas.setIsDirty(true);
+                    ctHistogram.setImage(model.getCtImage());
                     ctHistogram.calculate();
                     transFuncDisplay.setHistogram(ctHistogram.getData());
                     ctHistogram.release();
@@ -3385,6 +3387,7 @@ public class DefaultView extends View {
                     //System.out.println("2 Key Pressed");
 //                    needsRendering = true;
                     canvas.setVolumeRender(!canvas.getVolumeRender());
+                    ctHistogram.setImage(model.getCtImage());
                     ctHistogram.calculate();
                     transFuncDisplay.setHistogram(ctHistogram.getData());
                     ctHistogram.release();

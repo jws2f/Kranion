@@ -97,7 +97,7 @@ public class ImageVolumeUtil {
             Integer tn = (Integer) image.getAttribute("textureName");
 //            System.out.println("   textureName = " + tn);
 
-            if (tn != null && tn != -1) {
+            if (tn != null && tn != 0) {
 //                System.out.println("Got previously built texture = " + tn);
             } else {
 

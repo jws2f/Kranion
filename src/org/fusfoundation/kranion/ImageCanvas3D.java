@@ -502,10 +502,8 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
         
         if (lutTextureName != 0) {
             if (glIsTexture(lutTextureName)) {
-                ByteBuffer texName = ByteBuffer.allocateDirect(4);
-                texName.asIntBuffer().put(0, lutTextureName);
-                texName.flip();
-                glDeleteTextures(texName.asIntBuffer());
+                glDeleteTextures(lutTextureName);
+                lutTextureName = 0;
             }                
         }
 
@@ -610,6 +608,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     private void setupLutTexture(int textureUnit) {
 
         if (lutTextureName == 0) {
+            System.out.println("!!! ImageCanvas3D: lutTextureName == 0 !!!");
             return;
         }
 
@@ -1018,11 +1017,6 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         
         int textureName = tn.intValue();
         
-        if (textureName <= 0) {
-            Main.glPopAttrib();
-            return;
-        }
-
         glColor3d(0.7, 0.7, 0.9);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -1444,7 +1438,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
                             -centerOfRotation.z -imageTranslation.z - ImageOrientationX.z*xSize/2f + ImageOrientationY.z*ySize/2f + ImageOrientationZ.z*zSize/2f);
             glEnd();
             Main.glPopAttrib();
-        }        
+        }
     }
 
 

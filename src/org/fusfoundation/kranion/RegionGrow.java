@@ -49,6 +49,7 @@ import static org.lwjgl.opengl.GL43.GL_TEXTURE_BUFFER_SIZE;
 public class RegionGrow {
     private ImageVolume4D src;
     private int maskVolumeTexture = 0;
+    private int maskChannel = -1;
     
     private LinkedList<Seed> growQ = new LinkedList<>();
     
@@ -101,7 +102,7 @@ public class RegionGrow {
         
         growQ.addLast(new Seed(x, y, z));
          
-        int maskChannel = src.addChannel(org.fusfoundation.kranion.model.image.ImageVolume.UBYTE_VOXEL);
+        maskChannel = src.addChannel(org.fusfoundation.kranion.model.image.ImageVolume.UBYTE_VOXEL);
         
         short[] voxels = (short[])src.getData(0);
         byte[] mask = (byte[])src.getData(maskChannel);
@@ -258,7 +259,7 @@ public class RegionGrow {
         // build mask texture
         this.buildTexture(src);
         
-        int maskChannel = src.addChannel(org.fusfoundation.kranion.model.image.ImageVolume.UBYTE_VOXEL);
+        maskChannel = src.addChannel(org.fusfoundation.kranion.model.image.ImageVolume.UBYTE_VOXEL);
         
         if (Main.OpenGLVersion < 4f) return;
                 
@@ -360,7 +361,8 @@ public class RegionGrow {
         
         // release channel 0 so it will get rebuilt
         ImageVolumeUtil.releaseTexture(src);
-        
+        ImageVolumeUtil.releaseTexture(src, "maskTexName");
+
         // release channel 1 so it will get rebuilt
         this.releaseTexture();
         src.freeChannel(maskChannel);
@@ -447,7 +449,7 @@ public class RegionGrow {
         glPixelStorei(GL_PACK_ALIGNMENT, 1);
         glGetTexImage(GL_TEXTURE_3D, 0, GL_RED, GL_UNSIGNED_BYTE, voxelData);
         
-        byte[] imgData = (byte[])src.getData(1);
+        byte[] imgData = (byte[])src.getData(maskChannel);
         
         for (int i=0; i<imgData.length; i++) {
             imgData[i] = voxelData.get();

@@ -444,7 +444,7 @@ public class ImageGradientVolume {
                 //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
                 glTexImage3D(GL_TEXTURE_3D, 0, GL_RGBA16F, width, height, depth, 0, GL_RGBA, GL_HALF_FLOAT, (ByteBuffer) null);
 
-                //glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, width, height, depth);
+                //glTexStorage3D(GL_TEXTURE_3D, 1, GL_RGBA16F, width, height, depth);                
             }
             int value;
             value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_WIDTH);
