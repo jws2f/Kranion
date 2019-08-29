@@ -198,7 +198,8 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
             slider1.setMinMax(0, 30);
             slider1.setLabelWidth(130);
-            slider1.setFormatString("%3.1f mm");
+            slider1.setFormatString("%3.1f");
+            slider1.setUnitsString(" mm");
             slider1.setCurrentValue(0);
             flyout.addChild("Planning", slider1);
 
@@ -214,7 +215,8 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
             slider1.setMinMax(0, 15);
             slider1.setLabelWidth(130);
-            slider1.setFormatString("%3.1f mm");
+            slider1.setFormatString("%3.1f");
+            slider1.setUnitsString(" mm");
             slider1.setCurrentValue(0);
             flyout.addChild("Planning", slider1);
 
@@ -230,7 +232,8 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
             slider1.setMinMax(0, 100);
             slider1.setLabelWidth(130);
-            slider1.setFormatString("%3.1f%%");
+            slider1.setFormatString("%3.1f");
+            slider1.setUnitsString("%");
             slider1.setCurrentValue(50);
             flyout.addChild("Planning", slider1);
 
@@ -246,7 +249,8 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
             slider1.setMinMax(-30, 30);
             slider1.setLabelWidth(130);
-            slider1.setFormatString("%3.1f mm");
+            slider1.setFormatString("%3.1f");
+            slider1.setUnitsString(" mm");
             slider1.setCurrentValue(0);
             flyout.addChild("Planning", slider1);
 
@@ -262,7 +266,8 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
             slider1.setMinMax(-30, 30);
             slider1.setLabelWidth(130);
-            slider1.setFormatString("%3.1f mm");
+            slider1.setFormatString("%3.1f");
+            slider1.setUnitsString(" mm");
             slider1.setCurrentValue(0);
             flyout.addChild("Planning", slider1);
 
