@@ -63,7 +63,7 @@ public class Transducer extends Clippable {
 
     // orientation and location, origin is assumed natural focus
     private Vector3f position = new Vector3f();
-    private Matrix4f transducerRot = (Matrix4f)new Matrix4f().setIdentity();
+    private Matrix4f transform = (Matrix4f)new Matrix4f().setIdentity();
 
     // transducer elements are displayed as discs composed of this many
     // triangles in a triangle fan. Disc radius is proportional to element
@@ -115,22 +115,22 @@ public class Transducer extends Clippable {
             setIsDirty(true);
         }
         
-        transducerRot.setIdentity();
-        transducerRot.rotate(transducerXTilt/180f*(float)Math.PI, new Vector3f(-1, 0, 0));
-        transducerRot.rotate(transducerYTilt/180f*(float)Math.PI, new Vector3f(0, -1, 0));
+        transform.setIdentity();
+        transform.rotate(transducerXTilt/180f*(float)Math.PI, new Vector3f(-1, 0, 0));
+        transform.rotate(transducerYTilt/180f*(float)Math.PI, new Vector3f(0, -1, 0));
     
     }
     
     public void setRotation(Matrix3f rotmat) {
-        transducerRot.m00 = rotmat.m00;
-        transducerRot.m01 = rotmat.m01;
-        transducerRot.m02 = rotmat.m02;
-        transducerRot.m10 = rotmat.m10;
-        transducerRot.m11 = rotmat.m11;
-        transducerRot.m12 = rotmat.m12;
-        transducerRot.m20 = rotmat.m20;
-        transducerRot.m21 = rotmat.m21;
-        transducerRot.m22 = rotmat.m22;
+        transform.m00 = rotmat.m00;
+        transform.m01 = rotmat.m01;
+        transform.m02 = rotmat.m02;
+        transform.m10 = rotmat.m10;
+        transform.m11 = rotmat.m11;
+        transform.m12 = rotmat.m12;
+        transform.m20 = rotmat.m20;
+        transform.m21 = rotmat.m21;
+        transform.m22 = rotmat.m22;
         
         setIsDirty(true);        
     }
@@ -147,28 +147,28 @@ public class Transducer extends Clippable {
         ydir.normalise();
         zdir.normalise();
         
-        transducerRot.m00 = xdir.x;
-        transducerRot.m01 = ydir.x;
-        transducerRot.m02 = zdir.x;
-        transducerRot.m03 = 0.0f;
+        transform.m00 = xdir.x;
+        transform.m01 = ydir.x;
+        transform.m02 = zdir.x;
+        transform.m03 = 0.0f;
 
         // Second row
-        transducerRot.m10 = xdir.y;
-        transducerRot.m11 = ydir.y;
-        transducerRot.m12 = zdir.y;
-        transducerRot.m13 = 0.0f;
+        transform.m10 = xdir.y;
+        transform.m11 = ydir.y;
+        transform.m12 = zdir.y;
+        transform.m13 = 0.0f;
 
         // Third row
-        transducerRot.m20 = xdir.z;
-        transducerRot.m21 = ydir.z;
-        transducerRot.m22 = zdir.z;
-        transducerRot.m23 = 0.0f;
+        transform.m20 = xdir.z;
+        transform.m21 = ydir.z;
+        transform.m22 = zdir.z;
+        transform.m23 = 0.0f;
 
         // Fourth row
-        transducerRot.m30 = 0;
-        transducerRot.m31 = 0;
-        transducerRot.m32 = 0;
-        transducerRot.m33 = 1.0f;
+        transform.m30 = 0;
+        transform.m31 = 0;
+        transform.m32 = 0;
+        transform.m33 = 1.0f;
 
 
         
@@ -535,10 +535,17 @@ public class Transducer extends Clippable {
             setIsDirty(true);
         }
         position.set(p);
+        transform.m03 = p.x;
+        transform.m13 = p.y;
+        transform.m23 = p.z;
     }
 
     public Vector3f getPosition() {
-        return position;
+        return new Vector3f(position);
+    }
+    
+    public Matrix4f getTransform() {
+        return new Matrix4f(transform);
     }
 
     public void setShowRays(Boolean show) {
@@ -744,11 +751,12 @@ public class Transducer extends Clippable {
 
 
                 FloatBuffer matBuf = BufferUtils.createFloatBuffer(16);
-		transducerRot.store(matBuf);
+		transform.store(matBuf);
 		matBuf.flip();
 		glMultMatrix(matBuf);
-            
-            glTranslatef(position.x, position.y, position.z);
+
+//            Translation is stored in the Matrix4f now, so dont need:                
+//            glTranslatef(position.x, position.y, position.z);
 
             if (getClipped()) {
                 glEnable(GL_CLIP_PLANE0);
