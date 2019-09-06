@@ -30,6 +30,7 @@ import java.awt.font.FontRenderContext;
 import java.awt.Graphics2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 import static org.lwjgl.opengl.GL11.*;
@@ -48,7 +49,7 @@ import org.lwjgl.opengl.Display;
  *
  * @author john
  */
-public class Slider extends GUIControl implements GUIControlModelBinding {
+public class Slider extends GUIControl implements GUIControlModelBinding, ActionListener {
     private Vector4f color = new Vector4f(0.35f, 0.35f, 0.35f, 1f);
 
     public enum SliderState {DISABLED, ENABLED};  
@@ -60,7 +61,10 @@ public class Slider extends GUIControl implements GUIControlModelBinding {
     private float handlePos = 20;
     private float labelWidth = 100;
     private String format = new String("%4.0f");
+    private String units = new String("");
     private float labelScale = 1f;
+    private boolean mouseButton1down = false;
+    private long previousClickTime;
         
     private float min=0f, max=100f, current=0f, grabbedCurrent=0f;
     
@@ -69,26 +73,56 @@ public class Slider extends GUIControl implements GUIControlModelBinding {
     
     private org.fusfoundation.kranion.Cylinder handle_cylinder = new org.fusfoundation.kranion.Cylinder(1f, 1f, 0f, 1f);
     private org.fusfoundation.kranion.Hemisphere handle_hemisphere = new org.fusfoundation.kranion.Hemisphere(1f, 1f);
+    
+    private TextBox valueTextBox = null;
 
     public Slider() {
         setTitle("Slider");
-}
+        
+        valueTextBox = new TextBox();
+        valueTextBox.setIsNumeric(true);
+        valueTextBox.setVisible(false);
+        this.addChild(valueTextBox);
+        valueTextBox.addActionListener(this);
+        
+        setAcceptsKeyboardFocus(true);
+    }
+    
     public Slider(int x, int y, int width, int height) {
+        valueTextBox = new TextBox();
+        valueTextBox.setIsNumeric(true);
+        valueTextBox.setVisible(false);
+        this.addChild(valueTextBox);
+        valueTextBox.addActionListener(this);
+        
         setBounds(x, y, width, height);
         setTitle("Slider");
-        setCurrentValue(this.current);
+        setCurrentValue(this.current); 
+        
+        setAcceptsKeyboardFocus(true);
     }
+    
     public Slider(int x, int y, int width, int height, ActionListener listener) {
+        valueTextBox = new TextBox();
+        valueTextBox.setIsNumeric(true);
+        valueTextBox.setVisible(false);
+        this.addChild(valueTextBox);
+        valueTextBox.addActionListener(this);
+        
         setBounds(x, y, width, height);
         setTitle("Slider");
         addActionListener(listener);
         setCurrentValue(this.current);
+
+        setAcceptsKeyboardFocus(true);
     }
-    
+        
     @Override
     public void setBounds(float x, float y, float width, float height) {
         super.setBounds(x, y, width, height);
         troughLength = bounds.width - labelWidth - 16;
+        
+        valueTextBox.setBounds(labelWidth, 0, troughLength, bounds.height);
     }
     
     public void setState(SliderState state) { this.state = state; }
@@ -101,8 +135,18 @@ public class Slider extends GUIControl implements GUIControlModelBinding {
     }
     
     public void setCurrentValue(float value) {
+        valueTextBox.setVisible(false);
+        
         float old = current;
         this.current = Math.max(this.min, Math.min(value, this.max));
+        
+        // try to round with specified precision
+        try {
+            String tmp = String.format(format, current);
+            this.current = Float.parseFloat(tmp);
+        }
+        catch(Exception e) {}
+        
         generateLabel();
         setIsDirty(true);
         
@@ -120,9 +164,16 @@ public class Slider extends GUIControl implements GUIControlModelBinding {
         generateLabel();
     }
     
+    public String getUnitsString() { return units; }
+    public void setUnitsString(String u) {
+        units = new String(u);
+        generateLabel();
+    }
+    
     public void setLabelWidth(int width) {
         labelWidth = width;
         troughLength = bounds.width - labelWidth - 16;
+        setBounds(bounds.x, bounds.y, bounds.width, bounds.height);
         generateLabel();
     }
     
@@ -140,18 +191,56 @@ public class Slider extends GUIControl implements GUIControlModelBinding {
     
     @Override
     public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
-               
+             
         if (super.OnMouse(x, y, button1down, button2down, dwheel)) return true;
         
         if (state != SliderState.DISABLED) {
+            
+            // handle double click
+            if (MouseIsInside(x, y)) {
+                if (button1down && !this.mouseButton1down) {
+                    this.mouseButton1down = true; // a press
+                    
+                    if (valueTextBox.getVisible()) {
+                        valueTextBox.setVisible(false);
+                        valueTextBox.lostKeyboardFocus();
+                    }
+                    
+                    long now = System.currentTimeMillis();
+                    if (previousClickTime > 0 && now - previousClickTime < 300) { // double click
+                        
+                        valueTextBox.setVisible(true);
+                        valueTextBox.setIsEnabled(true);
+                        valueTextBox.setTextEditable(true);
+                        valueTextBox.setText(String.format(format, this.current).trim());
+                        if (!valueTextBox.hasKeyboardFocus()) {
+                            valueTextBox.acquireKeyboardFocus();
+                        }
+                    
+                        this.setIsDirty(true);
+                        
+                        this.previousClickTime = -1;
+                        return true;
+                    }
+                    else { //single click
+                        acquireKeyboardFocus();
+                        lostKeyboardFocus();
+                    }
+                    
+                    previousClickTime = now;
+                }
+                else if (!button1down && this.mouseButton1down) {
+                    this.mouseButton1down = false; // a release
+                }
+            }
+            
             if (MouseIsInside(x, y) || hasGrabbed()) {
                 
                 if (!hasGrabbed() && mouseInHandle(x, y) && button1down) {
                     grabMouse(x, y);
                     grabbedCurrent = current;
-                }
-                
-                if (hasGrabbed() && !button1down) {
+                }                
+                else if (hasGrabbed() && !button1down) {
                     ungrabMouse();
                 }
                 
@@ -175,6 +264,8 @@ public class Slider extends GUIControl implements GUIControlModelBinding {
                     setCurrentValue(newVal);
                     
                 }
+                
+                return true;
             }
         }
                 
@@ -269,6 +360,8 @@ glCullFace(GL_BACK);
                     Main.glPopMatrix();
                     
 glDisable(GL_CULL_FACE);
+
+        this.renderChildren();
                         
         Main.glPopAttrib();
     }
@@ -317,6 +410,10 @@ glDisable(GL_CULL_FACE);
         labelImage = new BufferedImage(Math.round(bounds.width*labelScale), Math.round(bounds.height*2f*labelScale), BufferedImage.TYPE_4BYTE_ABGR);
 
         String handleText = String.format(format, current);
+        if (units.length() > 0) {
+            handleText = handleText + units;
+        }
+        
         handlePos = Math.round((current - min)/(max - min) * (troughLength - handleLength));
         
         Graphics2D gc = (Graphics2D) labelImage.getGraphics();
@@ -439,5 +536,31 @@ glDisable(GL_CULL_FACE);
         }
     }
     
-    
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e!=null) {
+            switch(e.getActionCommand()) {
+                case "ENTER_KEY":
+                    try {
+                        float val = Float.parseFloat(valueTextBox.getText());
+                        this.setCurrentValue(val);
+                    }
+                    catch(Exception ex) {}
+                    
+                    valueTextBox.setVisible(false);
+                    valueTextBox.lostKeyboardFocus();
+                    setIsDirty(true);
+                    break;
+                case "ESCAPE_KEY":
+                    valueTextBox.setVisible(false);
+                    valueTextBox.lostKeyboardFocus();
+                    break;
+                case "TEXTBOX_LOST_FOCUS":
+                    valueTextBox.setVisible(false);
+                    break;
+            }
+        }
+    }
+
+   
 }

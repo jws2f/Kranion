@@ -125,6 +125,10 @@ public class PullDownSelection extends GUIControl implements Animator, GUIContro
         }
     }
     
+    public int getItemIndex(String itemName) {
+        return items.indexOf(itemName);
+    }
+    
     public Object getAttachment(int index) {
         try {
             return attachments.get(index);

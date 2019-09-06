@@ -296,6 +296,18 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
         
         glMatrixMode(GL_MODELVIEW);
     }
+    
+    @Override
+    public void renderChildren() {
+        Iterator<Renderable> i = children.iterator();
+        while (i.hasNext()) {
+            Renderable child = i.next();
+            if (child instanceof Animator) {
+                ((Animator) child).advanceFrame();
+            }
+            child.render();
+        }
+    }
 
     @Override
     public boolean isAnimationDone() {
@@ -323,16 +335,17 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
     @Override
     public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
         
+        if (flyScale > 0 && super.OnMouse(x, y, button1down, button2down, dwheel)) {
+            return true;
+        }
+                
         if (MouseIsInside(x, y, true)) {
             if (button1down || button2down) {
                 bringToTop();
+                setIsDirty(true);
             }
         }
             
-        if (flyScale == 1 && super.OnMouse(x, y, button1down, button2down, dwheel)) {
-            return true;
-        };
-
         if (MouseIsInside(x, y, true)) {
             
             flyinDelay = -1;
@@ -342,7 +355,7 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
             }
             else {
 //                super.OnMouse((int)((x-bounds.x)/guiScale + bounds.x), (int)((y-bounds.y)/guiScale + bounds.y), button1down, button2down, dwheel);
-                super.OnMouse(x, y, button1down, button2down, dwheel);
+//                super.OnMouse(x, y, button1down, button2down, dwheel);
             }
  
 //            if (button1down || button2down) {

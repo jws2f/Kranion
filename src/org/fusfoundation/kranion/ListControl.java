@@ -298,7 +298,7 @@ public class ListControl extends GUIControl {
                                 glEnd();
                             }
                             
-                            this.renderText(item.key, itemBounds, stdfont, Color.white, null /*selected == 0 ? Color.GREEN : null*/, isEnabled, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, false, 0);
+                            this.renderText(item.key, itemBounds, stdfont, Color.white, null /*selected == 0 ? Color.GREEN : null*/, isEnabled, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, false, 0, -1);
                         }
                         
                         itemBounds.y -= itemBounds.height;

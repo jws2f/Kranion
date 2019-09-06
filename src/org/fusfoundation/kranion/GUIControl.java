@@ -155,6 +155,10 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     }
     
     public void renderChildren() {
+        glMatrixMode(GL_MODELVIEW);
+        Main.glPushMatrix();
+            glTranslatef(bounds.x, bounds.y, 0.1f);
+            
         Iterator<Renderable> i = children.iterator();
         while (i.hasNext()) {
             Renderable child = i.next();
@@ -177,6 +181,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
 //   System.out.println("PROJECTIONVIEW max stack depth: " + glGetInteger(GL_MAX_PROJECTION_STACK_DEPTH));
 //}
         }
+        Main.glPopMatrix();
      }
     
     public void bringToTop() {
@@ -346,14 +351,6 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         
         if (getVisible()) {
             
-            if (currentInside && button1down || button2down) {
-                if (!this.acquireKeyboardFocus()) {
-                    if (Renderable.getDefaultKeyboardFocus() != null) {
-                        Renderable.getDefaultKeyboardFocus().acquireKeyboardFocus();
-                    }
-                }
-            }
-
             if (this.grabbedChild != null) {
                 return grabbedChild.OnMouse(x - bounds.getIntX(), y - bounds.getIntY(), button1down, button2down, dwheel);
             }
@@ -362,7 +359,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                 ListIterator<Renderable> i = children.listIterator(children.size());
                 while(i.hasPrevious()) {
                     Renderable child = i.previous();
-                    if (child instanceof MouseListener) {
+                    if (child.getVisible() && child instanceof MouseListener) {
                         if ( ((MouseListener)child).OnMouse(x - bounds.getIntX(), y - bounds.getIntY(), button1down, button2down, dwheel) ) {
                             return true;
                         }
@@ -464,7 +461,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     protected static Font stdfont = new Font("Helvetica", Font.PLAIN | Font.TRUETYPE_FONT, 16);
 
     public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos) {
-        renderText(str, rect, font, color, shadowed, vpos, hpos, false, -1);
+        renderText(str, rect, font, color, shadowed, vpos, hpos, false, -1, -1);
     }
     
     public int calculateCaretPos(String str, Rectangle rect, Font font, float mouseX, float mouseY, VPosFormat vpos, HPosFormat hpos, int currentCursorPosition) {
@@ -495,10 +492,10 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
 //    float cursorXPos = (float)metrics.getStringBounds(str, 0, currentCursorPosition, gc).getMaxX();
 
         float hScroll = 0f;
-//        float textHPos = 0f;
+        float textHPos = 0f;
         switch(hpos) {
             case HPOSITION_LEFT:
-//                textHPos = 1;
+                textHPos = 1;
                 if (currentCursorPosition > -1) {
                     hScroll = Math.max(0f, cursorXPos - (rect.width));
                 }
@@ -514,18 +511,19 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
                 break;
         }
         
-        for (int i=1; i<=str.length(); i++) {
-            Rectangle2D r1 = metrics.getStringBounds(str, 0, i-1, gc);
+        for (int i=0; i<=str.length(); i++) {
+            Rectangle2D r1 = metrics.getStringBounds(str, 0, Math.max(i-1, 0), gc);
             Rectangle2D r2 = metrics.getStringBounds(str, 0, i, gc);
-            float index = (float)((r1.getMaxX() + r2.getMaxX())/2f);
-//             System.out.println("pos " + i + " = " + index + " ? " + (mouseX-(rect.x-hScroll)) + " hscroll " + hScroll);
-            if (index > mouseX-(rect.x-hScroll)) {
-                if (hScroll > 0f) {
-                    return Math.max(0, i);
-                }
-                else {
-                    return Math.max(0, i-2);
-                }
+            float index = (float)((r2.getMaxX() - r1.getMaxX())/2f + r1.getMaxX());
+             System.out.println("pos " + i + " = " + index + " ? " + (mouseX-(rect.x-hScroll)) + " hscroll " + hScroll);
+            if (index >= (mouseX-(rect.x-hScroll)) ) {
+//                if (hScroll > 0f) {
+//                    return Math.max(0, i);
+//                }
+//                else {
+System.out.println();
+                    return Math.max(0, i-1);
+//                }
             }
         }
         
@@ -547,8 +545,11 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
 
         
     }
-
     public void renderTextCore(BufferedImage dest, String str, Rectangle rect, Font font, Color color, Color fill, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
+        renderTextCore(dest, str, rect, font, color, fill, shadowed, vpos, hpos, showCaret, cursorPos, -1);
+    }
+
+    public void renderTextCore(BufferedImage dest, String str, Rectangle rect, Font font, Color color, Color fill, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos, int selectEndPos) {
 
         Graphics2D gc = (Graphics2D) dest.getGraphics();
         gc.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -565,12 +566,20 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         float textHeight = metrics.getHeight();
         
         float cursorXPos = -1f;
+        float selectEndXPos = -1f;
         
         try {
             cursorXPos = metrics.stringWidth(str.substring(0, cursorPos));
         }
         catch(StringIndexOutOfBoundsException e) {
             cursorXPos = -1f;
+        }
+        
+        try {
+            selectEndXPos = metrics.stringWidth(str.substring(0, selectEndPos));
+        }
+        catch(StringIndexOutOfBoundsException e) {
+            selectEndXPos = -1f;
         }
         
         float textVPos = 0f;               
@@ -607,6 +616,17 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         
         
         gc.setFont(font);
+        
+        // draw selection if any
+        if (cursorXPos != -1 && selectEndXPos != -1) {
+            gc.setColor(new Color(0, 0.5f, 0, 1));
+            if (selectEndXPos > cursorXPos) {
+                gc.fillRect((int)cursorXPos, 3, (int)(selectEndXPos - cursorXPos)+2, rect.getIntHeight()-5);
+            }
+            else {
+                gc.fillRect((int)selectEndXPos, 3, (int)(cursorXPos - selectEndXPos)+2, rect.getIntHeight()-5);
+            }
+        }
   
         if (fill != null) {
             gc.setColor(fill);
@@ -635,24 +655,24 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         }    
     }
     
-    public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
+    public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos, int selectionEndPos) {
         
         if (rect.width <= 0 || rect.height <= 0) return;
         
         BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
         
-        renderTextCore(img, str, rect, font, color, null, shadowed, vpos, hpos, showCaret, cursorPos);
+        renderTextCore(img, str, rect, font, color, null, shadowed, vpos, hpos, showCaret, cursorPos, selectionEndPos);
         
         renderBufferedImageViaTexture(img, rect);
     }
     
-    public void renderText(String str, Rectangle rect, Font font, Color color, Color fill, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos) {
+    public void renderText(String str, Rectangle rect, Font font, Color color, Color fill, boolean shadowed, VPosFormat vpos, HPosFormat hpos, boolean showCaret, int cursorPos, int selectionEndPos) {
         
         if (rect.width <= 0 || rect.height <= 0) return;
         
         BufferedImage img = new BufferedImage(rect.getIntWidth(), rect.getIntHeight(), BufferedImage.TYPE_4BYTE_ABGR);
         
-        renderTextCore(img, str, rect, font, color, fill, shadowed, vpos, hpos, showCaret, cursorPos);
+        renderTextCore(img, str, rect, font, color, fill, shadowed, vpos, hpos, showCaret, cursorPos, selectionEndPos);
         
         renderBufferedImageViaTexture(img, rect);
     }

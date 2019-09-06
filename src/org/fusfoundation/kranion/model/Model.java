@@ -323,6 +323,11 @@ public class Model extends Observable implements Serializable, Observer {
             ImageVolume4DXStreamConverter imageConverter = new ImageVolume4DXStreamConverter();
                     
             XStream xstream = new XStream();
+            XStream.setupDefaultSecurity(xstream);
+            xstream.allowTypesByWildcard(new String[] {
+                "org.fusfoundation.kranion.**"
+            });
+            
             xstream.alias("Model", Model.class);
             xstream.alias("Sonication", Sonication.class);
             xstream.alias("AttributeList", AttributeList.class);
@@ -378,6 +383,11 @@ public class Model extends Observable implements Serializable, Observer {
                 ImageVolume4DXStreamConverter imageConverter = new ImageVolume4DXStreamConverter();
 
                 XStream xstream = new XStream();
+                XStream.setupDefaultSecurity(xstream);
+                xstream.allowTypesByWildcard(new String[] {
+                    "org.fusfoundation.kranion.**"
+                });
+                
                 xstream.alias("Model", Model.class);
                 xstream.alias("Sonication", Sonication.class);
                 xstream.alias("AttributeList", AttributeList.class);

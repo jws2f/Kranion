@@ -446,107 +446,107 @@ System.out.println("ACPCPlanPlugin got command: " + command);
     }
     
     private void updateTargetGeometry() {
-                Vector3f ac = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("AC"));
-                Vector3f pc = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("PC"));
-                Vector3f sup = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("ACPCSup"));
-                
+        Vector3f ac = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f) model.getAttribute("AC"));
+        Vector3f pc = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f) model.getAttribute("PC"));
+        Vector3f sup = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f) model.getAttribute("ACPCSup"));
+
+        try {
+
+            if (ac != null
+                    && pc != null
+                    && sup != null) {
+
+                // all three ref landmarks defined so enable targeting buttons
+                Renderable button = Renderable.lookupByTag("goTarget");
+                if (button != null && button instanceof Button) {
+                    ((Button) button).setIsEnabled(true);
+                }
+                button = Renderable.lookupByTag("goACPCplane");
+                if (button != null && button instanceof Button) {
+                    ((Button) button).setIsEnabled(true);
+                }
+
+                float anteriorOffsetVal = 0f;
+                float lateralOffsetVal = 0f;
+                float ventricleOffsetVal = 0f;
+                float superiorOffsetVal = 0f;
+                float ratioVal = 50; // attribute value is in percent
+
                 try {
-                    
-                 if (ac != null &&
-                    pc != null &&
-                    sup != null) {
-                    
-                    // all three ref landmarks defined so enable targeting buttons
-                    Renderable button = Renderable.lookupByTag("goTarget");
-                    if (button != null && button instanceof Button) {
-                        ((Button)button).setIsEnabled(true);
-                    }
-                    button = Renderable.lookupByTag("goACPCplane");
-                    if (button != null && button instanceof Button) {
-                        ((Button)button).setIsEnabled(true);
-                    }
-                    
-                    float anteriorOffsetVal = 0f;
-                    float lateralOffsetVal = 0f;
-                    float ventricleOffsetVal = 0f;
-                    float superiorOffsetVal = 0f;
-                    float ratioVal = 50; // attribute value is in percent
-                    
-                    try {
-                        anteriorOffsetVal = (Float) model.getAttribute("acpcAnteriorOffsetValue");
-                    } catch (NullPointerException e) {
-                    }
-
-                    try {
-                        lateralOffsetVal = (Float) model.getAttribute("acpcOffsetValue");
-                    } catch (NullPointerException e) {
-                    }
-
-                    try {
-                        ventricleOffsetVal = (Float) model.getAttribute("acpc3rdVentricleOffsetValue");
-                    } catch (NullPointerException e) {
-                    }
-
-                    try {
-                        superiorOffsetVal = (Float) model.getAttribute("acpcSuperiorOffsetValue"); // attribute value is in percent
-                    } catch (NullPointerException e) {
-                    }
-
-                    try {
-                        ratioVal = (Float) model.getAttribute("acpcRatioValue") / 100f; // attribute value is in percent
-                    } catch (NullPointerException e) {
-                    }
-
-                    if (!doRightOffset) {
-                        lateralOffsetVal = -lateralOffsetVal;
-                        ventricleOffsetVal = -ventricleOffsetVal;
-                    }
-                    
-                    Vector3f target = new Vector3f();
-                    
-                    Vector3f up = Vector3f.sub(sup, ac, null);
-                    Vector3f posterior = Vector3f.sub(pc, ac, null);
-                                        
-                    Vector3f right = Vector3f.cross(up, posterior, null).normalise(null);
-                    Vector3f.cross(posterior, right, up);
-                    up.normalise();
-                    posterior.normalise();
-                    
-                    model.setAttribute("acpcCoordSup", new Vector3f(up));
-                    model.setAttribute("acpcCoordRight", new Vector3f(right));
-                    model.setAttribute("acpcCoordPost", new Vector3f(posterior));
-                    
-                    Vector3f.add(ac, (Vector3f)Vector3f.sub(pc, ac, null).scale(ratioVal), target);
-                    
-                    model.setAttribute("acpcRefPoint", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target));
-                    
-                    
-                    Vector3f.add(target, (Vector3f)up.scale(superiorOffsetVal), target);
-                    Vector3f.add(target, (Vector3f)new Vector3f(right).scale(lateralOffsetVal + ventricleOffsetVal), target);
-                    Vector3f.add(target, (Vector3f)posterior.scale(-anteriorOffsetVal), target);
-                                       
-                    // Calculate the perpendicular intercept of between
-                    // the target point and the ac-pc line
-                    Vector3f u = new Vector3f();
-                    Vector3f q = new Vector3f(target);
-                    Vector3f pq = new Vector3f();
-                    Vector3f w2 = new Vector3f();
-                    Vector3f refPt = new Vector3f();
-                    
-                    Vector3f.sub(ac, pc, u);
-                    Vector3f.sub(q, ac, pq);
-                    Vector3f.sub(pq, (Vector3f)u.scale(Vector3f.dot(pq, u)/u.lengthSquared()), w2);
-                    Vector3f.sub(q, w2, refPt);
-                    
-                    Vector3f.add(refPt, (Vector3f)right.scale(ventricleOffsetVal), refPt);
-        
-                    model.setAttribute("acpcTarget", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target));
-                    model.setAttribute("acpcPerpendicularPoint", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), refPt));                    
+                    anteriorOffsetVal = (Float) model.getAttribute("acpcAnteriorOffsetValue");
+                } catch (NullPointerException e) {
                 }
+
+                try {
+                    lateralOffsetVal = (Float) model.getAttribute("acpcOffsetValue");
+                } catch (NullPointerException e) {
                 }
-                 catch(NullPointerException e) {
-                         
-                         }
+
+                try {
+                    ventricleOffsetVal = (Float) model.getAttribute("acpc3rdVentricleOffsetValue");
+                } catch (NullPointerException e) {
+                }
+
+                try {
+                    superiorOffsetVal = (Float) model.getAttribute("acpcSuperiorOffsetValue"); // attribute value is in percent
+                } catch (NullPointerException e) {
+                }
+
+                try {
+                    ratioVal = (Float) model.getAttribute("acpcRatioValue") / 100f; // attribute value is in percent
+                } catch (NullPointerException e) {
+                }
+
+                if (!doRightOffset) {
+                    lateralOffsetVal = -lateralOffsetVal;
+                    ventricleOffsetVal = -ventricleOffsetVal;
+                }
+
+                Vector3f target = new Vector3f();
+
+                Vector3f up = Vector3f.sub(sup, ac, null);
+                Vector3f posterior = Vector3f.sub(pc, ac, null);
+
+                Vector3f right = Vector3f.cross(up, posterior, null).normalise(null);
+                Vector3f.cross(posterior, right, up);
+                up.normalise();
+                posterior.normalise();
+
+                model.setAttribute("acpcCoordSup", new Vector3f(up));
+                model.setAttribute("acpcCoordRight", new Vector3f(right));
+                model.setAttribute("acpcCoordPost", new Vector3f(posterior));
+
+                Vector3f.add(ac, (Vector3f) Vector3f.sub(pc, ac, null).scale(ratioVal), target);
+
+                model.setAttribute("acpcRefPoint", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target));
+
+                Vector3f.add(target, (Vector3f) up.scale(superiorOffsetVal), target);
+                Vector3f.add(target, (Vector3f) new Vector3f(right).scale(lateralOffsetVal + ventricleOffsetVal), target);
+                Vector3f.add(target, (Vector3f) posterior.scale(-anteriorOffsetVal), target);
+
+                // Calculate the perpendicular intercept of between
+                // the target point and the ac-pc line
+                Vector3f u = new Vector3f();
+                Vector3f q = new Vector3f(target);
+                Vector3f pq = new Vector3f();
+                Vector3f w2 = new Vector3f();
+                Vector3f refPt = new Vector3f();
+
+                Vector3f.sub(ac, pc, u);
+                Vector3f.sub(q, ac, pq);
+                Vector3f.sub(pq, (Vector3f) u.scale(Vector3f.dot(pq, u) / u.lengthSquared()), w2);
+                Vector3f.sub(q, w2, refPt);
+
+                Vector3f.add(refPt, (Vector3f) right.scale(ventricleOffsetVal), refPt);
+
+                model.setAttribute("acpcTarget", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target));
+                model.setAttribute("acpcPerpendicularPoint", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), refPt));
+                
+                acpcDisplay.setIsDirty(true);
+            }
+        } catch (NullPointerException e) {
+
+        }
     }
     
     private void calcACPCLength() {

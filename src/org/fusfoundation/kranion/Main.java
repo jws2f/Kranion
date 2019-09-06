@@ -707,6 +707,7 @@ public class Main implements ProgressListener {
 
         }
         
+        
 
         Display.processMessages();
         currentBuffer = (currentBuffer + 1) % 3; // keep track of front/back buffers

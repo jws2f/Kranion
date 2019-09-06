@@ -120,6 +120,10 @@ public abstract class Renderable {
         return Renderable.defaultKeyboardFocus;
     }
     
+    public static Renderable getCurrentKeyboardFocus() {
+        return keyboardFocus;
+    }
+    
     public boolean hasKeyboardFocus() {
         return keyboardFocus == this;
     }
@@ -140,8 +144,13 @@ public abstract class Renderable {
     }
     
     public void lostKeyboardFocus() {
-        keyboardFocus = null;
-        setIsDirty(true);
+        if (keyboardFocus == this) {
+            keyboardFocus = null;
+            if (Renderable.getDefaultKeyboardFocus() != null) {
+                keyboardFocus = Renderable.getDefaultKeyboardFocus();
+            }
+            setIsDirty(true);
+        }
     }
     
     public static void ProcessKeyboard(int keyCode, char keyChar, boolean isKeyDown) {

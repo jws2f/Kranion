@@ -505,7 +505,6 @@ public class ImageCanvas2D extends GUIControl {
                     lightPosition.put(Display.getWidth() / 2).put(Display.getHeight() / 2).put(10000.0f).put(1f).flip();
                     glLight(GL_LIGHT0, GL_POSITION, lightPosition);	// sets light position
                     
-                    glTranslatef(this.canvasX, this.canvasY, 0f);
                     renderChildren();
                     
              glMatrixMode(GL_MODELVIEW);
@@ -517,7 +516,7 @@ public class ImageCanvas2D extends GUIControl {
         glMatrixMode(GL_MODELVIEW);
         
         Main.glPopAttrib();
-        
+                
         setIsDirty(false);
 
     }
@@ -1672,12 +1671,16 @@ public class ImageCanvas2D extends GUIControl {
                     displayPosition = true;
                     setIsDirty(true);
                 }
+                
+                if (button1down && !this.hasGrabbed()) {
+                    this.grabMouse(mouseX, mouseY);
+                }
             }
             else if (displayPosition) {
                 displayPosition = false;
                 setIsDirty(false);
             }
-            
+                        
             if (MouseIsInside(mouseX, mouseY) && dwheel != 0) {
 
                 Vector4f pos = new Vector4f();
@@ -1735,44 +1738,41 @@ public class ImageCanvas2D extends GUIControl {
                 return false;
             }
             
-            mouseGrabbed = true;            
-            this.grabMouse(mouseX, mouseY);
-            
-            float mx = Math.max(0f, Math.min(canvasSize, (float) mouseX - canvasX));
-            float my = Math.max(0f, Math.min(canvasSize, (float) mouseY - canvasY));
-                      
-            Vector4f pos = new Vector4f();
-            Vector4f texpos = new Vector4f();
-            pos.x = -(mx/canvasSize - 0.5f);
-            pos.y = (my/canvasSize - 0.5f);
-            pos.z = (dwheel * 0.0001f);//0f;
-            pos.w = 1f;
-            Matrix4f.transform(ctTexMatrix, pos, texpos);
-//            System.out.println("texpos 1: " + texpos);
-            
-            try {
-                float iwidth = CTimage.getDimension(0).getSize();
-                float iheight = CTimage.getDimension(1).getSize();
-                float idepth = CTimage.getDimension(2).getSize();
+            if (this.hasGrabbed()) {
 
-                float xres = CTimage.getDimension(0).getSampleWidth(0);
-                float yres = CTimage.getDimension(1).getSampleWidth(0);
-                float zres = CTimage.getDimension(2).getSampleWidth(0);
+                float mx = Math.max(0f, Math.min(canvasSize, (float) mouseX - canvasX));
+                float my = Math.max(0f, Math.min(canvasSize, (float) mouseY - canvasY));
 
+                Vector4f pos = new Vector4f();
+                Vector4f texpos = new Vector4f();
+                pos.x = -(mx / canvasSize - 0.5f);
+                pos.y = (my / canvasSize - 0.5f);
+                pos.z = (dwheel * 0.0001f);//0f;
+                pos.w = 1f;
+                Matrix4f.transform(ctTexMatrix, pos, texpos);
+                //            System.out.println("texpos 1: " + texpos);
 
-                texpos.x = -(texpos.x - 0.5f) * (xres*iwidth); /// TODO
-                texpos.y = -(texpos.y - 0.5f) * (yres*iheight);
-                texpos.z = -(texpos.z - 0.5f) * (zres*idepth);
+                try {
+                    float iwidth = CTimage.getDimension(0).getSize();
+                    float iheight = CTimage.getDimension(1).getSize();
+                    float idepth = CTimage.getDimension(2).getSize();
 
-                //skull.setPos(texpos.x, texpos.y, texpos.z);
+                    float xres = CTimage.getDimension(0).getSampleWidth(0);
+                    float yres = CTimage.getDimension(1).getSampleWidth(0);
+                    float zres = CTimage.getDimension(2).getSampleWidth(0);
 
-                centerOfRotation.set(texpos.x, texpos.y, -texpos.z);
-                fireActionEvent();
-                
-                setIsDirty(true);
-            }
-            catch(NullPointerException e) {
-                return true;
+                    texpos.x = -(texpos.x - 0.5f) * (xres * iwidth); /// TODO
+                    texpos.y = -(texpos.y - 0.5f) * (yres * iheight);
+                    texpos.z = -(texpos.z - 0.5f) * (zres * idepth);
+
+                    //skull.setPos(texpos.x, texpos.y, texpos.z);
+                    centerOfRotation.set(texpos.x, texpos.y, -texpos.z);
+                    fireActionEvent();
+
+                    setIsDirty(true);
+                } catch (NullPointerException e) {
+                    return true;
+                }
             }
             
             return true;

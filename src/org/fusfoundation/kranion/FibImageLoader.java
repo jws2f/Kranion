@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
+
 /**
  *
  * @author jsnell
@@ -63,7 +64,7 @@ public class FibImageLoader {
 //        if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
 {
 //                File file = chooser.getSelectedFile();
-                File file = new File("D:/Downloads/OhioDTIcase/kranion/nifti/data.src.gz.odf8.f8.qsdr.1.25.R52.mat");
+                File file = new File("D:/Downloads/OhioDTIcase/kranion/nifti/data.src.gz.odf8.f8.qsdr.1.25.R52.fib");
                 try {
                     FibImageLoader fibloader = new FibImageLoader(file);
                     fibloader.parse();
@@ -96,6 +97,12 @@ public class FibImageLoader {
                     for (int i=0; i<entry.cols; i++) {
                         System.out.println(i + ") " + fbuf.get() + ", " + fbuf.get() + ", " + fbuf.get());
                     }
+                    
+                    entry = fibloader.getEntryHeader("fa0");
+                    System.out.println("fa0 = " + entry.rows + " x " + entry.cols);
+                    System.out.println("datasize = " + entry.dataSize);
+                    fbuf = fibloader.getEntryData("fa0").asFloatBuffer();
+                    
                     
                     entry = fibloader.getEntryHeader("trans");
                     System.out.println("trans = " + entry.rows + " x " + entry.cols);

@@ -23,6 +23,9 @@
  */
 package org.fusfoundation.kranion;
 
+import com.sun.media.jfxmedia.logging.Logger;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import static org.lwjgl.opengl.GL11.*;
 
 //import static org.lwjgl.opengl.GL12.*;
@@ -44,15 +47,11 @@ import static org.lwjgl.util.glu.GLU.gluLookAt;
 
 public class Transducer extends Clippable {
 
-    private int txdrElementVertsID, txdrElementNormsID;
-    private int txdrRaysVertsID;
+    private int txdrElementVertsID=0, txdrElementNormsID=0;
+    private int txdrRaysVertsID=0;
 
     private static ArrayList<Map.Entry<InsightecTxdrGeomReader, Renderable>> transducers;
     private InsightecTxdrGeomReader trans;
-
-    public static int GENERIC_220 = 0;
-    public static int INSIGHTEC_220 = 1;
-    public static int INSIGHTEC_650 = 2;
 
     private float transducerXTilt = 0f;
     private float transducerYTilt = 0f;
@@ -62,33 +61,16 @@ public class Transducer extends Clippable {
     private boolean showFocalVolume = false;
     private boolean showSteeringVolume = false;
 
+    // orientation and location, origin is assumed natural focus
     private Vector3f position = new Vector3f();
     private Matrix4f transducerRot = (Matrix4f)new Matrix4f().setIdentity();
 
-
+    // transducer elements are displayed as discs composed of this many
+    // triangles in a triangle fan. Disc radius is proportional to element
+    // area.
     private int tesselation = 20;
-//    private Hemisphere housing = new Hemisphere(151f, -1f);
-//    private Hemisphere housing2 = new Hemisphere(165.0f, 1f);
-//    private Cylinder outerHousing = new Cylinder(170.0f, 110.0f, 0.0f, 1f);
-//    private Ring housingRing = new Ring(170.0f, 19.0f, 0.0f, -1f);
-//    private Ring housingRing2 = new Ring(170.0f, 47.0f, 110.0f, 1f);
-//    
-//    private CompositeRenderable housingGrp = new CompositeRenderable();
-//
-//    private Cylinder mountingRing = new Cylinder(152.0f, 15.0f, -15.0f, -1f);
-//    private Cylinder mountingRingInner = new Cylinder(162.0f, 15.0f, -15.0f, 1f);
-//    private Ring mountingRingUpper = new Ring(162.0f, 10.0f, -15.0f, -1f);
-//    private Ring mountingRingLower = new Ring(162.0f, 10.0f, -0.01f, 1f);
-//    
-//    private CompositeRenderable mountingRing1Grp = new CompositeRenderable();
-//
-//    private Cylinder mountingRing2 = new Cylinder(176.0f, 25.0f, -25.0f, 1f);
-//    private Cylinder mountingRingInner2 = new Cylinder(162.05f, 25.0f, -25.0f, -1f);
-//    private Ring mountingRingUpper2 = new Ring(176.0f, 14.0f, -25.0f, -1f);
-//    private Ring mountingRingLower2 = new Ring(176.0f, 14.0f, -0.01f, 1f);
-//    
-//    private CompositeRenderable mountingRing2Grp = new CompositeRenderable();
     
+    private static ActionListener listener = null;
     private static RenderList defaultClinicalTransducer = new RenderList();
     
     private org.lwjgl.util.glu.Sphere steering;
@@ -102,6 +84,10 @@ public class Transducer extends Clippable {
         transducerIndex = -1;
     }
     
+    public static void setListener(ActionListener l) {
+        listener = l;
+    }
+    
     public void setTransducerDefinitionIndex(int index) {
         transducerIndex = index;
         setIsDirty(true);
@@ -109,15 +95,15 @@ public class Transducer extends Clippable {
     
     private StandardShader shader = new StandardShader();
     
-    public float getTransducerXTilt() { return transducerXTilt; }
-    public void setTransducerXTilt(float tiltDeg) { 
-        setTransducerTilt(tiltDeg, transducerYTilt);
-    }
-    
-    public float getTransducerYTilt() { return transducerYTilt; }
-    public void setTransducerYTilt(float tiltDeg) { 
-        setTransducerTilt(transducerXTilt, tiltDeg);
-    }
+//    public float getTransducerXTilt() { return transducerXTilt; }
+//    public void setTransducerXTilt(float tiltDeg) { 
+//        setTransducerTilt(tiltDeg, transducerYTilt);
+//    }
+//    
+//    public float getTransducerYTilt() { return transducerYTilt; }
+//    public void setTransducerYTilt(float tiltDeg) { 
+//        setTransducerTilt(transducerXTilt, tiltDeg);
+//    }
     
     public void setTransducerTilt(float xTiltDeg, float yTiltDeg) {
         if (transducerXTilt != xTiltDeg) {
@@ -135,6 +121,20 @@ public class Transducer extends Clippable {
     
     }
     
+    public void setRotation(Matrix3f rotmat) {
+        transducerRot.m00 = rotmat.m00;
+        transducerRot.m01 = rotmat.m01;
+        transducerRot.m02 = rotmat.m02;
+        transducerRot.m10 = rotmat.m10;
+        transducerRot.m11 = rotmat.m11;
+        transducerRot.m12 = rotmat.m12;
+        transducerRot.m20 = rotmat.m20;
+        transducerRot.m21 = rotmat.m21;
+        transducerRot.m22 = rotmat.m22;
+        
+        setIsDirty(true);        
+    }
+    
     public void setShowFiducialPositions(boolean bShow) {
         showFiducialPositions = bShow;
         setIsDirty(true);
@@ -143,9 +143,6 @@ public class Transducer extends Clippable {
     public void setTransducerTilt(Vector3f xdir, Vector3f ydir) {
         Vector3f zdir = (Vector3f)Vector3f.cross(xdir, ydir, null);
         
-        // TODO: remove or fix for real the following
-        //zdir = zdir.negate(null);
-               
         xdir.normalise();
         ydir.normalise();
         zdir.normalise();
@@ -180,8 +177,24 @@ public class Transducer extends Clippable {
     
 //    private Trackball trackball = null;
 
-    public void release() {        
+    public void release() {
+        releaseBuffers();
         defaultClinicalTransducer.release();
+    }
+    
+    private void releaseBuffers() {
+        if (txdrElementVertsID != 0) {
+            glDeleteBuffers(txdrElementVertsID);
+            txdrElementVertsID = 0;
+        }
+        if (txdrElementNormsID != 0) {
+            glDeleteBuffers(txdrElementNormsID);
+            txdrElementNormsID = 0;
+        }
+        if (txdrRaysVertsID != 0) {
+            glDeleteBuffers(txdrRaysVertsID);
+            txdrRaysVertsID = 0;
+        }        
     }
 
     public static InsightecTxdrGeomReader getTransducerDef(int i) {
@@ -207,43 +220,6 @@ public class Transducer extends Clippable {
         }
         
         transducerIndex = index;
-
-//        housing.setColor(0.2f, 0.2f, 0.2f);
-//        housing2.setColor(0.3f, 0.3f, 0.3f);
-//
-//        outerHousing.setColor(0.7f, 0.7f, 0.7f);
-//        housingRing.setColor(0.1f, 0.1f, 0.1f);
-//        housingRing2.setColor(0.7f, 0.7f, 0.7f);
-//        
-//        housingGrp.add(housing);
-//        housingGrp.add(housing2);
-//        housingGrp.add(housingRing);
-//        housingGrp.add(housingRing2);
-//        housingGrp.add(outerHousing);
-//
-//        mountingRing.setColor(0.1f, 0.1f, 0.1f);
-//        mountingRingInner.setColor(0.1f, 0.1f, 0.1f);
-//        mountingRingUpper.setColor(0.1f, 0.1f, 0.1f);
-//        mountingRingLower.setColor(0.1f, 0.1f, 0.1f);
-//        
-//        mountingRing1Grp.add(mountingRing);
-//        mountingRing1Grp.add(mountingRingInner);
-//        mountingRing1Grp.add(mountingRingUpper);
-//        mountingRing1Grp.add(mountingRingLower);
-//
-//        mountingRing2.setColor(0.4f, 0.35f, 0.05f);
-//        mountingRingInner2.setColor(0.4f, 0.35f, 0.05f);
-//        mountingRingUpper2.setColor(0.4f, 0.35f, 0.05f);
-//        mountingRingLower2.setColor(0.4f, 0.35f, 0.05f);
-//        
-//        mountingRing2Grp.add(mountingRing2);
-//        mountingRing2Grp.add(mountingRingInner2);
-//        mountingRing2Grp.add(mountingRingUpper2);
-//        mountingRing2Grp.add(mountingRingLower2);
-//        
-//        housingGrp.setClipColor(0.25f, 0.25f, 0.25f, 1f);
-//        mountingRing1Grp.setClipColor(0.05f, 0.05f, 0.05f, 1f);
-//        mountingRing2Grp.setClipColor(0.2f, 0.16f, 0.025f, 1f);
         
         PlyFileReader transducerBody = new PlyFileReader("/org/fusfoundation/kranion/meshes/ClinicalTransducerBody.ply");
         transducerBody.setColor(0.1f, 0.1f, 0.1f, 1f);
@@ -289,6 +265,46 @@ public class Transducer extends Clippable {
 //>>>>>>> a2c7a7e First functional check in. -SDR implemented as a reasonable first pass. -GUI controls are still almost non-existent. -Must restart to load different data.
 //
 //<<<<<<< Upstream, based on origin/master
+    }
+    
+    public static int addDefaultTransducerDef(String name, String filename) {
+        int indexToReturn = -1;
+        if (transducers == null) {
+            transducers = new ArrayList<Map.Entry<InsightecTxdrGeomReader, Renderable>>();            
+        }
+        try {
+            // if entry exists with same name, remove it first
+            Map.Entry<InsightecTxdrGeomReader, Renderable> searchResult = null;
+            for (int i=0; i<transducers.size(); i++) {
+                if (transducers.get(i).getKey().getName().equalsIgnoreCase(name)) {
+                    searchResult = transducers.get(i);
+                }
+            }
+            if (searchResult != null) {
+                transducers.remove(searchResult);
+            }
+            
+            InsightecTxdrGeomReader txdrGeom = new InsightecTxdrGeomReader(new File(filename));
+            txdrGeom.setName(name);
+            transducers.add(new AbstractMap.SimpleImmutableEntry<InsightecTxdrGeomReader, Renderable>(
+                    txdrGeom,
+                    defaultClinicalTransducer));
+        }
+        catch(IOException e) {
+            System.out.println("Transducer definision load failed: " + filename);
+            Logger.logMsg(Logger.ERROR, "Transducer definision load failed: " + filename);
+        }
+        
+        if (listener != null) {
+            try {
+            listener.actionPerformed(new ActionEvent(new Transducer(transducers.size()-1), ActionEvent.ACTION_PERFORMED, "transducerListUpdated"));
+            }
+            catch(IOException e) {
+                e.printStackTrace();
+            }
+        }
+        
+        return transducers.size()-1;
     }
     
     private static void buildTransducerList() {
@@ -457,6 +473,8 @@ public class Transducer extends Clippable {
             }
         }
 
+        releaseBuffers();
+        
         txdrElementVertsID = glGenBuffers();
         txdrElementVertsBuffer.flip();
         glBindBuffer(GL_ARRAY_BUFFER, txdrElementVertsID);
@@ -495,18 +513,15 @@ public class Transducer extends Clippable {
     }
     
     @Override
-    public void setDolly(float c, float d)
+    public void setDolly(float cameraz, float dolly)
     {
-        super.setDolly(c, d);
-//        housingGrp.setDolly(c,d);
-//        mountingRing1Grp.setDolly(c,d);
-//        mountingRing2Grp.setDolly(c,d);
-        defaultClinicalTransducer.setDolly(c, d);
+        super.setDolly(cameraz, dolly);
+        defaultClinicalTransducer.setDolly(cameraz, dolly);
         
         if (transducerIndex != -1) {
             Renderable r = transducers.get(transducerIndex).getValue();
             if (r instanceof Clippable) {
-                ((Clippable) r).setDolly(c, d);
+                ((Clippable) r).setDolly(cameraz, dolly);
             }
         }
     }
@@ -519,7 +534,7 @@ public class Transducer extends Clippable {
         if (!position.equals(p)) {
             setIsDirty(true);
         }
-        position = p;
+        position.set(p);
     }
 
     public Vector3f getPosition() {

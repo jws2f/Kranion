@@ -350,6 +350,7 @@ public class DefaultView extends View {
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTag("tbSonicationAcousticPower");
         textbox.setTextEditable(true);
+        textbox.setIsNumeric(true);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
@@ -372,6 +373,7 @@ public class DefaultView extends View {
         textbox = (TextBox)new TextBox(225, 370, 100, 25, "", controller).setTitle("Duration").setCommand("sonicationDuration");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
+        textbox.setIsNumeric(true);
         textbox.setTag("tbSonicationDuration");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
@@ -380,6 +382,7 @@ public class DefaultView extends View {
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTag("tbSonicationFrequency");
         textbox.setTextEditable(true);
+        textbox.setIsNumeric(true);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
@@ -565,7 +568,8 @@ public class DefaultView extends View {
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         slider1.setMinMax(1482, 3500);
         slider1.setLabelWidth(180);
-        slider1.setFormatString("%4.0f m/s");
+        slider1.setFormatString("%4.0f");
+        slider1.setUnitsString(" m/s");
         slider1.setCurrentValue(2652);
         flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
@@ -605,7 +609,8 @@ public class DefaultView extends View {
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         slider1.setMinMax(1482, 3500);
         slider1.setLabelWidth(180);
-        slider1.setFormatString("%4.0f m/s");
+        slider1.setFormatString("%4.0f");
+        slider1.setUnitsString(" m/s");
         slider1.setCurrentValue(2900);
         flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
@@ -616,7 +621,8 @@ public class DefaultView extends View {
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         slider1.setMinMax(-45, 45);
         slider1.setLabelWidth(180);
-        slider1.setFormatString("%4.0f degrees");
+        slider1.setFormatString("%4.1f");
+        slider1.setUnitsString(" degrees");
         slider1.setCurrentValue(0);
         flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
@@ -627,16 +633,15 @@ public class DefaultView extends View {
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         slider1.setMinMax(-45, 45);
         slider1.setLabelWidth(180);
-        slider1.setFormatString("%4.0f degrees");
+        slider1.setFormatString("%4.1f");
+        slider1.setUnitsString(" degrees");
         slider1.setCurrentValue(0);
         flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
         
         flyout2.addChild("Transducer", transducerPatternSelector = (PullDownSelection)new PullDownSelection(750, 225, 410, 25, this).setTitle("TransducerPattern").setCommand("transducerPattern"));
-        int transducerCount = Transducer.getTransducerDefCount();
-        for (int i=0; i<transducerCount; i++) {
-            transducerPatternSelector.addItem(Transducer.getTransducerDef(i).getName());
-        }
+        updateTransducerPulldownList(0);
+        Transducer.setListener(this);
         
                // for the slider of the ellipse function
 //        slider1 = new Slider(720, 200, 450, 25, controller);
@@ -1321,8 +1326,15 @@ public class DefaultView extends View {
         
         //            float rescaleSlope = (Float)mrImage.getAttribute("RescaleSlope");
         //            float rescaleIntercept = (Float)mrImage.getAttribute("RescaleIntercept");
-        float rescaleSlope = (Float) image.getAttribute("RescaleSlope");
-        float rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
+        float rescaleSlope = 1f;
+        float rescaleIntercept = 0f;
+        try {
+            rescaleSlope = (Float) image.getAttribute("RescaleSlope");
+            rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
+        }
+        catch(Exception e) {
+            e.printStackTrace();
+        }
 
         this.mr_center = (int)windowCenter;
         this.mr_window = (int)windowWidth;
@@ -1359,6 +1371,24 @@ public class DefaultView extends View {
         canvas3.setMRThreshold(mrThreshold);
     }
 
+    public void updateTransducerPulldownList(int itemIndexForSelection) {
+        transducerPatternSelector.clear();
+        int transducerCount = Transducer.getTransducerDefCount();
+        for (int i=0; i<transducerCount; i++) {
+            transducerPatternSelector.addItem(Transducer.getTransducerDef(i).getName());
+        }
+        if (transducerCount>0) {
+            if (itemIndexForSelection >= 0 && itemIndexForSelection < transducerCount) {
+                transducerPatternSelector.setSelectionIndex(itemIndexForSelection);
+            }
+            else {
+                transducerPatternSelector.setSelectionIndex(transducerCount-1);
+            }
+            transducerPatternSelector.fireActionEvent();
+                
+        }
+     }
+    
     private void saveScene() {
         try {
             File selectedFile;
@@ -2026,8 +2056,7 @@ public class DefaultView extends View {
             mrBoreGroup.setClipped(false);
         }
 
-        transducerModel.setTransducerXTilt(transducerTiltX);
-        transducerModel.setTransducerYTilt(transducerTiltY);
+        transducerModel.setTransducerTilt(transducerTiltX, transducerTiltY);
 
         transRayTracer.setTransducerTiltX(-transducerTiltX);
         transRayTracer.setTransducerTiltY(transducerTiltY);
@@ -2132,6 +2161,7 @@ public class DefaultView extends View {
         preRenderSetup();
 
         scene.render();
+                        
     }
 
     private static boolean mouseButton1Drag = false;
@@ -2140,6 +2170,9 @@ public class DefaultView extends View {
         if (button2down) {
             int pickVal = doPick(x, y);
             System.out.println("*** Picked value: " + pickVal);
+            if (pickVal != 0) {
+                this.mainLayer.setIsDirty(true);
+            }
         }
         
         if (!scene.OnMouse(x, y, button1down, button2down, dwheel)) {
@@ -2657,7 +2690,7 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationFrequency", String.format("%4.1f kHz", model.getSonication(sonicationIndex).getFrequency()/1000f));
                         model.setAttribute("sonicationTimestamp", model.getSonication(sonicationIndex).getAttribute("timestamp"));
                         model.setAttribute("targetVisible", model.getSonication(sonicationIndex).getAttribute("targetVisible"));
-                        
+                                                
                         String desc = (String)model.getSonication(sonicationIndex).getAttribute("Description");
                         if (desc == null) {
                             desc = "";
@@ -2668,6 +2701,7 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationRLoc", String.format("%4.1f", -t.x));
                         model.setAttribute("sonicationALoc", String.format("%4.1f", -t.y));
                         model.setAttribute("sonicationSLoc", String.format("%4.1f", t.z));
+                        
                         updateThermometryDisplay(sonicationIndex, true);
                         updateTransducerModel(sonicationIndex);
                         setDoTransition(true);
@@ -2685,13 +2719,13 @@ public class DefaultView extends View {
                     }
                     break;
                 case "transducerXTilt":
-                    this.transducerModel.setTransducerXTilt((float)event.getNewValue());
+                    this.transducerModel.setTransducerTilt((float)event.getNewValue(), this.transducerTiltY);
                     this.transducerTiltX = (float)event.getNewValue();
                     updateTargetAndSteering();
                     this.setIsDirty(true);
                     break;
                 case "transducerYTilt":
-                    this.transducerModel.setTransducerYTilt((float)event.getNewValue());
+                    this.transducerModel.setTransducerTilt(this.transducerTiltX, (float)event.getNewValue());
                     this.transducerTiltY = (float)event.getNewValue();
                     updateTargetAndSteering();
                     this.setIsDirty(true);
@@ -2724,6 +2758,13 @@ public class DefaultView extends View {
                     canvas.setIsDirty(true);
                     updateTargetAndSteering();
                     setDoTransition(true);
+                    break;
+                case "MRthresh": // TODO: find a more systematic way for panels to rise to top so mouse grab works consistently
+                case "MRwindow":
+                case "MRcenter":
+                case "CTwindow":
+                case "CTcenter":
+                    flyout3.bringToTop();
                     break;
             }
             
@@ -2809,28 +2850,74 @@ public class DefaultView extends View {
     
     private void updateTransducerModel(int sonicationIndex) {
         try {
-            String txdrGeomFileName = (String) model.getSonication(sonicationIndex).getAttribute("txdrGeomFileName");
+ //           String txdrGeomFileName = (String) model.getSonication(sonicationIndex).getAttribute("txdrGeomFileName");
+//            String sonicationTransducerPatternName = (String) model.getSonication(sonicationIndex).getAttribute("sonicationTransducerPatternName");
+//            int transducerIndex = this.transducerPatternSelector.getItemIndex(sonicationTransducerPatternName);
+            
+//            if (transducerIndex < 0 && txdrGeomFileName == null) { // Don't need to support per sonication transducer geometries
+//                return; // TODO: do some error handling and notify user that something is missing
+//            }
+            
+//            Vector3f tdXdir = new Vector3f(-1,0,0);
+//            Vector3f tdYdir = new Vector3f(1,0,0);
+//            Vector3f tdZdir = Vector3f.cross(tdXdir, tdYdir, null);
+//            try  {
+//                tdXdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltXdir");
+//                tdYdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltYdir");
+//                tdZdir = Vector3f.cross(tdXdir, tdYdir, null);
+//                transducerModel.setTransducerTilt(tdXdir, tdYdir);
+//            }
+//            catch(NullPointerException e) {
+//                e.printStackTrace();
+//            }
+            
+            
+// On second thought, I don't think we evern really need to have sonications with different transducer geometries
+//            if (txdrGeomFileName != null && transducerIndex < 0) { // TODO: this is not really want we want
+//                transducerModel.setTransducerDefinitionIndex(0);
+//                this.transducerModel.buildElements(new InsightecTxdrGeomReader(new File(txdrGeomFileName)));
+//            } else {
+//                transducerModel.setTransducerDefinitionIndex(transducerIndex);
+//                transducerModel.buildElements(Transducer.getTransducerDef(transducerIndex));
+//            }
+//        
+//            
+//            transRayTracer.init(transducerModel);
 
-            if (txdrGeomFileName == null) {
-                return; // TODO: do some error handling and notify user that something is missing
+            Float tiltXAngleDeg = (Float) model.getSonication(sonicationIndex).getAttribute("transducerTiltX");
+            Float tiltYAngleDeg = (Float) model.getSonication(sonicationIndex).getAttribute("transducerTiltY");
+            
+            // If tilt properties aren't set see if tilt direction vectors exist and use them instead
+            // This will be the case when dealing with treatment export data saved with previous versions of kranion
+            if (tiltXAngleDeg == null || tiltYAngleDeg == null) {
+                Vector3f tdXdir = new Vector3f(-1,0,0);
+                Vector3f tdYdir = new Vector3f(1,0,0);
+                Vector3f tdZdir = Vector3f.cross(tdXdir, tdYdir, null);
+                try  {
+                    tdXdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltXdir");
+                    tdYdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltYdir");
+                    tdZdir = Vector3f.cross(tdXdir, tdYdir, null);
+                    tiltXAngleDeg = Vector3f.angle(new Vector3f(0, tdZdir.y, tdZdir.z), new Vector3f(0, 0, -1)) / ((float) Math.PI * 2f) * 360f;
+                    tiltYAngleDeg = Vector3f.angle(new Vector3f(tdZdir.x, 0, tdZdir.z), new Vector3f(0, 0, -1)) / ((float) Math.PI * 2f) * 360f;
+                }
+                catch(NullPointerException e) {
+                    e.printStackTrace();
+                }
+                
             }
-            Vector3f tdXdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltXdir");
-            Vector3f tdYdir = (Vector3f) model.getSonication(sonicationIndex).getAttribute("txdrTiltYdir");
-            Vector3f tdZdir = Vector3f.cross(tdXdir, tdYdir, null);
-
-            this.transducerModel.buildElements(new InsightecTxdrGeomReader(new File(txdrGeomFileName)));
-            this.transducerModel.setTransducerTilt(tdXdir, tdYdir);
-            this.transRayTracer.init(transducerModel);
-
-            float tiltXAngleDeg = Vector3f.angle(new Vector3f(0, tdZdir.y, tdZdir.z), new Vector3f(0, 0, -1)) / ((float) Math.PI * 2f) * 360f;
-            float tiltYAngleDeg = Vector3f.angle(new Vector3f(tdZdir.x, 0, tdZdir.z), new Vector3f(0, 0, -1)) / ((float) Math.PI * 2f) * 360f;
+            if (tiltXAngleDeg == null) {
+                tiltXAngleDeg = new Float(0);
+            }
+            if (tiltYAngleDeg == null) {
+                tiltYAngleDeg = new Float(0);
+            }
 
             model.setAttribute("transducerXTilt", tiltXAngleDeg);
             model.setAttribute("transducerYTilt", tiltYAngleDeg);
             
             updateTargetAndSteering();
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return;
         }
@@ -3302,18 +3389,18 @@ public class DefaultView extends View {
                 
             }
         }
-        if (Keyboard.isKeyDown(Keyboard.KEY_T)) {
-//            needsRendering = true;
-            transducerTiltX += 0.5f;
-            transducerModel.setTransducerXTilt(transducerTiltX);
-            model.setAttribute("transducerXTilt", transducerTiltX);
-        }
-        if (Keyboard.isKeyDown(Keyboard.KEY_G)) {
-//            needsRendering = true;
-            transducerTiltX -= 0.5f;
-            transducerModel.setTransducerXTilt(transducerTiltX);
-            model.setAttribute("transducerXTilt", transducerTiltX);
-        }
+//        if (Keyboard.isKeyDown(Keyboard.KEY_T)) {
+////            needsRendering = true;
+//            transducerTiltX += 0.5f;
+//            transducerModel.setTransducerXTilt(transducerTiltX);
+//            model.setAttribute("transducerXTilt", transducerTiltX);
+//        }
+//        if (Keyboard.isKeyDown(Keyboard.KEY_G)) {
+////            needsRendering = true;
+//            transducerTiltX -= 0.5f;
+//            transducerModel.setTransducerXTilt(transducerTiltX);
+//            model.setAttribute("transducerXTilt", transducerTiltX);
+//        }
 
         while (Keyboard.next()) {
             
@@ -3933,6 +4020,9 @@ public class DefaultView extends View {
         }
 
         switch (command) {
+            case "transducerListUpdated":
+                this.updateTransducerPulldownList(-1);
+                break;
             case "openKranionFile":
                 this.loadScene();
                 break;
@@ -4113,6 +4203,16 @@ public class DefaultView extends View {
                 newSonication.setPower(parseTextBoxFloat("tbSonicationAcousticPower"));
                 newSonication.setDuration(parseTextBoxFloat("tbSonicationDuration"));
                 newSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency"));
+// Decided not to support per sonication transducer geometry
+//                {
+//                    String transducerPatternName = (String)transducerPatternSelector.getItem(transducerPatternSelector.getSelectionIndex());
+//                    newSonication.setAttribute("sonicationTransducerPatternName", transducerPatternName);
+//                }
+                
+//                newSonication.setAttribute("txdrTiltXdir", new Vector3f(-1,0,0));
+//                newSonication.setAttribute("txdrTiltYdir", new Vector3f(0,1,0));
+                newSonication.setAttribute("transducerTiltX", this.transducerTiltX);
+                newSonication.setAttribute("transducerTiltY", this.transducerTiltY);
 
                 model.addSonication(newSonication);
 
@@ -4134,7 +4234,13 @@ public class DefaultView extends View {
                     selSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency"));
 
                     selSonication.setAttribute("Description", ((TextBox) Renderable.lookupByTag("tbSonicationDescription")).getText());
-
+// Decided not to support per sonication tranducer geometry
+//                    {
+//                        String transducerPatternName = (String)transducerPatternSelector.getItem(transducerPatternSelector.getSelectionIndex());
+//                        selSonication.setAttribute("sonicationTransducerPatternName", transducerPatternName);
+//                    }
+                    selSonication.setAttribute("transducerTiltX", this.transducerTiltX);
+                    selSonication.setAttribute("transducerTiltY", this.transducerTiltY);
                     this.updateSonicationList();
                     sonicationSelector.setSelectionIndex(sIndex);
 
@@ -4153,6 +4259,14 @@ public class DefaultView extends View {
                 selTrans = this.transducerPatternSelector.getSelectionIndex();
                 transRayTracer.release();
                 setDoTransition(true);
+                if (transducerModel==null) {
+                    try {
+                    transducerModel = new Transducer(0);
+                    }
+                    catch(IOException ioe) {
+                        ioe.printStackTrace();
+                    }
+                }
                 transducerModel.setTransducerDefinitionIndex(selTrans);
                 transRayTracer.init(transducerModel.buildElements(Transducer.getTransducerDef(selTrans)));
                 activeElementsBar.setMinMax(0, transducerModel.getElementCount());

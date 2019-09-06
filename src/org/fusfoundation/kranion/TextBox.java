@@ -57,8 +57,11 @@ public class TextBox extends GUIControl implements Animator {
     private boolean showBackgroundBox = true;
     private HPosFormat textHPos = HPosFormat.HPOSITION_LEFT;
     private Font textfont = stdfont;
-    
-    private int cursorPos = 0;
+    private boolean isNumeric = false;
+    private boolean mouseButton1down = false;
+    private long previousClickTime = 0;
+    private int cursorPos = -1;
+    private int cursorPos2 = -1;
     
     public TextBox() {
         textfont = stdfont;
@@ -91,6 +94,14 @@ public class TextBox extends GUIControl implements Animator {
             this.text = new String(text);
         }
         setIsDirty(true);
+    }
+    
+    public void setIsNumeric(boolean val) {
+        isNumeric = val;
+    }
+    
+    public boolean getIsNumeric() {
+        return isNumeric;
     }
     
     public void setTextFont(Font font) {
@@ -136,15 +147,86 @@ public class TextBox extends GUIControl implements Animator {
     
     @Override
     public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
-        if (this.MouseIsInside(x, y) && (button1down || button2down)) {
-            this.acquireKeyboardFocus();
-            this.caretBlinkStartTime = System.currentTimeMillis();
-            this.showCaret = true;
-            this.cursorPos = this.calculateCaretPos(text, bounds, textfont, x, y, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, this.cursorPos);
-//            System.out.println("cursor pos = " + cursorPos);
+        
+        if (super.OnMouse(x, y, button1down, button2down, dwheel)) {
             return true;
         }
-        return super.OnMouse(x, y, button1down, button2down, dwheel);
+        
+        // handle double click
+        if (MouseIsInside(x, y)) {
+            if (button1down && !this.mouseButton1down) {
+                this.mouseButton1down = true; // a press
+
+
+                long now = System.currentTimeMillis();
+                if (previousClickTime > 0 && now - previousClickTime < 300) { // double click
+
+                    if (!hasKeyboardFocus()) {
+                        acquireKeyboardFocus();
+                    }
+                    showCaret = false;
+                    cursorPos = 0;
+                    cursorPos2 = text.length();
+
+                    this.setIsDirty(true);
+
+                    this.previousClickTime = -1;
+                    return true;
+                }                    
+                previousClickTime = now;
+            }
+            else if (!button1down && this.mouseButton1down) {
+                this.mouseButton1down = false; // a release
+            }
+        }
+        
+        if (isVisible) {
+            if (button1down) {
+                if (!hasGrabbed() && this.MouseIsInside(x, y)) {
+                    if (!hasKeyboardFocus()) {
+                        acquireKeyboardFocus();
+                    }
+                    
+                    // shift key range select
+                    if (Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) ||
+                        Keyboard.isKeyDown(Keyboard.KEY_RSHIFT)) {
+                        this.showCaret = false;
+                        this.cursorPos2 = this.calculateCaretPos(text, bounds.shrinkHorz(8f), textfont, x, y, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, this.cursorPos);
+                    }
+                    // place cursor
+                    else {
+                        this.grabMouse(x, y);
+                        this.caretBlinkStartTime = System.currentTimeMillis();
+                        this.showCaret = true;
+                        this.cursorPos = this.calculateCaretPos(text, bounds.shrinkHorz(8f), textfont, x, y, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, this.cursorPos);
+                        this.cursorPos2 = cursorPos;
+                    }
+                    setIsDirty(true);
+                    return true;
+                }
+                else if (hasGrabbed()) {
+
+                    if (!hasKeyboardFocus()) {
+                        acquireKeyboardFocus();
+                    }
+                    
+                    // Drag select
+                    this.showCaret = false;
+                    this.cursorPos2 = this.calculateCaretPos(text, bounds.shrinkHorz(8f), textfont, x, y, VPosFormat.VPOSITION_CENTER, HPosFormat.HPOSITION_LEFT, this.cursorPos);
+                    setIsDirty(true);
+                    return true;
+                }
+            }
+            else if (!button1down && this.hasGrabbed()) {
+                this.ungrabMouse();
+                return true;
+            }
+            else if (button2down) {
+                this.showCaret = true;
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -160,25 +242,38 @@ public class TextBox extends GUIControl implements Animator {
                 if (keyCode == Keyboard.KEY_LEFT) {
                     cursorPos--;
                     cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
+                    cursorPos2 = cursorPos;
                 }
                 else if (keyCode == Keyboard.KEY_RIGHT) {
                     cursorPos++;
                     cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
-                }
+                     cursorPos2 = cursorPos;
+               }
                 else if (keyCode == Keyboard.KEY_BACK) {
-                    if (cursorPos > 0) {
-                        this.text = text.substring(0, cursorPos-1) + text.substring(cursorPos);
-                        cursorPos--;
-                        cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
-                        fireActionEvent();
+                    if (!deleteSelection()) {
+                        if (cursorPos > 0) {
+                            this.text = text.substring(0, cursorPos-1) + text.substring(cursorPos);
+                            cursorPos--;
+                            cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
+                            cursorPos2 = cursorPos;
+                           fireActionEvent();
+                        }
                     }
                 }
                 else if (keyCode == Keyboard.KEY_DELETE) {
-                    if (cursorPos < text.length()) {
-                        this.text = text.substring(0, cursorPos) + text.substring(cursorPos+1);
-                        cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
-                        fireActionEvent();
+                    if (!deleteSelection()) {
+                        if (cursorPos < text.length()) {
+                            this.text = text.substring(0, cursorPos) + text.substring(cursorPos + 1);
+                            cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
+                            cursorPos2 = cursorPos;
+                        }
                     }
+                }
+                else if (keyCode == Keyboard.KEY_RETURN) {
+                    fireActionEvent("ENTER_KEY");
+                }
+                else if (keyCode == Keyboard.KEY_ESCAPE) {
+                    fireActionEvent("ESCAPE_KEY");
                 }
                 else if (keyCode == Keyboard.KEY_LSHIFT ||
                         keyCode == Keyboard.KEY_RSHIFT ||
@@ -195,15 +290,67 @@ public class TextBox extends GUIControl implements Animator {
                     // do nothing
                 }
                 else {
+                    deleteSelection();
+                    
                     cursorPos = Math.min(text.length(), Math.max(cursorPos, 0));
-                    this.text = text.substring(0, cursorPos) + keyChar + text.substring(cursorPos);
-                    cursorPos++;
+                    String candidateText = text.substring(0, cursorPos) + keyChar + text.substring(cursorPos);
 
-                    fireActionEvent();
+                    if (isNumeric) {
+                        try {
+                            if (!candidateText.endsWith("f")
+                                    && !candidateText.endsWith("d")
+                                    && !candidateText.endsWith("l")) {
+                                Float.parseFloat(candidateText);
+                                text = candidateText;
+                                showCaret = true;
+                                cursorPos++;
+                                cursorPos2 = cursorPos;
+                                fireActionEvent();
+                            }
+                        } catch (NumberFormatException nfe) {
+                            if (candidateText.equalsIgnoreCase("-") ||
+                                candidateText.equalsIgnoreCase(".") ||
+                                candidateText.equalsIgnoreCase("-.")) {
+                                
+                                text = candidateText;
+                                showCaret = true;
+                                cursorPos++;
+                                cursorPos2 = cursorPos;
+                                fireActionEvent();
+                            }
+                        }
+                    } else {
+                        text = candidateText;
+                        showCaret = true;
+                        cursorPos++;
+                        cursorPos2 = cursorPos;
+                        fireActionEvent();
+                    }
                 }
 
                 setIsDirty(true);
             }
+        }
+    }
+    
+    private boolean deleteSelection() {
+        if (isTextSelected()) {
+            int minMark = Math.min(cursorPos, cursorPos2);
+            int maxMark = Math.max(cursorPos, cursorPos2);
+            this.text = text.substring(0, minMark) + text.substring(maxMark);
+            cursorPos = minMark;
+            cursorPos2 = cursorPos;
+            return true;
+        }
+        return false;
+    }
+    
+    private boolean isTextSelected() {
+        if (cursorPos != -1 && cursorPos2 != -1 && cursorPos != cursorPos2) {
+            return true;
+        }
+        else {
+            return false;
         }
     }
     
@@ -272,17 +419,25 @@ public class TextBox extends GUIControl implements Animator {
         }
 
             //renderLabel();
-            renderText(getText(), bounds, textHPos, this.showCaret, this.cursorPos);
+            
+            if (cursorPos != cursorPos2) {
+                renderText(getText(), bounds, textHPos, this.showCaret, this.cursorPos, cursorPos2);                
+            }
+            else {
+                renderText(getText(), bounds, textHPos, this.showCaret, this.cursorPos, -1);
+            }
 
             Main.glPopAttrib();
         
-        renderText(getTitle(), new Rectangle(bounds.x - 150, bounds.y, 150, bounds.height), HPosFormat.HPOSITION_RIGHT, false, -1);
+        renderText(getTitle(), new Rectangle(bounds.x - 150, bounds.y, 150, bounds.height), HPosFormat.HPOSITION_RIGHT, false, -1, -1);
+        
+        renderChildren();
         
         setIsDirty(false);
     }
         
-    private void renderText(String str, Rectangle rect, HPosFormat hpos, boolean showCaret, int cursPos) {
-        renderText(str, rect.shrinkHorz(8f), textfont, new Color(textColor.x, textColor.y, textColor.z, textColor.w), true, VPosFormat.VPOSITION_CENTER, hpos, showCaret, cursPos);
+    private void renderText(String str, Rectangle rect, HPosFormat hpos, boolean showCaret, int cursPos, int selectionEndPos) {
+        renderText(str, rect.shrinkHorz(8f), textfont, new Color(textColor.x, textColor.y, textColor.z, textColor.w), true, VPosFormat.VPOSITION_CENTER, hpos, showCaret, cursPos, selectionEndPos);
     }
         
 //    private void generateLabel() {
@@ -380,6 +535,9 @@ public class TextBox extends GUIControl implements Animator {
     public boolean acquireKeyboardFocus() {
         if (super.acquireKeyboardFocus()) {
             Keyboard.enableRepeatEvents(true);
+            if (cursorPos < 0) {
+                cursorPos = text.length();
+            }
             return true;
         }
         else {
@@ -391,6 +549,9 @@ public class TextBox extends GUIControl implements Animator {
     public void lostKeyboardFocus() {
         super.lostKeyboardFocus();
         Keyboard.enableRepeatEvents(false);
+        cursorPos2 = cursorPos;
+        System.out.println("TextBox lost focus");
+        fireActionEvent("TEXTBOX_LOST_FOCUS");
     }
 
     @Override
@@ -409,7 +570,7 @@ public class TextBox extends GUIControl implements Animator {
 
     @Override
     public void advanceFrame() {
-        if (this.hasKeyboardFocus()) {
+        if (this.hasKeyboardFocus() && !isTextSelected()) {
             long currentTime = System.currentTimeMillis();
             if (currentTime - caretBlinkStartTime > 333) {
                 caretBlinkStartTime = currentTime;

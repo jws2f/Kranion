@@ -23,6 +23,7 @@
  */
 package org.fusfoundation.kranion;
 
+import com.sun.media.jfxmedia.logging.Logger;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.converters.ConversionException;
 import java.io.File;
@@ -96,6 +97,12 @@ public class TransducerDesc {
     public static TransducerDesc loadDescriptionXML(File file) {
         TransducerDesc result = null;
         XStream xstream = new XStream();
+        
+        XStream.setupDefaultSecurity(xstream);
+        xstream.allowTypesByWildcard(new String[] {
+            "org.fusfoundation.kranion.**"
+        });
+        
         xstream.alias("TransducerDesc", TransducerDesc.class);
         xstream.registerConverter(new TransducerDescXStreamConverter());
         try {
@@ -103,9 +110,11 @@ public class TransducerDesc {
             result = (TransducerDesc) xstream.fromXML(modelxmlstream);
         }
         catch (FileNotFoundException e) {
+            Logger.logMsg(Logger.ERROR, "TransducerDesc: File not found.");
             System.out.println("TransducerDesc: File not found.");
         }
         catch (ConversionException ce) {
+            Logger.logMsg(Logger.ERROR, "TransducerDesc: Malformed transducer XML descriptor file.");
             System.out.println("TransducerDesc: Malformed transducer XML descriptor file.");
         }
         return result;
