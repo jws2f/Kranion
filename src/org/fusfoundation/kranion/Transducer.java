@@ -84,6 +84,53 @@ public class Transducer extends Clippable {
         transducerIndex = -1;
     }
     
+    public String getName() {
+        if (trans == null) {
+            return null;
+        }
+        else {
+            return trans.getName();
+        }
+    }
+    
+    public int getElementCount() {
+        if (trans != null) {
+            return trans.getChannelCount();
+        }
+        else {
+            return 0;
+        }
+    }
+    
+    public Vector3f getElementPos(int n) {
+        if (trans != null) {
+            Vector4f elemPos = trans.getChannel(n);
+            return new Vector3f(elemPos.x, elemPos.y, elemPos.z);
+        }
+        else {
+            return null;
+        }
+    }
+    
+    public Vector3f getElementNormal(int n) {
+        if (trans != null) {
+            Vector3f elemNorm = trans.getChannelNormal(n);
+            return new Vector3f(elemNorm.x, elemNorm.y, elemNorm.z);
+        }
+        else {
+            return null;
+        }
+    }
+    
+    public float getElementArea(int n) {
+        if (trans != null) {
+            return trans.getChannel(n).w;
+        }
+        else {
+            return 0;
+        }
+    }
+        
     public static void setListener(ActionListener l) {
         listener = l;
     }
@@ -879,8 +926,7 @@ public class Transducer extends Clippable {
 //               
 //        glPopMatrix();        
 //    }
-    
-    public int getElementCount() { return trans.getChannelCount(); }
+        
     public Vector4f getElement(int i) {
 //        return Matrix4f.transform(this.transducerRot, trans.getChannel(i), null);
         return trans.getChannel(i);

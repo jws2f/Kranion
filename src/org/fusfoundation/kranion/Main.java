@@ -622,27 +622,29 @@ public class Main implements ProgressListener {
     }
 
     public void run() {
-        while (true) {
+        if (view.doOkCancelMessageBox("RESEARCH USE ONLY", "Kranion is intended for research purposes only.")) {
+            while (true) {
 
-            handleResize();
+                handleResize();
 
-            view.processInput();
+                view.processInput();
 
-            nextFrame();
+                nextFrame();
 
-            Main.checkForGLError();
-            
-            if (Display.isCloseRequested()) {
+                Main.checkForGLError();
+
+                if (Display.isCloseRequested()) {
 //                int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
 //                if (result == JOptionPane.YES_OPTION) {
 //                    break;
 //                }
-                  if (view.okToExit()) {
-                      break;
-                  }
-            }
+                    if (view.okToExit()) {
+                        break;
+                    }
+                }
 
-        }
+            }
+        };
 
         view.release();
         

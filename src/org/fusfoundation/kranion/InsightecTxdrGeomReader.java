@@ -29,12 +29,14 @@ import org.lwjgl.util.vector.*;
 
 public class InsightecTxdrGeomReader {
 
-    private Vector4f[] channels;
+    private Vector4f[] channelPosArea;
+    private Vector3f[] channelNormal;
     private boolean[] channelActive;
     private String name;
 
     public InsightecTxdrGeomReader(String filename) throws IOException {
-        channels = null;
+        channelPosArea = null;
+        channelNormal = null;
         channelActive = null;
         name = new String(filename);
 
@@ -47,7 +49,7 @@ public class InsightecTxdrGeomReader {
     }
     
     public InsightecTxdrGeomReader(File file) throws IOException {
-        channels = null;
+        channelPosArea = null;
         channelActive = null;
         name = new String(file.getName());
 
@@ -74,7 +76,8 @@ public class InsightecTxdrGeomReader {
         int elemCount = Integer.parseInt(tokens[1].trim());
         //System.out.println("Element count = " + elemCount);
 
-        channels = new Vector4f[elemCount];
+        channelPosArea = new Vector4f[elemCount];
+        channelNormal = new Vector3f[elemCount];
         channelActive = new boolean[elemCount];
 
         int channelCount = 0;
@@ -92,17 +95,26 @@ public class InsightecTxdrGeomReader {
             //System.out.println(tokens[1].trim());
             StringTokenizer tok = new StringTokenizer(tokens[1].trim());
 
-            channels[channelNumber] = new Vector4f(
+            channelPosArea[channelNumber] = new Vector4f(
                     Float.parseFloat(tok.nextToken()),
                     Float.parseFloat(tok.nextToken()),
                     Float.parseFloat(tok.nextToken()) - 150f, // Insightec puts the origin at the bottom of the transducer, not the focus
                     Float.parseFloat(tok.nextToken())
             );
+            
+            // assume for now that all elements are normal to the origin which is the natural focus point
+            // if we add normal specification option int he source file, we can add reading that info
+            channelNormal[channelNumber] = new Vector3f(
+                    -channelPosArea[channelNumber].x,
+                    -channelPosArea[channelNumber].y,
+                    -channelPosArea[channelNumber].z
+            );
+            channelNormal[channelNumber].normalise();
 
             Vector3f tmp = new Vector3f();
-            tmp.x = channels[channelNumber].x;
-            tmp.y = channels[channelNumber].y;
-            tmp.z = channels[channelNumber].z;
+            tmp.x = channelPosArea[channelNumber].x;
+            tmp.y = channelPosArea[channelNumber].y;
+            tmp.z = channelPosArea[channelNumber].z;
             if (tmp.length() > 151.0f) {
 //                System.out.println(channelNumber + " - " + tmp);
 //                System.out.println(tmp.length());
@@ -117,14 +129,21 @@ public class InsightecTxdrGeomReader {
     }
 
     public Vector4f getChannel(int channelNum) {
-        if (channels == null || channelNum < 0 || channelNum >= channels.length) {
+        if (channelPosArea == null || channelNum < 0 || channelNum >= channelPosArea.length) {
             return null;
         }
-        return channels[channelNum];
+        return channelPosArea[channelNum];
+    }
+    
+    public Vector3f getChannelNormal(int channelNum) {
+        if (channelNormal == null || channelNum < 0 || channelNum >= channelNormal.length) {
+            return null;
+        }
+        return channelNormal[channelNum];
     }
     
     public boolean getChannelActive(int channelNum) {
-          if (channels == null || channelNum < 0 || channelNum >= channels.length) {
+          if (channelPosArea == null || channelNum < 0 || channelNum >= channelPosArea.length) {
             return false;
         }
         return channelActive[channelNum];      
@@ -135,10 +154,10 @@ public class InsightecTxdrGeomReader {
     }
 
     public int getChannelCount() {
-        if (channels == null) {
+        if (channelPosArea == null) {
             return 0;
         }
-        return (channels.length);
+        return (channelPosArea.length);
     }
     
     public String getName() {

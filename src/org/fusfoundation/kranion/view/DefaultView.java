@@ -347,6 +347,7 @@ public class DefaultView extends View {
         flyout1.setFlyDirection(FlyoutPanel.direction.EAST);
 
         TextBox textbox = (TextBox)new TextBox(225, 400, 100, 25, "", controller).setTitle("Acoustic Power").setCommand("sonicationPower");
+        textbox.setUnitText("W");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTag("tbSonicationAcousticPower");
         textbox.setTextEditable(true);
@@ -371,6 +372,7 @@ public class DefaultView extends View {
         flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 275, 475, 50, 25, this).setDrawBackground(false).setTitle("Visible").setPropertyPrefix("Model.Attribute").setCommand("targetVisible"));
         
         textbox = (TextBox)new TextBox(225, 370, 100, 25, "", controller).setTitle("Duration").setCommand("sonicationDuration");
+        textbox.setUnitText("s");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
         textbox.setIsNumeric(true);
@@ -379,6 +381,7 @@ public class DefaultView extends View {
         flyout1.addChild(textbox);
         
         textbox = (TextBox)new TextBox(225, 340, 100, 25, "", controller).setTitle("Frequency").setCommand("sonicationFrequency");
+        textbox.setUnitText("kHz");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTag("tbSonicationFrequency");
         textbox.setTextEditable(true);
@@ -1135,6 +1138,9 @@ public class DefaultView extends View {
         
         
         this.transition.doFadeFromBlack(0.75f);
+        
+        // TODO: is the best place to update the model transducer?
+        model.setTransducer(transducerModel);
     }
     
     public int doPick(int mouseX, int mouseY) {
@@ -1568,6 +1574,8 @@ public class DefaultView extends View {
 //            this.updateFromModel();
 
             this.imageregistration.setModel(newModel);
+            
+            model.setTransducer(transducerModel);
             
             this.updateMRlist();
             this.updateSonicationList();
@@ -2685,9 +2693,9 @@ public class DefaultView extends View {
                     if (sonicationIndex>=0 && model.getSonication(sonicationIndex) != null) {
                         model.setAttribute("currentTargetPoint", new Vector3f(model.getSonication(sonicationIndex).getNaturalFocusLocation()));
                         model.setAttribute("currentTargetSteering", new Vector3f(model.getSonication(sonicationIndex).getFocusSteering()));
-                        model.setAttribute("sonicationPower", String.format("%4.1f W", model.getSonication(sonicationIndex).getPower()));
-                        model.setAttribute("sonicationDuration", String.format("%4.1f s", model.getSonication(sonicationIndex).getDuration()));
-                        model.setAttribute("sonicationFrequency", String.format("%4.1f kHz", model.getSonication(sonicationIndex).getFrequency()/1000f));
+                        model.setAttribute("sonicationPower", String.format("%4.1f", model.getSonication(sonicationIndex).getPower()));
+                        model.setAttribute("sonicationDuration", String.format("%4.1f", model.getSonication(sonicationIndex).getDuration()));
+                        model.setAttribute("sonicationFrequency", String.format("%4.1f", model.getSonication(sonicationIndex).getFrequency()/1000f));
                         model.setAttribute("sonicationTimestamp", model.getSonication(sonicationIndex).getAttribute("timestamp"));
                         model.setAttribute("targetVisible", model.getSonication(sonicationIndex).getAttribute("targetVisible"));
                                                 
@@ -2785,6 +2793,13 @@ public class DefaultView extends View {
                 case "Model.MrImage[0]":
                     updateMRlist();
                     setDisplayMRimage(model.getMrImage(0));
+                    return;
+                case "Model.Transducer":
+                    if (model.getTransducer() != null) {
+                        transRayTracer.init(model.getTransducer().buildElements(Transducer.getTransducerDef(selTrans)));
+                        activeElementsBar.setMinMax(0, model.getTransducer().getElementCount());
+                        updateTargetAndSteering();
+                    }
                     return;
                 case "rayCalc":
                     if (transRayTracer.getVisible()) {
@@ -3451,7 +3466,9 @@ public class DefaultView extends View {
 //                    }
                     
 //                    this.transducerModel.setTransducerTilt(new Vector3f(1, 0, 0), new Vector3f(0, 1, 0));
-                    transRayTracer.init(transducerModel.buildElements(Transducer.getTransducerDef(selTrans)));
+//                    transRayTracer.init(transducerModel.buildElements(Transducer.getTransducerDef(selTrans)));
+                    transducerModel.setTransducerDefinitionIndex(selTrans);
+                    model.setTransducer(transducerModel);
                 }
             }
             if (Keyboard.getEventKeyState()) {
@@ -4202,7 +4219,7 @@ public class DefaultView extends View {
                 newSonication.setAttribute("Description", ((TextBox) Renderable.lookupByTag("tbSonicationDescription")).getText());
                 newSonication.setPower(parseTextBoxFloat("tbSonicationAcousticPower"));
                 newSonication.setDuration(parseTextBoxFloat("tbSonicationDuration"));
-                newSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency"));
+                newSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency") * 1000f);
 // Decided not to support per sonication transducer geometry
 //                {
 //                    String transducerPatternName = (String)transducerPatternSelector.getItem(transducerPatternSelector.getSelectionIndex());
@@ -4213,6 +4230,8 @@ public class DefaultView extends View {
 //                newSonication.setAttribute("txdrTiltYdir", new Vector3f(0,1,0));
                 newSonication.setAttribute("transducerTiltX", this.transducerTiltX);
                 newSonication.setAttribute("transducerTiltY", this.transducerTiltY);
+                newSonication.setAttribute("transducerTransform", transducerModel.getTransform());
+                setSonicationPhaseAmplitudes(newSonication);
 
                 model.addSonication(newSonication);
 
@@ -4231,7 +4250,9 @@ public class DefaultView extends View {
                     selSonication.setFocusSteering(new Vector3f(this.currentSteering.getLocation()));
                     selSonication.setDuration(parseTextBoxFloat("tbSonicationDuration"));
                     selSonication.setPower(parseTextBoxFloat("tbSonicationAcousticPower"));
-                    selSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency"));
+                    selSonication.setFrequency(parseTextBoxFloat("tbSonicationFrequency") * 1000f); // stored as Hz, displayed as kHz
+                    
+                    setSonicationPhaseAmplitudes(selSonication);
 
                     selSonication.setAttribute("Description", ((TextBox) Renderable.lookupByTag("tbSonicationDescription")).getText());
 // Decided not to support per sonication tranducer geometry
@@ -4241,6 +4262,7 @@ public class DefaultView extends View {
 //                    }
                     selSonication.setAttribute("transducerTiltX", this.transducerTiltX);
                     selSonication.setAttribute("transducerTiltY", this.transducerTiltY);
+                    selSonication.setAttribute("transducerTransform", transducerModel.getTransform());
                     this.updateSonicationList();
                     sonicationSelector.setSelectionIndex(sIndex);
 
@@ -4268,9 +4290,10 @@ public class DefaultView extends View {
                     }
                 }
                 transducerModel.setTransducerDefinitionIndex(selTrans);
-                transRayTracer.init(transducerModel.buildElements(Transducer.getTransducerDef(selTrans)));
-                activeElementsBar.setMinMax(0, transducerModel.getElementCount());
-                updateTargetAndSteering();
+                model.setTransducer(transducerModel);
+//                transRayTracer.init(transducerModel.buildElements(Transducer.getTransducerDef(selTrans)));
+//                activeElementsBar.setMinMax(0, transducerModel.getElementCount());
+//                updateTargetAndSteering();
                 break;
             case "calcEnvelope":
                 calcTreatmentEnvelope();
@@ -4348,7 +4371,6 @@ public class DefaultView extends View {
 //                break;
             case "showTransducer":
             case "showCrosshair":
-                this.transducerModel.setVisible(!this.transducerModel.getVisible());
                 this.setDoTransition(true, 0.5f);
                 break;
             case "registrationUpdated":
@@ -4359,7 +4381,30 @@ public class DefaultView extends View {
         }
     }
     
+    private void setSonicationPhaseAmplitudes(Sonication s) {
+        FloatBuffer active = this.transRayTracer.getChannelActive();
+        FloatBuffer phases = this.transRayTracer.getChannelPhases();
+        int channelIndex = 0;
+        while (phases.hasRemaining()) {
+            double phase = (double) phases.get() % (2.0 * Math.PI);
+            float distVal = active.get();
+            float sdr = active.get();
+            float incidentAngle = active.get();
+            float skullThickness = active.get();
+            float sdr2 = active.get();
+            float normSkullThickness = active.get();
+            float transmCoeff = active.get();
 
+            System.out.println("Ch" + channelIndex + " dist=" + distVal + "\tphase=" + phase);
+            boolean activeStatus = (distVal != -1f);
+            s.setPhase(channelIndex, (float) phase);
+            // for now set amplitude to 1.0f if channel is active
+            // we don't have an amplitude modulation algorithm at this point
+            s.setAmplitude(channelIndex, activeStatus == true ? 1f : 0f);
+            channelIndex++;
+        }
+    }
+    
     private void calcTreatmentEnvelope() {
         transRayTracer.setShowEnvelope(false);
 

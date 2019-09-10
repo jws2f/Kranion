@@ -1030,6 +1030,33 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         }
     }
     
+    public FloatBuffer getChannelPhases() {
+            // force pressure calc so we have phase information
+            doPressureCalc(new Vector4f());
+            
+            glBindBuffer(GL_ARRAY_BUFFER, phaseSSBo);
+            ByteBuffer phases = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatPhases = phases.asFloatBuffer();
+            int count = 0, zeroCount = 0;
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            
+            return floatPhases;
+    }
+    
+    public FloatBuffer getChannelActive() {
+            // force raytracer calc so we have valid data
+            doCalc();
+            
+            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatDist = dists.asFloatBuffer();
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            
+            return floatDist; // -1 values mean inactive
+    }
+    
     public void writeACTFile(File outFile) {
         if (outFile != null) {
             doCalc();

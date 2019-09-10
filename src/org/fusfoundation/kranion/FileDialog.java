@@ -267,12 +267,7 @@ public class FileDialog extends FlyoutDialog {
                 break;
             case "OK":
                 if (selectedFileDisplay.getText().length() > 0) {
-//                    if (chooseMode == fileChooseMode.EXISTING_DIRECTORIES) {
-                        selectedFile = new File(selectedFileDisplay.getText());
-//                    }
-//                    else {
-//                        selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
-//                    }
+                    selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
 //                    System.out.println(selectedFile);
                 }
                 else {
@@ -313,7 +308,7 @@ public class FileDialog extends FlyoutDialog {
             case "fileSelected":
                 File thisSelection = (File)(fileList.getSelectedValue());
                 if (thisSelection != null) {
-                    selectedFileDisplay.setText(currentLocation.getText() + File.separator + thisSelection.getName());
+                    selectedFileDisplay.setText(thisSelection.getName());
                     okButton.setIsEnabled(true);
                 }
                 break;
@@ -325,15 +320,10 @@ public class FileDialog extends FlyoutDialog {
                         selectedFileDisplay.setText(selectedDirPath);
                     }
                     else {
-                        selectedFileDisplay.setText(currentLocation.getText() + File.separator + selectedDisplayDirName);
+                        selectedFileDisplay.setText(selectedDisplayDirName);
                     }                    
                     okButton.setIsEnabled(true);
                 }
-//                else {
-//                    selectedFileDisplay.setText("");
-//                    okButton.setIsEnabled(false);
-//                }
-                ((DefaultView)Main.getView()).setDoTransition(true, 0.3f);
                 break;
             case "doubleClick":
                 if (e.getSource() instanceof ListControl) {
@@ -346,7 +336,7 @@ public class FileDialog extends FlyoutDialog {
                         }
                     }
                     else if (lc == fileList) {
-                        selectedFile = new File(selectedFileDisplay.getText());
+                        selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
                         flyin();
                         isClosed = true;
                     }

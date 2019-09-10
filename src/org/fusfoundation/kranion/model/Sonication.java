@@ -172,7 +172,7 @@ public class Sonication extends Observable implements Serializable{
     }
 
     public float getAmplitude(int channel) {
-        if (channel >= 0 && channel < phases.length) {
+        if (channel >= 0 && channel < amplitudes.length) {
             return amplitudes[channel];
         } else {
             return 0f;
@@ -187,7 +187,7 @@ public class Sonication extends Observable implements Serializable{
     }
 
     public void setAmplitude(int channel, float value) {
-        if (channel >= 0 && channel < phases.length) {
+        if (channel >= 0 && channel < amplitudes.length) {
             amplitudes[channel] = value;
 //            System.out.println("Export amplitude " + channel + " = " + value);
         } 

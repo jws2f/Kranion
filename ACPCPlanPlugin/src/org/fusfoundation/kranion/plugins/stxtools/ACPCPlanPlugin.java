@@ -150,6 +150,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
             flyout.addChild("Planning", acpcSupButton);
 
             TextBox acpcLength = (TextBox) new TextBox(150, 100, 125, 25, "", this).setTitle("AC-PC Length").setCommand("acpcLength");
+            acpcLength.setUnitText("mm");
             acpcLength.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
             model.addObserver(acpcLength);
             flyout.addChild("Planning", acpcLength);

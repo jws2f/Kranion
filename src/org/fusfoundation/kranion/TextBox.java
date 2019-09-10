@@ -46,6 +46,7 @@ import static org.lwjgl.opengl.GL14.glWindowPos2f;
 public class TextBox extends GUIControl implements Animator {
     
     private String text = "";
+    private String unitText = "";
     private Vector4f color = new Vector4f(0.25f, 0.25f, 0.25f, 1f);
     private Vector4f textColor = new Vector4f(1f, 01f, 1f, 1f);
     private BufferedImage labelImage;
@@ -92,6 +93,16 @@ public class TextBox extends GUIControl implements Animator {
         }
         else {
             this.text = new String(text);
+        }
+        setIsDirty(true);
+    }
+    
+    public void setUnitText(String text) {
+        if (text == null) {
+            this.unitText = "";
+        }
+        else {
+            this.unitText = new String(text);
         }
         setIsDirty(true);
     }
@@ -430,6 +441,9 @@ public class TextBox extends GUIControl implements Animator {
             Main.glPopAttrib();
         
         renderText(getTitle(), new Rectangle(bounds.x - 150, bounds.y, 150, bounds.height), HPosFormat.HPOSITION_RIGHT, false, -1, -1);
+        if (unitText != null && unitText.length() > 0) {
+            renderText(unitText, new Rectangle(bounds.x + bounds.width, bounds.y, 150, bounds.height), HPosFormat.HPOSITION_LEFT, false, -1, -1);
+        }
         
         renderChildren();
         

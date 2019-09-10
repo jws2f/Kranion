@@ -31,6 +31,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
 import org.fusfoundation.kranion.ProgressListener;
+import org.fusfoundation.kranion.Transducer;
+import org.fusfoundation.kranion.TransducerXStreamConverter;
 import org.fusfoundation.kranion.model.image.*;
 
 /**
@@ -54,6 +56,8 @@ public class Model extends Observable implements Serializable, Observer {
     // Image viewing parameters
     
     // Transducer Info
+    private Transducer transducer;
+    
     // Sonications
     //      - location
     //      - power/duration
@@ -158,6 +162,16 @@ public class Model extends Observable implements Serializable, Observer {
         // notify
         setChanged();
         notifyObservers(new PropertyChangeEvent(this, "Model.CtImage", null, image));
+    }
+    
+    public void setTransducer(Transducer t) {
+        transducer = t;
+        setChanged();
+        notifyObservers(new PropertyChangeEvent(this, "Model.Transducer", null, transducer));        
+    }
+    
+    public Transducer getTransducer() {
+        return transducer;
     }
     
     public ImageVolume getMrImage(int index) {
@@ -322,6 +336,7 @@ public class Model extends Observable implements Serializable, Observer {
             
             ImageVolume4DXStreamConverter imageConverter = new ImageVolume4DXStreamConverter();
                     
+            // Set xstream security. Only allow classes from this package to be instantiated.
             XStream xstream = new XStream();
             XStream.setupDefaultSecurity(xstream);
             xstream.allowTypesByWildcard(new String[] {
@@ -330,6 +345,7 @@ public class Model extends Observable implements Serializable, Observer {
             
             xstream.alias("Model", Model.class);
             xstream.alias("Sonication", Sonication.class);
+            xstream.alias("Transducer", Transducer.class);
             xstream.alias("AttributeList", AttributeList.class);
             xstream.alias("Vector2f", org.fusfoundation.kranion.model.Vector2f.class);
             xstream.alias("Vector3f", org.fusfoundation.kranion.model.Vector3f.class);
@@ -341,6 +357,7 @@ public class Model extends Observable implements Serializable, Observer {
             xstream.registerConverter(new SonicationXStreamConverter());
             xstream.registerConverter(imageConverter);
             xstream.registerConverter(new AttributeListXStreamConverter());
+            xstream.registerConverter(new TransducerXStreamConverter());
                         
             if (listener != null) {
                 listener.percentDone("Saving scene", 0);
@@ -382,6 +399,7 @@ public class Model extends Observable implements Serializable, Observer {
             if (newModel == null) {
                 ImageVolume4DXStreamConverter imageConverter = new ImageVolume4DXStreamConverter();
 
+            // Set xstream security. Only allow classes from this package to be instantiated.
                 XStream xstream = new XStream();
                 XStream.setupDefaultSecurity(xstream);
                 xstream.allowTypesByWildcard(new String[] {

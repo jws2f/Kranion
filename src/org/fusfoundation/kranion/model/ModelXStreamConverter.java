@@ -72,6 +72,12 @@ public class ModelXStreamConverter  implements Converter{
             }
         writer.endNode();
         
+        writer.startNode("Transducer");
+            if (model.getTransducer() != null) {
+                mc.convertAnother(model.getTransducer());
+            }
+        writer.endNode();
+        
     }
 
     @Override
