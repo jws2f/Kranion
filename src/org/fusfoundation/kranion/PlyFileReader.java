@@ -82,6 +82,11 @@ public class PlyFileReader extends Clippable {
         plyfile = file;
     }
     
+    public PlyFileReader(int vertCount, int faceCount) {
+        vertcount = vertCount;
+        faceCount = faceCount;
+    }
+    
     public void setShader(ShaderProgram s) {
         shader = s;
     }
@@ -105,6 +110,65 @@ public class PlyFileReader extends Clippable {
         color.w = a;        
     }
     
+    public Vector4f getColor() {
+        return new Vector4f(color);
+    }
+    
+    public int getVertexCount() {
+        return this.vertcount;
+    }
+    
+    public int getFaceCount() {
+        return this.facecount;
+    }
+    
+    public void setVertexCount(int count) {
+        vertcount = count;
+    }
+    
+    public void setFaceCount(int count) {
+        facecount = count;
+    }
+    
+    public ByteBuffer getVertexBuffer() {
+        if (vertsID == 0) {
+            return null;
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, this.vertsID);
+
+        ByteBuffer result = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        return result;
+    }
+
+    public ByteBuffer getNormalBuffer() {
+        if (normsID == 0) {
+            return null;
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, this.normsID);
+
+        ByteBuffer result = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        return result;
+    }
+
+    public ByteBuffer getFaceIndexBuffer() {
+        if (indexID == 0) {
+            return null;
+        }
+
+        glBindBuffer(GL_ARRAY_BUFFER, this.indexID);
+
+        ByteBuffer result = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        return result;
+    }
+        
     public float getXpos() { return posX; }
     public float getYpos() { return posY; }
     public float getZpos() { return posZ; }
@@ -184,20 +248,8 @@ System.out.println("ply vert count = " + vertcount);
 	vertsBuffer.flip();
         normsBuffer.flip();
         indexBuffer.flip();
-
-        vertsID = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vertsID);
-        glBufferData(GL_ARRAY_BUFFER, vertsBuffer, GL_STATIC_DRAW);
-
-        normsID = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, normsID);
-        glBufferData(GL_ARRAY_BUFFER, normsBuffer, GL_STATIC_DRAW);
-
-        indexID = glGenBuffers();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer, GL_STATIC_DRAW);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        setMeshData(indexBuffer, vertsBuffer, normsBuffer);
         
 //      Test code to check plyfile object bounding box values
 //
@@ -498,10 +550,57 @@ System.out.println("ply vert count = " + vertcount);
 
     	Main.glPopMatrix();
    }	
-    public void release() {
+    
+    public void setMeshData(ByteBuffer indexData, ByteBuffer vertexData, ByteBuffer normalData) {
+        releaseMeshData();
+        
+        vertsID = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vertsID);
+        glBufferData(GL_ARRAY_BUFFER, vertexData, GL_STATIC_DRAW);
+
+        normsID = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, normsID);
+        glBufferData(GL_ARRAY_BUFFER, normalData, GL_STATIC_DRAW);
+
+        indexID = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexData, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        setIsDirty(true);
+    }
+    
+    public void setMeshData(IntBuffer indexData, FloatBuffer vertexData, FloatBuffer normalData) {
+        releaseMeshData();
+        
+        vertsID = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vertsID);
+        glBufferData(GL_ARRAY_BUFFER, vertexData, GL_STATIC_DRAW);
+
+        normsID = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, normsID);
+        glBufferData(GL_ARRAY_BUFFER, normalData, GL_STATIC_DRAW);
+
+        indexID = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexData, GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        setIsDirty(true);
+    }
+    
+    protected void releaseMeshData() {
         glDeleteBuffers(vertsID);
         glDeleteBuffers(normsID);
         glDeleteBuffers(indexID);
+        
+        vertsID=normsID=indexID=0;
+    }
+    
+    public void release() {
+        releaseMeshData();
         
         if (shader != null) {
             shader.release();

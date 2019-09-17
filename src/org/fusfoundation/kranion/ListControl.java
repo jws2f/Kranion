@@ -164,13 +164,17 @@ public class ListControl extends GUIControl {
                     return true;
                 }
                 else if (!mouseButton1down) {
-                    hoverItem = Math.round((bounds.height - y + vscroll) / 20) + 2;
+                    int item = Math.round((bounds.height - y + vscroll) / 20) + 2;
+                    
+                    if (item != hoverItem) {
+                        hoverItem = item;
+                        setIsDirty(true);
+                    }
 
                     if (button1down) {
                         grabMouse(x, y);
                         mouseButton1down = true; // item selected by left mouse button
                     }
-                    setIsDirty(true);
 
                     return true;
                 }
@@ -208,8 +212,10 @@ public class ListControl extends GUIControl {
                     return true;
                 }
                 else {
-                    hoverItem = -1;
-                    setIsDirty(true);
+                    if (hoverItem != -1) {
+                        hoverItem = -1;
+                        setIsDirty(true);
+                        }
  
                     if (mouseButton1down) {
                         return true;

@@ -81,7 +81,20 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     
     protected Thread myThread = Thread.currentThread();
     protected UpdateEventQueue updateEventQueue = new UpdateEventQueue();
+    protected static Font stdfont = null;
             
+    public GUIControl() {
+        if (stdfont == null) {
+            String os = System.getenv("OS");
+            if (os != null && os.startsWith("Windows")) {
+                stdfont = new Font("Helvetica", Font.PLAIN | Font.TRUETYPE_FONT , 16);
+            }
+            else {
+                stdfont = new Font("Helvetica", Font.PLAIN | Font.TRUETYPE_FONT , 15);
+            }
+        }
+    }
+    
     public void addChild(Renderable child) {
         if (child instanceof GUIControl) {
             ((GUIControl)child).parent = this;
@@ -283,13 +296,19 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     }
     
     public void setBounds(float x, float y, float width, float height) {
-        setIsDirty(true);
-        bounds.setBounds(x, y, width, height);
+        if (x != bounds.x || y != bounds.y || width != bounds.width || height != bounds.height) {
+            setIsDirty(true);
+            bounds.setBounds(x, y, width, height);
+        }
     }
+    
     public void setBounds(Rectangle r) {
-        setIsDirty(true);
-        bounds.setBounds(r);
+        if (r.x != bounds.x || r.y != bounds.y || r.width != bounds.width || r.height != bounds.height) {
+            setIsDirty(true);
+            bounds.setBounds(r);
+        }
     }
+    
     public Rectangle getBounds() { return bounds; }
     
     public boolean contains(float x, float y) {
@@ -458,8 +477,6 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         HPOSITION_RIGHT
     }
     
-    protected static Font stdfont = new Font("Helvetica", Font.PLAIN | Font.TRUETYPE_FONT, 16);
-
     public void renderText(String str, Rectangle rect, Font font, Color color, boolean shadowed, VPosFormat vpos, HPosFormat hpos) {
         renderText(str, rect, font, color, shadowed, vpos, hpos, false, -1, -1);
     }
@@ -801,11 +818,9 @@ System.out.println();
 
         if (img != null) {
             Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
-
-                    BufferedImage imageToUse = img;
                     
                     
-                    byte buf[] = (byte[]) imageToUse.getRaster().getDataElements(0, 0, imageToUse.getWidth(), imageToUse.getHeight(), null);
+                    byte buf[] = (byte[]) img.getRaster().getDataElements(0, 0, img.getWidth(), img.getHeight(), null);
 
 
                     glDisable(GL_CLIP_PLANE0);
@@ -819,7 +834,7 @@ System.out.println();
                     createBackingTexture();
 
 // This doesn't seem to be necessary since we always init the rectangular region specified                    
-                    glClearTexImage(backingTextureName, 0, GL_RGBA, GL_UNSIGNED_BYTE, BufferUtils.createByteBuffer(4));
+//                    glClearTexImage(backingTextureName, 0, GL_RGBA, GL_UNSIGNED_BYTE, BufferUtils.createByteBuffer(4));
                     
                     glBindTexture(GL_TEXTURE_2D, backingTextureName);
 //                int textureName = glGenTextures();
@@ -829,6 +844,11 @@ System.out.println();
 //                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 //                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 //                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageToUse.getWidth(), imageToUse.getHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bbuf);
+
+//            ByteBuffer clearValue = BufferUtils.createByteBuffer(4);
+//            org.lwjgl.opengl.GL44.glClearTexSubImage(backingTextureName, 0, 0, 0, 0, img.getWidth(), img.getHeight(), 1, GL_RGBA, GL_UNSIGNED_BYTE, clearValue);
+            
+            // write new texture data
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, img.getWidth(), img.getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, bbuf);
                                        
 //                    glRasterPos2f(Math.max(0f, imgRect.x), Math.max(0f, imgRect.y+imageToUse.getHeight()));
@@ -841,8 +861,8 @@ System.out.println();
                     Rectangle texRect = new Rectangle(
                             0,
                             0,
-                            imgRect.width/backingTextureWidth,
-                            imgRect.height/backingTextureHeight
+                            ((float)img.getWidth())/(backingTextureWidth),
+                            ((float)img.getHeight())/(backingTextureHeight)
                     );
                     
                     glColor3f(1, 1, 1);
@@ -853,13 +873,13 @@ System.out.println();
                         glVertex2f(imgRect.x, imgRect.y);
                         
                         glTexCoord2f(texRect.x+texRect.width, texRect.y+texRect.height);
-                        glVertex2f(imgRect.x + imageToUse.getWidth(), imgRect.y);
+                        glVertex2f(imgRect.x + imgRect.width, imgRect.y);
                         
                         glTexCoord2f(texRect.x+texRect.width, texRect.y);
-                        glVertex2f(imgRect.x + imageToUse.getWidth(), imgRect.y + imageToUse.getHeight());
+                        glVertex2f(imgRect.x + imgRect.width, imgRect.y + imgRect.height);
                         
                         glTexCoord2f(texRect.x, texRect.y);
-                        glVertex2f(imgRect.x, imgRect.y + imageToUse.getHeight());
+                        glVertex2f(imgRect.x, imgRect.y + imgRect.height);
                     glEnd();
                     glDisable(GL_TEXTURE_2D);
                     

@@ -335,7 +335,8 @@ public class Model extends Observable implements Serializable, Observer {
             ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(file));
             
             ImageVolume4DXStreamConverter imageConverter = new ImageVolume4DXStreamConverter();
-                    
+            TransducerXStreamConverter transducerConverter = new TransducerXStreamConverter();
+            
             // Set xstream security. Only allow classes from this package to be instantiated.
             XStream xstream = new XStream();
             XStream.setupDefaultSecurity(xstream);
@@ -357,7 +358,7 @@ public class Model extends Observable implements Serializable, Observer {
             xstream.registerConverter(new SonicationXStreamConverter());
             xstream.registerConverter(imageConverter);
             xstream.registerConverter(new AttributeListXStreamConverter());
-            xstream.registerConverter(new TransducerXStreamConverter());
+            xstream.registerConverter(transducerConverter);
                         
             if (listener != null) {
                 listener.percentDone("Saving scene", 0);
@@ -368,6 +369,7 @@ public class Model extends Observable implements Serializable, Observer {
             zos.closeEntry();
             
             imageConverter.marshalVoxelData(zos, listener);
+            transducerConverter.marshalMeshData(zos, listener);
             
             zos.close();
     }
@@ -398,6 +400,7 @@ public class Model extends Observable implements Serializable, Observer {
             // and raw voxel data should be readable by other applications.
             if (newModel == null) {
                 ImageVolume4DXStreamConverter imageConverter = new ImageVolume4DXStreamConverter();
+                TransducerXStreamConverter transducerConverter = new TransducerXStreamConverter();
 
             // Set xstream security. Only allow classes from this package to be instantiated.
                 XStream xstream = new XStream();
@@ -418,6 +421,7 @@ public class Model extends Observable implements Serializable, Observer {
                 xstream.registerConverter(new ModelXStreamConverter());
                 xstream.registerConverter(new SonicationXStreamConverter());
                 xstream.registerConverter(imageConverter);
+                xstream.registerConverter(transducerConverter);
                 xstream.registerConverter(new AttributeListXStreamConverter());
 
                 if (listener != null) {
@@ -433,6 +437,7 @@ public class Model extends Observable implements Serializable, Observer {
 
                 // read entries for each image data channel
                 imageConverter.unmarshalVoxelData(modelFile, listener);
+                transducerConverter.unmarshalMeshData(modelFile, listener);
                 
                 modelFile.close();
                 

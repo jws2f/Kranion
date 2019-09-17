@@ -334,6 +334,10 @@ public class FileDialog extends FlyoutDialog {
                             selectedFileDisplay.setText(currentLocation.getText());                    
                             okButton.setIsEnabled(true);
                         }
+                        else {
+                            selectedFileDisplay.setText("");                    
+                            okButton.setIsEnabled(false);
+                        }
                     }
                     else if (lc == fileList) {
                         selectedFile = new File(currentLocation.getText() + File.separator + selectedFileDisplay.getText());
@@ -343,6 +347,8 @@ public class FileDialog extends FlyoutDialog {
                 }
                 break;
             case "rootSelected":
+                selectedFileDisplay.setText("");                    
+                okButton.setIsEnabled(false);
                 populateLists(new File(rootSelector.getItem(rootSelector.getSelectionIndex())));
                 break;
             case "listWheel":
@@ -381,6 +387,6 @@ public class FileDialog extends FlyoutDialog {
         currentLocation.setBounds(230, bounds.height - 75, bounds.width - 240, 25);
         selectedFileDisplay.setBounds(150, 10, bounds.width - 380, 25);
         
-        titleDisplay.setBounds(10, bounds.height-50, bounds.width-20, 50);
+        titleDisplay.setBounds(10, bounds.height-55, bounds.width-20, 60);
     }
 }

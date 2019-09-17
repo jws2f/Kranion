@@ -330,7 +330,9 @@ public class DicomImageLoader implements ImageLoader {
                 for (int i = 0; i < listOfFiles.length; i++) {
                     File theFile = listOfFiles[i];
                     
+                    if (theFile.isFile()) {
                       parseDicomFile(theFile, seriesMap);
+                    }
 //                    if (theFile.isFile()) {
 //                        DicomObject selectedDicomObj = openDicomFile(listOfFiles[i], false);
 //                        if (selectedDicomObj != null) {
@@ -367,11 +369,11 @@ public class DicomImageLoader implements ImageLoader {
 //                        }
 //                    }
                     // recurse into subdirectories. not sure this is a good idea or not
-//                    else if (theFile.isDirectory()) {
-//                        System.out.println("   Scanning subdir: " + theFile.getPath());
-//                        Map<String, seriesDescriptor> subdirMap = this.scanDirectoryForSeries(theFile, listener);
-//                        seriesMap.putAll(subdirMap);
-//                    }
+                    else if (theFile.isDirectory()) {
+                        System.out.println("   Scanning subdir: " + theFile.getPath());
+                        Map<String, seriesDescriptor> subdirMap = this.scanDirectoryForSeries(theFile, listener);
+                        seriesMap.putAll(subdirMap);
+                    }
                     
                     if (listener != null) {
                         //System.out.println("scanning " + i + " of " + listOfFiles.length);

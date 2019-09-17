@@ -1923,7 +1923,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         while (floatPressures.hasRemaining()) {
             totalPressure += floatPressures.get();
         }
-
+        
         glUnmapBuffer(GL_ARRAY_BUFFER);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 

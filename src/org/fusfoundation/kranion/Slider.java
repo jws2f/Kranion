@@ -224,7 +224,7 @@ public class Slider extends GUIControl implements GUIControlModelBinding, Action
                     }
                     else { //single click
                         acquireKeyboardFocus();
-                        lostKeyboardFocus();
+//                        lostKeyboardFocus();
                     }
                     
                     previousClickTime = now;
@@ -405,7 +405,7 @@ glDisable(GL_CULL_FACE);
     
     private void generateLabel() {
 
-        Font font = new Font("Helvetica", Font.PLAIN | Font.TRUETYPE_FONT, Math.round(fontSize * labelScale));        
+        Font font = stdfont;//new Font("Helvetica", Font.PLAIN | Font.TRUETYPE_FONT, Math.round(fontSize * labelScale));        
         
         labelImage = new BufferedImage(Math.round(bounds.width*labelScale), Math.round(bounds.height*2f*labelScale), BufferedImage.TYPE_4BYTE_ABGR);
 

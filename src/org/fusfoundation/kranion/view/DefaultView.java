@@ -1014,6 +1014,7 @@ public class DefaultView extends View {
                
         globalTransformList.add(transRayTracer);
         
+        background.setTag("DefaultView.background_layer");
         background.setClearColor(0.22f, 0.25f, 0.30f, 1f);
         background.setIs2d(true);
 
@@ -1129,6 +1130,7 @@ public class DefaultView extends View {
         overlay.setSize(Display.getWidth(), Display.getHeight());
         mainLayer.setSize(Display.getWidth(), Display.getHeight());
         
+        scene.setTag("DefaultView.scene");
         scene.addChild(background);
         scene.addChild(mainLayer);
         scene.addChild(overlay);
@@ -1575,7 +1577,15 @@ public class DefaultView extends View {
 
             this.imageregistration.setModel(newModel);
             
-            model.setTransducer(transducerModel);
+            if (model.getTransducer() == null) {
+                model.setTransducer(transducerModel);
+            }
+            else {
+//                transducerModel = model.getTransducer();
+//                this.updateTransducerModel(transducerModel.getTransducerDefinitionIndex());
+            }
+            
+            int txdrIndex = model.getTransducer().getTransducerDefinitionIndex();
             
             this.updateMRlist();
             this.updateSonicationList();
@@ -1585,7 +1595,9 @@ public class DefaultView extends View {
             // in the loaded model get a chance to update their current values
             // to the model.
             Main.updateAllControlBindings();
-                    
+            
+            this.updateTransducerPulldownList(txdrIndex);
+            
             setDoTransition(true);
             
             return;
@@ -2155,7 +2167,7 @@ public class DefaultView extends View {
         }
         
         if (doTransition) {
-            System.out.println("Do transition");
+//            System.out.println("Do transition");
             transition.doTransition();
             doTransition = false;
         }        
@@ -2174,7 +2186,11 @@ public class DefaultView extends View {
 
     private static boolean mouseButton1Drag = false;
     private boolean OnMouse(int x, int y, boolean button1down, boolean button2down, int dwheel) {
-                
+                     
+//        if (button1down && !mouseButton1Drag) {
+//            System.out.println("View mouse down");
+//        }
+        
         if (button2down) {
             int pickVal = doPick(x, y);
             System.out.println("*** Picked value: " + pickVal);
@@ -2628,8 +2644,20 @@ public class DefaultView extends View {
     
     @Override
     public Renderable setIsDirty(boolean dirty) {
-        scene.setIsDirty(dirty);
+        if (!isDirty && dirty) {
+            scene.setIsDirty(dirty);
+        }
         return this;
+    }
+
+    @Override
+    public void lostKeyboardFocus() {
+        super.lostKeyboardFocus(); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean acquireKeyboardFocus() {
+        return super.acquireKeyboardFocus(); //To change body of generated methods, choose Tools | Templates.
     }
     
     @Override
@@ -2796,7 +2824,9 @@ public class DefaultView extends View {
                     return;
                 case "Model.Transducer":
                     if (model.getTransducer() != null) {
-                        transRayTracer.init(model.getTransducer().buildElements(Transducer.getTransducerDef(selTrans)));
+                        int defIndex = model.getTransducer().getTransducerDefinitionIndex();
+                        this.transducerPatternSelector.setSelectionIndex(defIndex);
+                        transRayTracer.init(model.getTransducer().buildElements(Transducer.getTransducerDef(defIndex)));
                         activeElementsBar.setMinMax(0, model.getTransducer().getElementCount());
                         updateTargetAndSteering();
                     }

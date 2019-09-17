@@ -94,7 +94,7 @@ public class Button extends GUIControl implements GUIControlModelBinding  {
         else {
             state = ButtonState.DISABLED;
         }
-        setIsDirty(true); // redundant?
+//        setIsDirty(true); // redundant?
     }
     
     public Button setIndicator(boolean flag) {

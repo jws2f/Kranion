@@ -81,7 +81,40 @@ public class Transducer extends Clippable {
     private int transducerIndex = -1;
 
     public Transducer() {
-        transducerIndex = -1;
+    }
+    
+    public void allocateNew(String name, int channelCount) {
+        trans = new InsightecTxdrGeomReader(channelCount);
+        trans.setName(name);
+        
+        int matchIndex = -1;
+        for (int i=0; i<transducers.size(); i++) {
+            InsightecTxdrGeomReader t = transducers.get(i).getKey();
+            if (t.getName().equals(name)) {
+                matchIndex = i;
+            }
+        }
+        
+        if (matchIndex != -1) {
+            transducers.set(matchIndex, new AbstractMap.SimpleImmutableEntry<InsightecTxdrGeomReader, Renderable>(
+                    trans,
+                    new TransformationAdapter(new RenderList())));
+            transducerIndex = matchIndex;
+        } else {
+            transducers.add(new AbstractMap.SimpleImmutableEntry<InsightecTxdrGeomReader, Renderable>(
+                    trans,
+                    new TransformationAdapter(new RenderList()))
+            );
+            transducerIndex = transducers.size() - 1;
+        }
+    }
+    
+    public void addTransducerBodyModelMesh(PlyFileReader mesh) {
+        this.getRenderList().add(mesh);
+    }
+    
+    public void setName(String name) {
+        trans.setName(name);
     }
     
     public String getName() {
@@ -93,12 +126,56 @@ public class Transducer extends Clippable {
         }
     }
     
+    public void setTransducerBodyModelTransform(Matrix4f m) {
+        if (transducerIndex != -1) {
+            Renderable r = transducers.get(transducerIndex).getValue();
+            if (r instanceof TransformationAdapter) {
+                ((TransformationAdapter)r).setTransform(m);
+            }
+        }
+    }
+    
+    public Matrix4f getTransducerBodyModelTransform() {
+        Matrix4f result = new Matrix4f();
+        if (transducerIndex != -1) {
+            Renderable r = transducers.get(transducerIndex).getValue();
+            if (r instanceof TransformationAdapter) {
+                result = ((TransformationAdapter)r).getTransform();
+            }
+        }
+        return result;
+    }
+    
+    public RenderList getRenderList() {
+        if (transducerIndex != -1) {
+            Renderable r = this.transducers.get(transducerIndex).getValue();
+            if (r instanceof RenderList) {
+                return (RenderList)r;
+            }
+            else if (r instanceof TransformationAdapter) {
+                return (RenderList)((TransformationAdapter)r).getChild();
+            }
+            else {
+                return null;
+            }
+        }
+        else {
+            return null;
+        }
+    }
+    
     public int getElementCount() {
         if (trans != null) {
             return trans.getChannelCount();
         }
         else {
             return 0;
+        }
+    }
+    
+    public void setElementPos(int n, float x, float y, float z) {
+        if (trans != null) {
+            trans.setChannelPos(n, new Vector3f(x, y, z));
         }
     }
     
@@ -122,6 +199,12 @@ public class Transducer extends Clippable {
         }
     }
     
+    public void setElementNormal(int n, float x, float y, float z) {
+        if (trans != null) {
+            trans.setChannelNorm(n, new Vector3f(x, y, z));
+        }
+    }
+    
     public float getElementArea(int n) {
         if (trans != null) {
             return trans.getChannel(n).w;
@@ -130,14 +213,32 @@ public class Transducer extends Clippable {
             return 0;
         }
     }
+    
+    public void setElementArea(int n, float area) {
+        if (trans != null) {
+            Vector4f posArea = trans.getChannel(n);
+            posArea.w = area;
+            trans.setChannel(n, posArea);
+        }
+    }
         
     public static void setListener(ActionListener l) {
         listener = l;
     }
     
     public void setTransducerDefinitionIndex(int index) {
-        transducerIndex = index;
+        if (index==-1) {
+            transducerIndex = transducers.size()-1;
+        }
+        else {
+            transducerIndex = index;
+        }
+        System.out.println("setTransducerDefinitionIndex="+transducerIndex);
         setIsDirty(true);
+    }
+    
+    public int getTransducerDefinitionIndex() {
+        return transducerIndex;
     }
     
     private StandardShader shader = new StandardShader();
@@ -439,7 +540,7 @@ public class Transducer extends Clippable {
         txdrRaysBuffer = BufferUtils.createFloatBuffer(trans.getChannelCount() * 3 * 2);
 
         for (int e = 0; e < trans.getChannelCount(); e++) {
-
+//System.out.println("Transducer.buildElements{" + txdr.getName() + ": " + e);
             Vector3f elementCenter = new Vector3f(trans.getChannel(e));
 
             Vector3f elementNorm = new Vector3f(trans.getChannel(e).x, trans.getChannel(e).y, trans.getChannel(e).z);
@@ -932,6 +1033,16 @@ public class Transducer extends Clippable {
         return trans.getChannel(i);
     }
     
-    public boolean getElementActive(int i) { return trans.getChannelActive(i); }
+    public void setElement(int i, Vector4f posArea) {
+        trans.setChannel(i, posArea);
+    }
+    
+    public boolean getElementActive(int i) {
+        return trans.getChannelActive(i);
+    }
+
+    public void setElementActive(int i, boolean active) {
+        trans.setChannelActive(i, active);
+    }
 
 }

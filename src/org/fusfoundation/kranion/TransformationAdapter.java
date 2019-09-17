@@ -49,11 +49,25 @@ public class TransformationAdapter extends Clippable implements  Pickable {
         this.child = child;
     }
     
+    public Renderable getChild() {
+        return child;
+    }
+    
     public void setTransform(Matrix4f m) {
         rotation.setFromMatrix(m);
         rotation.normalise();
         
         translation.set(m.m30, m.m31, m.m32);
+    }
+    
+    public Matrix4f getTransform() {
+        Matrix4f m;
+        m = Trackball.toMatrix4f(rotation);
+        m.m30 = translation.x;
+        m.m31 = translation.y;
+        m.m32 = translation.z;
+        
+        return m;
     }
     
     public void setRotation(Vector3f axis, float angle) {

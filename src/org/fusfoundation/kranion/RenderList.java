@@ -45,6 +45,10 @@ public class RenderList extends Clippable implements Resizeable, Pickable {
         renderlist.remove(obj);
     }
     
+    public int getSize() {
+        return renderlist.size();
+    }
+    
     public Iterator<Renderable> getChildIterator() {
         return renderlist.iterator();
     }

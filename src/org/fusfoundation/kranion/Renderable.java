@@ -135,7 +135,6 @@ public abstract class Renderable {
             }
             keyboardFocus = this;
 //            System.out.println(keyboardFocus + " got keyboard focus.");
-            setIsDirty(true);
             return true;
         }
         else {
@@ -149,7 +148,6 @@ public abstract class Renderable {
             if (Renderable.getDefaultKeyboardFocus() != null) {
                 keyboardFocus = Renderable.getDefaultKeyboardFocus();
             }
-            setIsDirty(true);
         }
     }
     

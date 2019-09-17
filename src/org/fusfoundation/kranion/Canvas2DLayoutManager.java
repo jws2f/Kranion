@@ -163,9 +163,9 @@ public class Canvas2DLayoutManager extends GUIControl implements Animator, Resiz
         if (this.parent != null && this.parent instanceof Resizeable) {
             ((Resizeable)parent).doLayout();
         }
-        else {
+//        else {
             doLayout();
-        }
+//        }
     }
 
     @Override

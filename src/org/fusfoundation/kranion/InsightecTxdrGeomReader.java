@@ -34,6 +34,12 @@ public class InsightecTxdrGeomReader {
     private boolean[] channelActive;
     private String name;
 
+    public InsightecTxdrGeomReader(int channelCount) {
+        channelPosArea = new Vector4f[channelCount];
+        channelNormal = new Vector3f[channelCount];
+        channelActive = new boolean[channelCount];        
+    }
+    
     public InsightecTxdrGeomReader(String filename) throws IOException {
         channelPosArea = null;
         channelNormal = null;
@@ -127,12 +133,39 @@ public class InsightecTxdrGeomReader {
             channelCount++;
         }        
     }
+    
+    public void setChannelPos(int channelNum, Vector3f pos) {
+        if (channelPosArea != null || channelNum >= 0 || channelNum < channelPosArea.length) {
+            Vector4f ch = channelPosArea[channelNum];
+            if (ch == null) {
+                ch = new Vector4f();
+            }
+            ch.x = pos.x;
+            ch.y = pos.y;
+            ch.z = pos.z;
+        }
+        return;
+    }
+    
+    public void setChannel(int channelNum, Vector4f pos_area) {
+        if (channelPosArea != null || channelNum >= 0 || channelNum < channelPosArea.length) {
+            channelPosArea[channelNum] = new Vector4f(pos_area);
+        }
+        return;
+    }
+    
+    public void setChannelNorm(int channelNum, Vector3f norm) {
+        if (channelPosArea != null || channelNum >= 0 || channelNum < channelPosArea.length) {
+            channelNormal[channelNum] = new Vector3f(norm);
+        }
+        return;
+    }
 
     public Vector4f getChannel(int channelNum) {
-        if (channelPosArea == null || channelNum < 0 || channelNum >= channelPosArea.length) {
-            return null;
+        if (channelPosArea != null || channelNum >= 0 || channelNum < channelPosArea.length) {
+            return channelPosArea[channelNum];
         }
-        return channelPosArea[channelNum];
+        return null;
     }
     
     public Vector3f getChannelNormal(int channelNum) {
@@ -143,13 +176,16 @@ public class InsightecTxdrGeomReader {
     }
     
     public boolean getChannelActive(int channelNum) {
-          if (channelPosArea == null || channelNum < 0 || channelNum >= channelPosArea.length) {
+        if (channelActive == null || channelNum < 0 || channelNum >= channelPosArea.length) {
             return false;
         }
         return channelActive[channelNum];      
     }
     
     public void setChannelActive(int channelNum, boolean isActive) {
+        if (channelActive == null || channelNum < 0 || channelNum >= channelPosArea.length) {
+            return;
+        }
         channelActive[channelNum] = isActive;
     }
 

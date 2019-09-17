@@ -46,7 +46,7 @@ public abstract class Clippable extends Renderable {
     private static Vector4f[] corners = null;
     private static Vector4f[] world_corners = null;
     
-    Vector4f clipColor = new Vector4f(0.5f, 0.5f ,0.5f, 1f);
+    private Vector4f clipColor = new Vector4f(0.5f, 0.5f ,0.5f, 1f);
     
     public Clippable() {
         
@@ -86,7 +86,11 @@ public abstract class Clippable extends Renderable {
         }
         clipColor.set(r, g, b, a);
     }
-        
+    
+    public Vector4f getClipColor() {
+        return new Vector4f(clipColor);
+    }
+    
     public void setTrackball(Trackball tb) {
         if (clip_trackball == null || clip_trackball.getCurrent() != tb.getCurrent()) {
             setIsDirty(true);

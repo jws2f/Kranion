@@ -53,7 +53,7 @@ public class RegionGrow {
     
     private LinkedList<Seed> growQ = new LinkedList<>();
     
-    private static ShaderProgram shader, shader2, shader3;  
+    private static ShaderProgram shader, shader2, shader3, dilateShader;  
     
     private boolean useGpuAcceleration = true;
     
@@ -219,7 +219,7 @@ public class RegionGrow {
         
         System.out.println("RegionGrow: done");
     }
-    
+        
     private void initShader() {
         if (shader == null) {
             shader = new ShaderProgram();
@@ -235,6 +235,11 @@ public class RegionGrow {
             shader3 = new ShaderProgram();
             shader3.addShader(GL_COMPUTE_SHADER, "shaders/RegionGrowIterate3.cs.glsl");
             shader3.compileShaderProgram();  // TODO: should provide check for successful shader compile
+        }
+        if (dilateShader == null) {
+            dilateShader = new ShaderProgram();
+            dilateShader.addShader(GL_COMPUTE_SHADER, "shaders/RegionGrowDilate.cs.glsl");
+            dilateShader.compileShaderProgram();  // TODO: should provide check for successful shader compile
         }
     }
     
@@ -342,7 +347,8 @@ public class RegionGrow {
         
         } while (changeCount > 0);
         
-            shader3.start();
+        // dilate the region grown mask so it will volume render smoothly
+        dilateShader.start();
 
             // run compute shader
             org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
@@ -350,12 +356,33 @@ public class RegionGrow {
             org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
 
             // Clean up
-            shader3.stop();
-    
+         dilateShader.stop();
+         
+        dilateShader.start();
+
+            // run compute shader
+            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+            org.lwjgl.opengl.GL43.glDispatchCompute((iWidth+7)/8, (iHeight+7)/8, (iDepth+7)/8);
+            org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+
+            // Clean up
+         dilateShader.stop();
+        
+        shader3.start();
+
+        // run compute shader
+        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+        org.lwjgl.opengl.GL43.glDispatchCompute((iWidth+7)/8, (iHeight+7)/8, (iDepth+7)/8);
+        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+
+        // Clean up
+        shader3.stop();
+
         glActiveTexture(GL_TEXTURE0 + 0);
         glBindTexture(GL_TEXTURE_3D, 0);
         glDisable(GL_TEXTURE_3D);
         
+        // copy result textures back to cpu
         updateTexture2Image();
         updateTexture2Mask();
         
@@ -562,7 +589,21 @@ public class RegionGrow {
     
     public void release() {
         releaseTexture();
-        shader.release();
-        shader = null;
+        if (shader != null) {
+            shader.release();
+            shader = null;
+        }
+        if (shader2 != null) {
+            shader2.release();
+            shader2 = null;
+        }
+        if (shader3 != null) {
+            shader3.release();
+            shader3 = null;
+        }
+        if (dilateShader != null) {
+            dilateShader.release();
+            dilateShader = null;
+        }
     }
 }

@@ -29,6 +29,7 @@ import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import java.util.Iterator;
+import org.fusfoundation.kranion.Transducer;
 import org.fusfoundation.kranion.model.image.ImageVolume4D;
 
 /**
@@ -126,6 +127,10 @@ public class ModelXStreamConverter  implements Converter{
                         }
                         reader.moveUp();
                     }
+                    break;
+                case "Transducer":
+                    Transducer t = (Transducer)uc.convertAnother(model, Transducer.class);
+                    model.setTransducer(t);
                     break;
             }
             

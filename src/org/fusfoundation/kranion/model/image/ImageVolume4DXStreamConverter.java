@@ -140,6 +140,7 @@ public class ImageVolume4DXStreamConverter implements Converter {
             listener.percentDone("Saving scene", 100);
         }
     }
+    
     private void encodeVoxelStream(ImageVolume4D image, int channel, OutputStream ostream) throws IOException {
         
         System.out.println("Encoding image channel " + channel);
