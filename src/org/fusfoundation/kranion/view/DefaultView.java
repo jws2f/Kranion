@@ -470,7 +470,7 @@ public class DefaultView extends View {
         model.addObserver(button);
         flyout2.addChild("View", button);
         
-        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 230, 120, 25, this);
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 170, 90, 120, 25, this);
         button.setTitle("Crosshair");
         button.setCommand("showCrosshair");
         button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -1139,7 +1139,7 @@ public class DefaultView extends View {
         scene.addChild(transition); // must be last to work properly
         
         
-        this.transition.doFadeFromBlack(0.75f);
+        this.transition.doFadeFromBlack(2f);
         
         // TODO: is the best place to update the model transducer?
         model.setTransducer(transducerModel);
@@ -1308,12 +1308,12 @@ public class DefaultView extends View {
     
     public void setDisplayMRimage(ImageVolume image) {
         
+        canvas.setMRImage(image);
+        canvas1.setMRImage(image);
+        canvas2.setMRImage(image);
+        canvas3.setMRImage(image);
+            
         if (image == null) {
-            canvas.setMRImage(image);
-            canvas1.setMRImage(image);
-            canvas2.setMRImage(image);
-            canvas3.setMRImage(image);
-
             return;
         }
         
@@ -1354,25 +1354,25 @@ public class DefaultView extends View {
         }
         
 
-        canvas.setMRImage(image);
+//        canvas.setMRImage(image);
         canvas.setMRCenterWindow((int) this.mr_center, (int) this.mr_window);
         canvas.setMRrescale(rescaleSlope, rescaleIntercept);
         canvas.setOrientation(0);
         canvas.setMRThreshold(mrThreshold);
 
-        canvas1.setMRImage(image);
+//        canvas1.setMRImage(image);
         canvas1.setMRCenterWindow((int) this.mr_center, (int) this.mr_window);
         canvas1.setMRrescale(rescaleSlope, rescaleIntercept);
         canvas1.setOrientation(0);
         canvas1.setMRThreshold(mrThreshold);
 
-        canvas2.setMRImage(image);
+//        canvas2.setMRImage(image);
         canvas2.setMRCenterWindow((int) this.mr_center, (int) this.mr_window);
         canvas2.setMRrescale(rescaleSlope, rescaleIntercept);
         canvas2.setOrientation(1);
         canvas2.setMRThreshold(mrThreshold);
 
-        canvas3.setMRImage(image);
+//        canvas3.setMRImage(image);
         canvas3.setMRCenterWindow((int) this.mr_center, (int) this.mr_window);
         canvas3.setMRrescale(rescaleSlope, rescaleIntercept);
         canvas3.setOrientation(2);
@@ -1497,7 +1497,9 @@ public class DefaultView extends View {
         model.setAttribute("targetVisible", false);
         model.setAttribute("sonicationMaxTemp", "");
         model.setAttribute("sonicationMaxDose", "");
-
+        
+        thermometryChart.newChart();
+        thermometryChart.generateChart();
     }
     
     private void loadScene() { // TODO: FIX THIS AFTER TESTING        
@@ -2820,7 +2822,10 @@ public class DefaultView extends View {
                     return;
                 case "Model.MrImage[0]":
                     updateMRlist();
-                    setDisplayMRimage(model.getMrImage(0));
+                    if (this.mrSeriesSelector.getSelectionIndex()==-1) {
+                        setDisplayMRimage(model.getMrImage(0));
+                        model.setSelectedMR(0);
+                    }
                     return;
                 case "Model.Transducer":
                     if (model.getTransducer() != null) {
@@ -2864,6 +2869,21 @@ public class DefaultView extends View {
             if (event.getPropertyName().startsWith("Model.MrImage[")) {
                 if (Pattern.matches("Model\\.MrImage\\[\\d{1,2}\\]", event.getPropertyName())){                   
                     updateMRlist();
+//                    int mrIndex = 0;
+//                    
+//                    try {
+//                        int startBracket = event.getPropertyName().indexOf("[") + 1;
+//                        int endBracket = event.getPropertyName().indexOf("]");
+//
+//                        String mrIndexStr = event.getPropertyName().substring(startBracket, endBracket);
+//
+//                        mrIndex = Integer.parseInt(mrIndexStr);
+//                    } catch (Exception e) {
+//                        mrIndex = 0;
+//                    }
+//                    
+//                    setDisplayMRimage(model.getMrImage(mrIndex));
+//                    this.mrSeriesSelector.setSelectionIndex(mrIndex);
                 }
             }
             else if (event.getPropertyName().startsWith("Model.Sonication[")) {

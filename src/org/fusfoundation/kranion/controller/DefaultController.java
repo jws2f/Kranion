@@ -220,6 +220,8 @@ public class DefaultController extends Controller {
 //            model.clearMrImages();
             int mrImageCount = model.getMrImageCount();
             model.setMrImage(mrImageCount, image);
+            model.setAttribute("currentMRSeries", mrImageCount);
+
         }
         else if (e.getActionCommand().equals("currentTargetPoint")) {
             Object source = e.getSource();

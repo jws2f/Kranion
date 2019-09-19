@@ -669,19 +669,19 @@ System.out.println(selectedDicomObj);
                             VR vr = obj.getVR("WindowWidth");
                             int multiplicity = vr.getValueMultiplicity();
                             if (multiplicity > 0) {
-                                image.setAttribute("WindowWidth", vr.getFloatValue(multiplicity-1));                                
+                                image.setAttribute("WindowWidth", vr.getFloatValue(multiplicity-1) * 2);                                
                             }
                             else {
-                                image.setAttribute("WindowWidth", vr.getFloatValue());
+                                image.setAttribute("WindowWidth", vr.getFloatValue() * 2);
                             }
 
                             vr = obj.getVR("WindowCenter");
                             multiplicity = vr.getValueMultiplicity();
                             if (multiplicity > 0) {
-                                image.setAttribute("WindowCenter", vr.getFloatValue(multiplicity-1));
+                                image.setAttribute("WindowCenter", vr.getFloatValue(multiplicity-1) * 2);
                             }
                             else {
-                                image.setAttribute("WindowCenter", vr.getFloatValue());
+                                image.setAttribute("WindowCenter", vr.getFloatValue() * 2);
                             }
                         }
                         catch(Exception e) {} // TODO: fix exception handling here for missing tags
@@ -721,7 +721,7 @@ System.out.println(selectedDicomObj);
                         
                         Object[] pos = positionsFiles.entrySet().toArray();
                         if (pos.length > 1) {
-                            int midIndex = pos.length/2;
+                            int midIndex = pos.length/2-1;
                             float loc1 = (Float)(((Map.Entry)pos[midIndex+1]).getKey());
                             float loc0 = (Float)(((Map.Entry)pos[midIndex]).getKey());
                             sliceThickness = Math.abs(loc1 - loc0);
@@ -876,12 +876,17 @@ System.out.println(selectedDicomObj);
                     
                     int min=9999999;
                     int max=0;
+                    try {
                     for (int v = 0; v < frameSize; v++) {
                         if (!sliceMisMatch) {
                             if (!bLosslessJPEG) {
                                 //            voxelData[offset + v] = (short)((((int)sliceData[v*2] & 0xff) << 8 | ((int)sliceData[v*2 + 1] & 0xff)) & 0xfffL);
 
                                 // handle pixel padding value if given for CT
+                                if (v*2>sliceData.length) {
+                                    System.out.println("Dicom loader accessing beyond frame array size");
+                                }
+                                
                                 short rawValue;
                                 if (signedPixelRep == 1) {
                                     rawValue = (short) ((sliceData[v * 2] & 0xff) << 8 | (sliceData[v * 2 + 1] & 0xff));
@@ -912,6 +917,10 @@ System.out.println(selectedDicomObj);
                         } else {
                             voxelData[offset + v] = 0; // sometimes this is one image prepended that has resampling grid graphics and doesn't match resolution
                         }
+                    }
+                    } catch (Exception e) {
+                        System.out.println("Unexpected dicom loading error");
+                        e.printStackTrace();
                     }
                     
                     System.out.println("Image min = " + min + " max = " + max);
@@ -1229,19 +1238,19 @@ System.out.println(selectedDicomObj);
                             VR vr = obj.getVR("WindowWidth");
                             int multiplicity = vr.getValueMultiplicity();
                             if (multiplicity > 0) {
-                                image.setAttribute("WindowWidth", vr.getFloatValue(multiplicity-1));                                
+                                image.setAttribute("WindowWidth", vr.getFloatValue(multiplicity-1) * 2);                                
                             }
                             else {
-                                image.setAttribute("WindowWidth", vr.getFloatValue());
+                                image.setAttribute("WindowWidth", vr.getFloatValue() * 2);
                             }
 
                             vr = obj.getVR("WindowCenter");
                             multiplicity = vr.getValueMultiplicity();
                             if (multiplicity > 0) {
-                                image.setAttribute("WindowCenter", vr.getFloatValue(multiplicity-1));
+                                image.setAttribute("WindowCenter", vr.getFloatValue(multiplicity-1) * 2);
                             }
                             else {
-                                image.setAttribute("WindowCenter", vr.getFloatValue());
+                                image.setAttribute("WindowCenter", vr.getFloatValue() * 2);
                             }
                         }
                         catch(Exception e) {} // TODO: fix exception handling here for missing tags
