@@ -29,6 +29,7 @@ import java.io.*;
 import java.net.*;
 import java.net.URL;
 import java.lang.reflect.*;
+import java.nio.file.Paths;
 
 /**
  *
@@ -98,7 +99,7 @@ public class PluginFinder {
     
     private static final Class<?>[] PARAMS = new Class<?>[] { URL.class };
     
-    public void addURL(URL u) throws IOException {
+    public void addURL(URL u) throws IOException, URISyntaxException {
         
 // Copyright notice from CG Jennings for jar-loader inclusion:
 // https://github.com/CGJennings/jar-loader/blob/master/LICENSE
@@ -128,7 +129,9 @@ public class PluginFinder {
 //CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 //OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 //OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-        ca.cgjennings.jvm.JarLoader.addToClassPath(new File(u.getFile()));
+        ca.cgjennings.jvm.JarLoader.addToClassPath(Paths.get(u.toURI()).toFile());
+//        ca.cgjennings.jvm.JarLoader.addToClassPath(new File(u.getFile()));
+
 //
 // Java 8 class loader, but breaks Java 9+
 //        URLClassLoader sysLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
