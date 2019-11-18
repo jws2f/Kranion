@@ -232,13 +232,13 @@ public class CrossHair extends Renderable
         Main.glPopMatrix();
     }
     
-    private void drawLineArray(int bufID, int offset, int count) {
+    private void drawLineArray(int bufID, int vert_offset, int count) {
             glBindBuffer(GL_ARRAY_BUFFER, bufID);
             
 	    glEnableClientState(GL_VERTEX_ARRAY);
-	    glVertexPointer(3, GL_FLOAT, 0, 0);
+	    glVertexPointer(3, GL_FLOAT, 0, vert_offset*3*Float.BYTES /* 3=num floats per vertex */);
             
-	    glDrawArrays(GL_LINES, offset, count);
+	    glDrawArrays(GL_LINES, 0, count);
             
 	    glDisableClientState(GL_VERTEX_ARRAY);
 	    

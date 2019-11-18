@@ -546,9 +546,9 @@ public class Transducer extends Clippable {
             Vector3f elementNorm = new Vector3f(trans.getChannel(e).x, trans.getChannel(e).y, trans.getChannel(e).z);
             elementNorm.normalise();
             
-            // move the element visual position out 1mm along the normal so it isnt clipped by
+            // move the element visual position out 2mm along the normal so it isnt clipped by
             // tranducer itself. Assumes the the element center positions are coincident on the transdcuer outer surface
-            elementCenter = Vector3f.add(elementCenter, (Vector3f)new Vector3f(elementNorm).scale(-1f), null);
+            elementCenter = Vector3f.add(elementCenter, (Vector3f)new Vector3f(elementNorm).scale(-2f), null);
             txdrElementVertsBuffer.put(elementCenter.x);
             txdrElementVertsBuffer.put(elementCenter.y);
             txdrElementVertsBuffer.put(elementCenter.z);

@@ -193,6 +193,7 @@ public class AttributeList implements Serializable {
             case "org.fusfoundation.dicom.DicomString":
             case "org.fusfoundation.dicom.PersonName":
             case "org.fusfoundation.dicom.DicomNumber":
+            case "org.fusfoundation.kranion.model.image.ImageVolume4D":
                 return obj;
             // Vector types that we need to translate: LWJGL->our archival format
             case "org.lwjgl.util.vector.Vector2f": {

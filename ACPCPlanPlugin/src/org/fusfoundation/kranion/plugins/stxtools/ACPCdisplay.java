@@ -62,6 +62,7 @@ public class ACPCdisplay extends GUIControl {
     private Vector3f ac, pc, sup;
     private Vector3f acpcUpVec = new Vector3f();
     private Vector3f currentTarget = new Vector3f();
+    private Vector3f currentSteering = new Vector3f();
     
     public ACPCdisplay() {
         ac = pc = sup = null;
@@ -82,7 +83,9 @@ public class ACPCdisplay extends GUIControl {
         glDisable(GL_LIGHTING);
                 glMatrixMode(GL_MODELVIEW);
                 glPushMatrix();
-                    glTranslatef(-currentTarget.x, -currentTarget.y, -currentTarget.z);
+                    glTranslatef(-currentTarget.x - currentSteering.x,
+                                -currentTarget.y - currentSteering.y,
+                                -currentTarget.z - currentSteering.z);
 //                    sphere.setColor(1f, 1f, 0.3f, 1f);
 //    //                Vector3f color = getColor(selectedTarget);
 //    //                sphere.setColor(color.x, color.y, color.z, 1f);
@@ -189,11 +192,20 @@ public class ACPCdisplay extends GUIControl {
                 System.out.println("ACPCdisplay: currentTarget update");
                 if (newValue instanceof Vector3f) {                    
                     currentTarget.set((Vector3f)newValue);
+                    setIsDirty(true);
+                }
+                break;
+            case "currentTargetSteering":
+                System.out.println("ACPCdisplay: currentSteering update");
+                if (newValue instanceof Vector3f) {                    
+                    currentSteering.set((Vector3f)newValue);
+                    setIsDirty(true);
                 }
                 break;
             case "acpcCoordSup":
                 if (newValue instanceof Vector3f) {                    
                     acpcUpVec.set((Vector3f)newValue);
+                    setIsDirty(true);
                 }                
                 break;
             case "AC":

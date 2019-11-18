@@ -750,6 +750,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, distSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, sdrSSBo);
         
+        // have the SDR shader recolor rays and skull strike discs for any elements that hit air
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, colSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, outDiscSSBo);
+        
         // run compute shader
         org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
         org.lwjgl.opengl.GL43.glDispatchCompute(elementCount / 256 + 1, 1, 1);
@@ -758,6 +762,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+        
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
         
         sdrShader.stop();
         
@@ -1223,7 +1230,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     float normSkullThickness = floatPhases.get();
                     float transmCoeff = floatPhases.get();
                     
-                    if (incidentAngle >= 0f) {
+                    if (dist > 0 && incidentAngle >= 0f) {
                         result.add((double)incidentAngle);
                     }                    
                 }

@@ -335,6 +335,18 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
         }
 
         Vector3f currentTarget = (Vector3f)model.getAttribute("currentTargetPoint");
+        Vector3f steering = (Vector3f)model.getAttribute("currentTargetSteering");
+        
+        if (currentTarget == null) {
+            currentTarget = new Vector3f();
+        }
+        
+        if (steering == null) {
+            steering = new Vector3f();
+        }
+        
+        Vector3f.sub(currentTarget, steering, currentTarget);
+        
 System.out.println("ACPCPlanPlugin got command: " + command);        
         switch (command) {
             // ACPC Planning commands
@@ -351,6 +363,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
             {
                 Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("AC"));
                 model.setAttribute("currentTargetPoint", p);
+                model.setAttribute("currentTargetSteering", new Vector3f());
                 view.doTransition(250);
             }
                 break;
@@ -367,6 +380,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
             {
                 Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("PC"));
                 model.setAttribute("currentTargetPoint", p);
+                model.setAttribute("currentTargetSteering", new Vector3f());
             }
                 view.doTransition(250);
                 break;
@@ -382,6 +396,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
             {
                 Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("ACPCSup"));
                 model.setAttribute("currentTargetPoint", p);
+                model.setAttribute("currentTargetSteering", new Vector3f());
             }
                 view.doTransition(250);
                 break;
@@ -392,6 +407,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                     Vector3f acpcTarget = (Vector3f)model.getAttribute("acpcTarget");
                     if (acpcTarget != null) {
                         model.setAttribute("currentTargetPoint", ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), acpcTarget));
+                        model.setAttribute("currentTargetSteering", new Vector3f());
                     }
                     view.doTransition(250);
                                     
@@ -471,31 +487,36 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 float lateralOffsetVal = 0f;
                 float ventricleOffsetVal = 0f;
                 float superiorOffsetVal = 0f;
-                float ratioVal = 50; // attribute value is in percent
+                float ratioVal = 0.5f; // attribute value is in percent
 
                 try {
                     anteriorOffsetVal = (Float) model.getAttribute("acpcAnteriorOffsetValue");
                 } catch (NullPointerException e) {
+                    anteriorOffsetVal = 0f;
                 }
 
                 try {
                     lateralOffsetVal = (Float) model.getAttribute("acpcOffsetValue");
                 } catch (NullPointerException e) {
+                    lateralOffsetVal = 0f;
                 }
 
                 try {
                     ventricleOffsetVal = (Float) model.getAttribute("acpc3rdVentricleOffsetValue");
                 } catch (NullPointerException e) {
+                    ventricleOffsetVal = 0f;
                 }
 
                 try {
                     superiorOffsetVal = (Float) model.getAttribute("acpcSuperiorOffsetValue"); // attribute value is in percent
                 } catch (NullPointerException e) {
+                    superiorOffsetVal = 0f;
                 }
 
                 try {
                     ratioVal = (Float) model.getAttribute("acpcRatioValue") / 100f; // attribute value is in percent
                 } catch (NullPointerException e) {
+                    ratioVal = 0.5f;
                 }
 
                 if (!doRightOffset) {

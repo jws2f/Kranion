@@ -324,6 +324,7 @@ public class Main implements ProgressListener {
         DisplayMode mode = null;
         
         if (chosenMode == null) {
+            System.out.println("Didn't find a display mode we like. Trying default...");
             mode = new DisplayMode(DISPLAY_WIDTH, DISPLAY_HEIGHT);
         }
         else {

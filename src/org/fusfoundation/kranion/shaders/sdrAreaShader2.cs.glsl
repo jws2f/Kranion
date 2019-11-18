@@ -47,6 +47,17 @@ struct sdrRecord {
          float      minVal;
 };
 
+struct vertex{
+         vec4 pos;
+         vec4 norm;
+         vec4 col;
+};
+
+struct elemColor {
+         vec4 color[6];
+//         vec4 color2;
+};
+
 layout(std430, binding=0) buffer inputGeometry{
           elemEnd inputv[];
 };
@@ -57,6 +68,14 @@ layout(std430, binding=1) buffer resultDistance{
 
 layout(std430, binding=2) buffer resultSDR{
           sdrRecord sdr[];
+};
+
+layout(std430, binding=3) buffer resultColor{
+          elemColor c[];
+};
+
+layout(std430, binding=4) buffer outputDiscs{
+		vertex outDiscTris[];
 };
 
 // compute shader dispatch layout
@@ -111,6 +130,7 @@ void main()
 
     const float offsets[5] = float[5](-2, -1, 1, 2, 0);
 
+    int airFound = 0;
     for (int x=0; x<5; x++) {
         for (int y=0; y<5; y++) {
 
@@ -174,11 +194,20 @@ void main()
             // Find the minimum value between peaks
             float minValue = 4096.0;
             int minValueIndex = -1;
+            int airSampleFound = 0;
             for (int i=leftPeakIndex; i<=rightPeakIndex; i++) {
-                if (sdr[gid].huSamples[i] < minValue) {
-                    minValue = max(0, sdr[gid].huSamples[i]);
+                float h = sdr[gid].huSamples[i];
+                if (h < minValue) {
+                    minValue = sdr[gid].huSamples[i];
                     minValueIndex = i;
                 }
+                if (h<=-500) { // air
+                    airSampleFound = 1;
+                }
+            }
+
+            if (minValue<0) {
+                minValue = 0;
             }
 
             sdr[gid].maxVal1 = leftPeakIndex;
@@ -187,6 +216,9 @@ void main()
 
             if (leftPeakIndex != -1 && rightPeakIndex != -1 && minValueIndex != -1) {
                 if (offsets[x]==0 && offsets[y]==0) {
+                    if (airSampleFound == 1) {
+                        airFound = 1;
+                    }
                     sdrSum += minValue/((sdr[gid].huSamples[leftPeakIndex])); // + sdr[gid].huSamples[rightPeakIndex])/2.0); // old insightec method
 
 // this is the thickness measured along element->focus line, not sure that is what we want
@@ -195,17 +227,37 @@ void main()
 
                 if (sdr[gid].huSamples[leftPeakIndex] != 0.0) {
                     sdrDivisor += 1.0;
-                    sdr2Sum += minValue/sdr[gid].huSamples[leftPeakIndex]; // new insightec method, just outer maximum used
+                    sdr2Sum += minValue/sdr[gid].huSamples[leftPeakIndex]; // new insightec method, just outer skull surface maximum used
                 }
             }
 
         } // y for loop
     } // x for loop
 
+    if (airFound == 1) {
+        d[gid].dist = -1;
+        uint index1 = gid*20*3;
+        for (int i=0; i<20; i++) {
+            uint startIndex = i*3 + index1;
 
-    d[gid].sdr = (sdrSum == 0.0 ? -1 : sdrSum);
+            outDiscTris[startIndex].col.xyz = vec3(1, 0, 0);
+            outDiscTris[startIndex].col.a = 1.0;
 
-    if (sdrDivisor == 0.0) {
+            outDiscTris[startIndex+1].col.xyz = vec3(1, 0, 0);
+            outDiscTris[startIndex+1].col.a = 1.0;
+
+            outDiscTris[startIndex+2].col.xyz = vec3(1, 0, 0);
+            outDiscTris[startIndex+2].col.a = 1.0;
+        }
+
+        for (int i=0; i<6; i++) {
+            c[gid].color[i] = vec4(1,0,0,1);
+        }
+    }
+
+    d[gid].sdr = ((sdrSum == 0.0 || airFound == 1) ? -1 : sdrSum);
+
+    if (sdrDivisor == 0.0 || airFound == 1) {
         d[gid].sdr2 = -1;
     }
     else {

@@ -133,12 +133,15 @@ public class XYChartControl extends GUIControl {
     public void addSeries(String title, double[] xData, double[] yData, Vector4f color) {
         addSeries(title, xData, yData, color, true);
     }
-            
     public void addSeries(String title, double[] xData, double[] yData, Vector4f color, boolean showMarkers) {
+        addSeries(title, xData, yData, color, showMarkers, true);
+    }
+    
+    public void addSeries(String title, double[] xData, double[] yData, Vector4f color, boolean showMarkers, boolean showLegend) {
         XYSeries series = chart.addSeries(title, xData, yData);
         series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Line);
         series.setMarker( showMarkers ? SeriesMarkers.CIRCLE : SeriesMarkers.NONE );
-        series.setShowInLegend(true);
+        series.setShowInLegend(showLegend);
         series.setLineColor(new java.awt.Color(color.x, color.y, color.z, color.w));
         series.setMarkerColor(new java.awt.Color(color.x, color.y, color.z, color.w));
     }

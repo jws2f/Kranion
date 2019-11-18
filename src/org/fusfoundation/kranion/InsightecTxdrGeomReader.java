@@ -121,10 +121,11 @@ public class InsightecTxdrGeomReader {
             tmp.x = channelPosArea[channelNumber].x;
             tmp.y = channelPosArea[channelNumber].y;
             tmp.z = channelPosArea[channelNumber].z;
-            if (tmp.length() > 151.0f) {
+            if (tmp.length() >= 155.0f) {
 //                System.out.println(channelNumber + " - " + tmp);
 //                System.out.println(tmp.length());
                 channelActive[channelNumber] = false; // Set to true to see rays for hidden elements
+                System.out.println("*** Inactive Channel found: " + channelNumber);
             }
             else {
                 channelActive[channelNumber] = true;

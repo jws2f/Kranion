@@ -141,6 +141,14 @@ public class Sphere extends Renderable {
                 refCount++;
         }
         
+        public void setRadius(float r) {
+            radius = r;
+        }
+        
+        public float getRadius() {
+            return radius;
+        }
+        
         public Sphere setColor(float red, float green, float blue) {
             setColor(red, green, blue, 1f);
             

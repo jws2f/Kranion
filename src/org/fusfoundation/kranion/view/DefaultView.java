@@ -136,6 +136,7 @@ import org.fusfoundation.kranion.model.AttributeListXStreamConverter;
 import org.fusfoundation.kranion.model.ModelXStreamConverter;
 import org.fusfoundation.kranion.model.SonicationXStreamConverter;
 import org.fusfoundation.kranion.model.image.io.DicomImageLoader;
+import org.knowm.xchart.XYSeries;
 
 
 
@@ -220,7 +221,7 @@ public class DefaultView extends View {
     private DirtyFollower transFuncDisplayProxy = new DirtyFollower(transFuncDisplay);
     private ImageHistogram ctHistogram = new ImageHistogram();
     
-    private XYChartControl thermometryChart;
+    private XYChartControl thermometryChart, pcdSpectrumChart;
     private HistogramChartControl incidentAngleChart, sdrChart;
     
     private XYChartControl skullProfileChart;
@@ -343,10 +344,10 @@ public class DefaultView extends View {
         
         
         
-        flyout1.setBounds(0, 350, 400, 600);
+        flyout1.setBounds(0, 50, 400, 750);
         flyout1.setFlyDirection(FlyoutPanel.direction.EAST);
 
-        TextBox textbox = (TextBox)new TextBox(225, 400, 100, 25, "", controller).setTitle("Acoustic Power").setCommand("sonicationPower");
+        TextBox textbox = (TextBox)new TextBox(225, 550, 100, 25, "", controller).setTitle("Acoustic Power").setCommand("sonicationPower");
         textbox.setUnitText("W");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTag("tbSonicationAcousticPower");
@@ -355,23 +356,23 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 505, 265, 25, "", controller).setTitle("Description").setCommand("sonicationDescription");
+        textbox = (TextBox)new TextBox(100, 655, 265, 25, "", controller).setTitle("Description").setCommand("sonicationDescription");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
         textbox.setTag("tbSonicationDescription");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 475, 150, 25, "", controller).setTitle("Timestamp").setCommand("sonicationTimestamp");
+        textbox = (TextBox)new TextBox(100, 625, 150, 25, "", controller).setTitle("Timestamp").setCommand("sonicationTimestamp");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
         textbox.setTag("tbSonicationTimestamp");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 275, 475, 50, 25, this).setDrawBackground(false).setTitle("Visible").setPropertyPrefix("Model.Attribute").setCommand("targetVisible"));
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 275, 625, 50, 25, this).setDrawBackground(false).setTitle("Visible").setPropertyPrefix("Model.Attribute").setCommand("targetVisible"));
         
-        textbox = (TextBox)new TextBox(225, 370, 100, 25, "", controller).setTitle("Duration").setCommand("sonicationDuration");
+        textbox = (TextBox)new TextBox(225, 520, 100, 25, "", controller).setTitle("Duration").setCommand("sonicationDuration");
         textbox.setUnitText("s");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
@@ -380,7 +381,7 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(225, 340, 100, 25, "", controller).setTitle("Frequency").setCommand("sonicationFrequency");
+        textbox = (TextBox)new TextBox(225, 490, 100, 25, "", controller).setTitle("Frequency").setCommand("sonicationFrequency");
         textbox.setUnitText("kHz");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTag("tbSonicationFrequency");
@@ -389,7 +390,7 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(10, 340, 100, 25, "ABORTED", controller);
+        textbox = (TextBox)new TextBox(10, 490, 100, 25, "ABORTED", controller);
         textbox.setTag("tbSonicationAborted");
         textbox.setColor(0.3f, 0.15f, 0.15f, 1f);
         textbox.setTextColor(1f, 0.1f, 0.1f, 1f);
@@ -397,48 +398,57 @@ public class DefaultView extends View {
         textbox.setVisible(false);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 300, 70, 25, "", controller).setTitle("Max Temp").setCommand("sonicationMaxTemp");
+        textbox = (TextBox)new TextBox(100, 450, 70, 25, "", controller).setTitle("Max Temp").setCommand("sonicationMaxTemp");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTag("tbSonicationMaxTemp");
         textbox.setTextEditable(false);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(260, 300, 125, 25, "", controller).setTitle("Max Dose").setCommand("sonicationMaxDose");
+        textbox = (TextBox)new TextBox(260, 450, 125, 25, "", controller).setTitle("Max Dose").setCommand("sonicationMaxDose");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTag("tbSonicationMaxDose");
         textbox.setTextEditable(false);
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 445, 60, 25, "", controller).setTitle("R").setCommand("sonicationRLoc");
+        textbox = (TextBox)new TextBox(100, 595, 60, 25, "", controller).setTitle("R").setCommand("sonicationRLoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(200, 445, 60, 25, "", controller).setTitle("A").setCommand("sonicationALoc");
+        textbox = (TextBox)new TextBox(200, 595, 60, 25, "", controller).setTitle("A").setCommand("sonicationALoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(300, 445, 60, 25, "", controller).setTitle("S").setCommand("sonicationSLoc");
+        textbox = (TextBox)new TextBox(300, 595, 60, 25, "", controller).setTitle("S").setCommand("sonicationSLoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        thermometryChart = new XYChartControl(10, 100, 380, 200);
+        thermometryChart = new XYChartControl(10, 240, 380, 200);
         thermometryChart.setCommand("currentOverlayFrame");
         thermometryChart.addActionListener(this);
         flyout1.addChild(thermometryChart);
         
-        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 70, 180, 25, this).setTitle("Show Thermometry").setPropertyPrefix("Model.Attribute").setCommand("showThermometry"));
+        pcdSpectrumChart = new XYChartControl(10, 100, 380, 150);
+        pcdSpectrumChart.newChart("Frequency (kHz)", "PCD Signal");
+        pcdSpectrumChart.generateChart();
+        flyout1.addChild(pcdSpectrumChart);
+        
+        Button showThermometryButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 70, 180, 25, this);
+        showThermometryButton.setTitle("Show Thermometry").setPropertyPrefix("Model.Attribute").setCommand("showThermometry");
+        model.addObserver(showThermometryButton);
+        flyout1.addChild(showThermometryButton);
+        
         flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 215, 40, 165, 25, this).setDrawBackground(false).setTitle("as Dose").setPropertyPrefix("Model.Attribute").setCommand("showDose"));
         flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 10, 180, 25, controller).setTitle("Show Targets").setPropertyPrefix("Model.Attribute").setCommand("showTargets"));
         
         flyout1.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 100, 25, this).setTitle("Update").setCommand("updateSonication"));
         flyout1.addChild(new Button(Button.ButtonType.BUTTON,10, 50, 100, 25, this).setTitle("Add").setCommand("addSonication"));
         
-        flyout1.addChild(sonicationSelector = (PullDownSelection)new PullDownSelection(10, 550, 380, 25, controller).setTitle("Sonication").setCommand("currentSonication"));
+        flyout1.addChild(sonicationSelector = (PullDownSelection)new PullDownSelection(10, 700, 380, 25, controller).setTitle("Sonication").setCommand("currentSonication"));
         sonicationSelector.setPropertyPrefix("Model.Attribute");
         model.addObserver(sonicationSelector);
         
@@ -1139,7 +1149,7 @@ public class DefaultView extends View {
         scene.addChild(transition); // must be last to work properly
         
         
-        this.transition.doFadeFromBlack(2f);
+        this.transition.doFadeFromBlack(1f);
         
         // TODO: is the best place to update the model transducer?
         model.setTransducer(transducerModel);
@@ -1500,6 +1510,9 @@ public class DefaultView extends View {
         
         thermometryChart.newChart();
         thermometryChart.generateChart();
+        
+        pcdSpectrumChart.newChart("Frequency (kHz)", "PCD Signal");
+        pcdSpectrumChart.generateChart();
     }
     
     private void loadScene() { // TODO: FIX THIS AFTER TESTING        
@@ -1879,14 +1892,20 @@ public class DefaultView extends View {
             Boolean bShow = (Boolean)model.getAttribute("showThermometry");
             Boolean bShowDose = (Boolean)model.getAttribute("showDose");
             
-            if (bShow == null) bShow = new Boolean(false);
-            if (bShowDose == null) bShowDose = new Boolean(false);
+            if (bShow == null) {
+                bShow = new Boolean(false);
+                model.setAttribute("showThermometry", bShow);
+            }
+            if (bShowDose == null) {
+                bShowDose = new Boolean(false);
+                model.setAttribute("showDose", bShow);
+            }
             
             canvas.setShowThermometry(bShow, bShowDose);
                         
-            if (old != bShow || oldShowDose != bShowDose) {
-                this.setDoTransition(true);
-            }
+//            if (old != bShow || oldShowDose != bShowDose) {
+//                this.setDoTransition(true);
+//            }
         }
         catch(NullPointerException e) {
             model.setAttribute("showThermometry", false);
@@ -2740,7 +2759,7 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationALoc", String.format("%4.1f", -t.y));
                         model.setAttribute("sonicationSLoc", String.format("%4.1f", t.z));
                         
-                        updateThermometryDisplay(sonicationIndex, true);
+                        updateThermometryDisplay(sonicationIndex, 0, true);
                         updateTransducerModel(sonicationIndex);
                         setDoTransition(true);
                     }
@@ -2773,21 +2792,27 @@ public class DefaultView extends View {
                     Renderable.lookupByTag("targetRenderer").setVisible(bShow);
                     this.setDoTransition(true);
                     break;
+                case "showThermometry":
+                    boolean bDoShowThermometry = (Boolean)event.getNewValue();
+                    if (bDoShowThermometry) {
+                        model.setAttribute("showPressure", false);
+                    }
+                    break;
                 case "showPressure":
                     boolean bDoPressure = (Boolean)event.getNewValue();
                     if (bDoPressure) {
                         transRayTracer.setShowEnvelope(false); // TODO: this is probably overtaken by events now. remove?
-                        canvas.setShowPressure(true);
                         canvas.setShowThermometry(false);
+                        canvas.setShowPressure(true);
                         model.setAttribute("showThermometry", false);
                         updateTargetAndSteering();
-                        setDoTransition(true);
+//                        setDoTransition(true);
                     }
                     else {
                         transRayTracer.setShowEnvelope(false);
                         canvas.setShowPressure(false);
                         canvas.setShowThermometry(false);
-                        setDoTransition(true);
+//                        setDoTransition(true);
                     }
                     break;
                 case "showPressureEnvelope":
@@ -2795,7 +2820,7 @@ public class DefaultView extends View {
                     transRayTracer.setShowPressureEnvelope(bDoPressureEnvelope);
                     canvas.setIsDirty(true);
                     updateTargetAndSteering();
-                    setDoTransition(true);
+//                    setDoTransition(true);
                     break;
                 case "MRthresh": // TODO: find a more systematic way for panels to rise to top so mouse grab works consistently
                 case "MRwindow":
@@ -2989,7 +3014,67 @@ public class DefaultView extends View {
         
     }
     
-    private void updateThermometryDisplay(int sonicationIndex, boolean setToMax) {
+    private void updateSpectrumDisplay(int sonicationIndex, float time) {
+        Sonication sonication = model.getSonication(sonicationIndex);
+        if (sonication != null) {
+            ImageVolume4D specData = (ImageVolume4D)sonication.getAttribute("pcdSpectrumData");
+            if (specData != null) {
+                double xvalues[] = new double[specData.getDimension(0).getSize()];
+                double yvalues[] = new double[specData.getDimension(0).getSize()];
+                float xoff = (float)specData.getAttribute("minXValue");
+                float xres = specData.getDimension(0).getSampleSpacing();
+                float minValue = (float)specData.getAttribute("minScaleValue");
+                float maxValue = (float)specData.getAttribute("maxScaleValue") * 4f;
+                
+                float data[] = (float[])specData.getData();
+                for (int t=0; t<specData.getDimension(3).getSize(); t++) {
+                    float sampleTime = specData.getDimension(3).getSamplePosition(t);
+                    if (sampleTime>=time) {
+                        for (int i=0; i<specData.getDimension(0).getSize(); i++) {
+                            xvalues[i] = (xoff + xres*i)/1000.0;
+                            yvalues[i] = data[t*specData.getDimension(0).getSize()+i];
+                        }
+                        pcdSpectrumChart.newChart("Frequency (kHz)", "PCD Signal");
+                        pcdSpectrumChart.addSeries("PCD", xvalues, yvalues, new Vector4f(0.2f, 0.2f, 0.8f, 0.85f), false, false);
+                        pcdSpectrumChart.getChart().getStyler().setLegendVisible(false);
+                        pcdSpectrumChart.getChart().getStyler().setXAxisDecimalPattern("####");
+                        pcdSpectrumChart.getChart().getStyler().setXAxisTickMarkSpacingHint(50);
+                        pcdSpectrumChart.getChart().getStyler().setYAxisMin((double)minValue);
+                        pcdSpectrumChart.getChart().getStyler().setYAxisMax((double)maxValue);
+                        Iterator<String> iter = pcdSpectrumChart.getChart().getSeriesMap().keySet().iterator();
+                        while(iter.hasNext()) {
+                            String key = iter.next();
+                            XYSeries series = pcdSpectrumChart.getChart().getSeriesMap().get(key);
+                            series.setXYSeriesRenderStyle(XYSeries.XYSeriesRenderStyle.Area);
+                        }
+                        pcdSpectrumChart.generateChart();
+                        
+                        return;
+                    }
+                }
+                
+                // if fall through to here we are out of range. graph zeros
+                for (int i=0; i<specData.getDimension(0).getSize(); i++) {
+                    xvalues[i] = (xoff + xres*i)/1000.0;
+                    yvalues[i] = 0;
+                }
+                pcdSpectrumChart.newChart("Frequency (kHz)", "PCD Signal");
+                pcdSpectrumChart.addSeries("PCD", xvalues, yvalues, new Vector4f(0.2f, 0.2f, 0.8f, 0.85f), false, false);
+                pcdSpectrumChart.getChart().getStyler().setLegendVisible(false);
+                pcdSpectrumChart.getChart().getStyler().setXAxisDecimalPattern("####");
+                pcdSpectrumChart.getChart().getStyler().setXAxisTickMarkSpacingHint(50);
+                pcdSpectrumChart.getChart().getStyler().setYAxisMin((double)minValue);
+                pcdSpectrumChart.getChart().getStyler().setYAxisMax((double)maxValue);
+                pcdSpectrumChart.generateChart();
+            }
+        }
+        else {
+            pcdSpectrumChart.newChart("Frequency (kHz)", "PCD Signal");
+            pcdSpectrumChart.generateChart();
+        }
+    }
+    
+    private void updateThermometryDisplay(int sonicationIndex, float selectedTime, boolean setToMax) {
         System.out.println("DefaultView::updateThermometryDisplay");
         Sonication sonication = model.getSonication(sonicationIndex);
         ImageVolume thermometry = null;
@@ -3053,6 +3138,8 @@ public class DefaultView extends View {
             model.getSonication(sonicationIndex).setAttribute("maxFrame", maxTimePoint);
             if (setToMax) {
                 model.getSonication(sonicationIndex).setAttribute("currentFrame", maxTimePoint);
+                
+                updateSpectrumDisplay(sonicationIndex, maxTimePoint*phaseTime);
             }
             
             Renderable abortText = Renderable.lookupByTag("tbSonicationAborted");
@@ -3066,13 +3153,22 @@ public class DefaultView extends View {
             thermometryChart.newChart();
             thermometryChart.addSeries("Max", times, maxVals, new Vector4f(0.8f, 0.2f, 0.2f, 1f));
             thermometryChart.addSeries("Avg", times, avgVals, new Vector4f(0.2f, 0.8f, 0.2f, 1f));
+            
+            double interpolateYval = interpolateTempCurve(selectedTime, times, maxVals);
+            
+            double[] selectedYval = new double[1];
+            selectedYval[0] = setToMax ? maxVals[maxTimePoint] : interpolateYval;
+            double[] selectedXval = new double[1];
+            selectedXval[0] = setToMax ? maxTimePoint * phaseTime : selectedTime;
+            thermometryChart.addSeries("Selected", selectedXval, selectedYval, new Vector4f(0.8f, 0.8f, 0.2f, 1f), true, false);
+            
             thermometryChart.generateChart();
             
             Vector2f maxT = findMaxTemperature(sonicationIndex);
             System.out.println("Max temperature found = " + maxT.x);
             model.setAttribute("sonicationMaxTemp", String.format("%4.1f C", maxT.x));
             model.setAttribute("sonicationMaxDose", String.format("%4.2f kCEM", maxT.y/1000f));
-
+            
             showThermometry(sonicationIndex);
         }
         else {
@@ -3080,6 +3176,19 @@ public class DefaultView extends View {
             thermometryChart.generateChart();
             showThermometry(-1);
         }
+    }
+    
+    double interpolateTempCurve(float selectedTime, double times[], double vals[]) {
+        
+        for (int x=0; x<times.length-1; x++) {
+            if (selectedTime >= times[x] && selectedTime < times[x+1]) {
+                double deltax = times[x+1] - times[x];
+                double deltay = vals[x+1] - vals[x];
+                double ratio = (selectedTime - times[x])/deltax;
+                return deltay * ratio + vals[x];
+            }
+        }
+        return vals[vals.length-1];
     }
     
     // returns max temp in X and max dose in Y
@@ -4115,7 +4224,11 @@ public class DefaultView extends View {
                 try {
                     nFrames = model.getSonication(sonicationIndex).getThermometryPhase().getDimension(3).getSize();
                     model.getSonication(sonicationIndex).setAttribute("currentFrame", (int) (this.thermometryChart.getSelectedXValue() * (nFrames - 1)));
-                    updateThermometryDisplay(sonicationIndex, false);
+                    XYSeries series = thermometryChart.getChart().getSeriesMap().get("Max");
+                    Object timepoints[] = series.getXData().toArray();
+                    float selectedTime = ((Double)timepoints[timepoints.length-1]).floatValue() * thermometryChart.getSelectedXValue();
+                    updateThermometryDisplay(sonicationIndex, selectedTime, false);
+                    updateSpectrumDisplay(sonicationIndex, selectedTime);
                 } catch (Exception ex) {
                 }
                 break;
@@ -4348,7 +4461,7 @@ public class DefaultView extends View {
             case "calcEnvelope":
                 calcTreatmentEnvelope();
                 break;
-            case "showThermometry":
+            case "showThermometry":                
             case "showDose":
                 //TODO: need to decide if model binding should always be done before event handling
                 // we need this here to make sure the model is updated before the following code runs
@@ -4359,9 +4472,13 @@ public class DefaultView extends View {
                 if (sonicationIndex == null) {
                     sonicationIndex = 0;
                 }
-                updateThermometryDisplay(sonicationIndex, false);
+                updateThermometryDisplay(sonicationIndex, 0, true);
                 doTransition = true;
 
+                break;
+            case "showPressure":
+            case "showPressureEnvelope": // just to trigger the fade transition when buttons are pushed. actual processing is triggered by model value update event
+                doTransition = true;
                 break;
             case "loadDicom":
 //            JFileChooser fileChooser = new JFileChooser();
