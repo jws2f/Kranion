@@ -99,6 +99,8 @@ public class Model extends Observable implements Serializable, Observer {
         sonications.clear();
         
         selectedSonication = -1;
+        
+        updateAllAttributes();
     }
     
     // When loading a model from disk we need to alert all observers of all new attribute values

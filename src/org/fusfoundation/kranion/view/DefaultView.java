@@ -344,7 +344,7 @@ public class DefaultView extends View {
         
         
         
-        flyout1.setBounds(0, 50, 400, 750);
+        flyout1.setBounds(0, 100, 400, 800);
         flyout1.setFlyDirection(FlyoutPanel.direction.EAST);
 
         TextBox textbox = (TextBox)new TextBox(225, 550, 100, 25, "", controller).setTitle("Acoustic Power").setCommand("sonicationPower");
@@ -356,21 +356,28 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 655, 265, 25, "", controller).setTitle("Description").setCommand("sonicationDescription");
+        textbox = (TextBox)new TextBox(100, 705, 265, 25, "", controller).setTitle("Description").setCommand("sonicationDescription");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
         textbox.setTag("tbSonicationDescription");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 625, 150, 25, "", controller).setTitle("Timestamp").setCommand("sonicationTimestamp");
+        textbox = (TextBox)new TextBox(15, 595, 370, 25, "", controller).setTitle("").setCommand("sonicationMessage");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        textbox.setTextEditable(false);
+        textbox.setTag("tbSonicationMessage");
+        model.addObserver(textbox);
+        flyout1.addChild(textbox);
+        
+        textbox = (TextBox)new TextBox(100, 675, 150, 25, "", controller).setTitle("Timestamp").setCommand("sonicationTimestamp");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         textbox.setTextEditable(true);
         textbox.setTag("tbSonicationTimestamp");
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 275, 625, 50, 25, this).setDrawBackground(false).setTitle("Visible").setPropertyPrefix("Model.Attribute").setCommand("targetVisible"));
+        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 275, 675, 50, 25, this).setDrawBackground(false).setTitle("Visible").setPropertyPrefix("Model.Attribute").setCommand("targetVisible"));
         
         textbox = (TextBox)new TextBox(225, 520, 100, 25, "", controller).setTitle("Duration").setCommand("sonicationDuration");
         textbox.setUnitText("s");
@@ -412,17 +419,17 @@ public class DefaultView extends View {
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(100, 595, 60, 25, "", controller).setTitle("R").setCommand("sonicationRLoc");
+        textbox = (TextBox)new TextBox(100, 645, 60, 25, "", controller).setTitle("R").setCommand("sonicationRLoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(200, 595, 60, 25, "", controller).setTitle("A").setCommand("sonicationALoc");
+        textbox = (TextBox)new TextBox(200, 645, 60, 25, "", controller).setTitle("A").setCommand("sonicationALoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
         
-        textbox = (TextBox)new TextBox(300, 595, 60, 25, "", controller).setTitle("S").setCommand("sonicationSLoc");
+        textbox = (TextBox)new TextBox(300, 645, 60, 25, "", controller).setTitle("S").setCommand("sonicationSLoc");
         textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(textbox);
         flyout1.addChild(textbox);
@@ -442,13 +449,17 @@ public class DefaultView extends View {
         model.addObserver(showThermometryButton);
         flyout1.addChild(showThermometryButton);
         
-        flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 215, 40, 165, 25, this).setDrawBackground(false).setTitle("as Dose").setPropertyPrefix("Model.Attribute").setCommand("showDose"));
+        Button showDoseButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 215, 40, 165, 25, this);
+        showDoseButton.setDrawBackground(false).setTitle("as Dose").setPropertyPrefix("Model.Attribute").setCommand("showDose");
+        model.addObserver(showDoseButton);
+        flyout1.addChild(showDoseButton);
+        
         flyout1.addChild(new Button(Button.ButtonType.TOGGLE_BUTTON, 200, 10, 180, 25, controller).setTitle("Show Targets").setPropertyPrefix("Model.Attribute").setCommand("showTargets"));
         
         flyout1.addChild(new Button(Button.ButtonType.BUTTON, 10, 10, 100, 25, this).setTitle("Update").setCommand("updateSonication"));
         flyout1.addChild(new Button(Button.ButtonType.BUTTON,10, 50, 100, 25, this).setTitle("Add").setCommand("addSonication"));
         
-        flyout1.addChild(sonicationSelector = (PullDownSelection)new PullDownSelection(10, 700, 380, 25, controller).setTitle("Sonication").setCommand("currentSonication"));
+        flyout1.addChild(sonicationSelector = (PullDownSelection)new PullDownSelection(10, 750, 380, 25, controller).setTitle("Sonication").setCommand("currentSonication"));
         sonicationSelector.setPropertyPrefix("Model.Attribute");
         model.addObserver(sonicationSelector);
         
@@ -2754,6 +2765,12 @@ public class DefaultView extends View {
                         }
                         model.setAttribute("sonicationDescription", String.format("%s", desc));
                         
+                        String msg = (String)model.getSonication(sonicationIndex).getAttribute("Message");
+                        if (msg == null) {
+                            msg = "";
+                        }
+                        model.setAttribute("sonicationMessage", String.format("%s", msg));
+                        
                         Vector3f t = Vector3f.add(model.getSonication(sonicationIndex).getFocusSteering(), model.getSonication(sonicationIndex).getNaturalFocusLocation(), null);
                         model.setAttribute("sonicationRLoc", String.format("%4.1f", -t.x));
                         model.setAttribute("sonicationALoc", String.format("%4.1f", -t.y));
@@ -2765,6 +2782,7 @@ public class DefaultView extends View {
                     }
                     else {
                         model.setAttribute("sonicationDescription", "");
+                        model.setAttribute("sonicationMessage", "");
                         model.setAttribute("sonicationRLoc", String.format("%4.1f", 0f));
                         model.setAttribute("sonicationALoc", String.format("%4.1f", 0f));
                         model.setAttribute("sonicationSLoc", String.format("%4.1f", 0f));
@@ -3024,7 +3042,7 @@ public class DefaultView extends View {
                 float xoff = (float)specData.getAttribute("minXValue");
                 float xres = specData.getDimension(0).getSampleSpacing();
                 float minValue = (float)specData.getAttribute("minScaleValue");
-                float maxValue = (float)specData.getAttribute("maxScaleValue") * 4f;
+                float maxValue = (float)specData.getAttribute("maxScaleValue");
                 
                 float data[] = (float[])specData.getData();
                 for (int t=0; t<specData.getDimension(3).getSize(); t++) {
@@ -4227,6 +4245,7 @@ public class DefaultView extends View {
                     XYSeries series = thermometryChart.getChart().getSeriesMap().get("Max");
                     Object timepoints[] = series.getXData().toArray();
                     float selectedTime = ((Double)timepoints[timepoints.length-1]).floatValue() * thermometryChart.getSelectedXValue();
+                    model.getSonication(sonicationIndex).setAttribute("currentSelectedPhaseTime", selectedTime);
                     updateThermometryDisplay(sonicationIndex, selectedTime, false);
                     updateSpectrumDisplay(sonicationIndex, selectedTime);
                 } catch (Exception ex) {
@@ -4472,8 +4491,19 @@ public class DefaultView extends View {
                 if (sonicationIndex == null) {
                     sonicationIndex = 0;
                 }
-                updateThermometryDisplay(sonicationIndex, 0, true);
-                doTransition = true;
+                
+                Sonication selectedSonication = model.getSonication(sonicationIndex);
+                if (selectedSonication != null) {
+                    // If a sonication phase time has been selected, use it. Otherwise go to max value time.
+                    Float selectedTime = (Float) selectedSonication.getAttribute("currentSelectedPhaseTime");
+                    if (selectedTime != null) {
+                        updateThermometryDisplay(sonicationIndex, selectedTime, false);
+                    } else {
+                        updateThermometryDisplay(sonicationIndex, 0, true);
+                    }
+
+                    doTransition = true;
+                }
 
                 break;
             case "showPressure":
