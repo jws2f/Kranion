@@ -291,11 +291,12 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public void setAttribute(String name, Object value, boolean isTransient) {
+        Object oldValue = attributes.get(name);
         attributes.put(name, value, isTransient);
         
             //notify
         setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+name+"]", null, value));
+        notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+name+"]", oldValue, value));
     }
     
     public boolean getIsAttributeTransient(String name) {

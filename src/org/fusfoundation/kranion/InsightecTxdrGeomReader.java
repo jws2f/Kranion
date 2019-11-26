@@ -54,6 +54,17 @@ public class InsightecTxdrGeomReader {
 
     }
     
+    public InsightecTxdrGeomReader(InputStream is) throws IOException {
+        channelPosArea = null;
+        channelActive = null;
+//        name = new String(file.getName());
+
+        BufferedReader in = new BufferedReader(new InputStreamReader(is));
+        //System.out.println(in.readLine());
+
+        parseFile(in);
+    }
+    
     public InsightecTxdrGeomReader(File file) throws IOException {
         channelPosArea = null;
         channelActive = null;

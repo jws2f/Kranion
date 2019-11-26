@@ -209,7 +209,7 @@ public class CrossHair extends Renderable
             glColor4f(.12f, 0.52f, .52f, 0.95f);
             glLineWidth(1.5f);
 	    
-            drawLineArray(solidCircleVertsID, 0, 200);
+            drawLineArray(solidCircleVertsID, 0, 100);
         }
         else {
             glColor4f(.12f, 0.72f, .12f, 0.9f);

@@ -82,6 +82,14 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
         }
     }
     
+    public int getWidth() {
+        return frameBuffer.getWidth();
+    }
+    
+    public int getHeight() {
+        return frameBuffer.getHeight();
+    }
+    
     public void setIs2d(boolean is2D) {
         this.is2D = is2D;
     }
@@ -117,7 +125,12 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
                 
                 
 //            System.out.println(this);
-            frameBufferMSAA.bind();
+            if (oversample>1) {
+                frameBufferMSAA.bind();
+            }
+            else {
+                frameBuffer.bind();
+            }
             
             
             glClearColor(clearColor.x, clearColor.y, clearColor.z, clearColor.w);
@@ -129,8 +142,13 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
         
             renderChildren();
 
-            frameBufferMSAA.unbind();
-            frameBufferMSAA.render_MSAA(frameBuffer);
+            if (oversample>1) {
+                frameBufferMSAA.unbind();
+                frameBufferMSAA.render_MSAA(frameBuffer);
+            }
+            else {
+                frameBuffer.unbind();
+            }
 
             setIsDirty(false);
             

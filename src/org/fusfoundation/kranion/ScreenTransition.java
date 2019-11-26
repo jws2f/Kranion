@@ -52,6 +52,8 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     }
     
     public void doTransition() {
+        if (!isVisible) return;
+        
         animator.set(0f, 1f, duration);
         doOneLastFrame=true;
         
@@ -66,6 +68,8 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     }
     
     public void doFadeFromBlack(float duration) {
+        if (!isVisible) return;
+        
         animator.set(0f, 1f, duration);
         doOneLastFrame=true;
         
@@ -83,7 +87,7 @@ public class ScreenTransition extends Renderable implements Animator, Resizeable
     
     @Override
     public void render() {
-        if (animator.isAnimationDone() && doOneLastFrame==false) {
+        if (!isVisible && animator.isAnimationDone() && doOneLastFrame==false) {
             isBlending = isFading = false;
             return;
         }

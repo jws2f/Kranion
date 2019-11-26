@@ -232,9 +232,9 @@ public class DefaultView extends View {
 //    private Framebuffer mainLayer = new Framebuffer();
     
     private RenderLayer background = new RenderLayer(1);
-    private RenderLayer mainLayer = new RenderLayer(8);
-    private RenderLayer overlay = new RenderLayer(8);
-    private RenderLayer statusOverlay = new RenderLayer(8);
+    private RenderLayer mainLayer = new RenderLayer(4);
+    private RenderLayer overlay = new RenderLayer(4);
+    private RenderLayer statusOverlay = new RenderLayer(4);
     
     private Framebuffer pickLayer = new Framebuffer();
     
@@ -864,6 +864,23 @@ public class DefaultView extends View {
         model.addObserver(mrSeriesSelector);
         flyout3.addChild("MR", mrSeriesSelector);
         
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 50, 220, 240, 25, this);
+        button.setTitle("Full screen antialiazing");
+        button.setCommand("prefDoFullScreenAntialiasing");
+        button.setIndicator(this.prefs.getBoolean(button.getCommand(), true));
+        button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(button);
+        flyout2.addChild("Preferences", button);
+        
+        button = new Button(Button.ButtonType.TOGGLE_BUTTON, 50, 190, 240, 25, this);
+        button.setTitle("Do transition effects");
+        button.setCommand("prefDoTransitionEffects");
+        button.setIndicator(this.prefs.getBoolean(button.getCommand(), true));
+        button.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(button);
+        flyout2.addChild("Preferences", button);
+        
+        flyout2.addChild("Preferences", button);
         button = new Button(Button.ButtonType.TOGGLE_BUTTON, 50, 160, 240, 25, this);
         button.setTitle("CT Filter GPU Acceleration");
         button.setCommand("CTFilterGpuAcceleration");
@@ -1159,8 +1176,14 @@ public class DefaultView extends View {
         
         scene.addChild(transition); // must be last to work properly
         
-        
+        transition.setVisible(prefs.getBoolean("prefDoTransitionEffects", true));
         this.transition.doFadeFromBlack(1f);
+        
+        if (!prefs.getBoolean("prefDoFullScreenAntialiasing", true)) {
+            this.overlay.setSize(overlay.getWidth(), overlay.getHeight(), 1);
+            this.mainLayer.setSize(mainLayer.getWidth(), mainLayer.getHeight(), 1);
+            this.statusOverlay.setSize(statusOverlay.getWidth(), statusOverlay.getHeight(), 1);
+        }
         
         // TODO: is the best place to update the model transducer?
         model.setTransducer(transducerModel);
@@ -1551,18 +1574,35 @@ public class DefaultView extends View {
             
             Main.setTitle(selectedFile.getName());
 
+            // defensive release of texture resources and names
+            // means texutres have to be built, but doesn't take long
+            // and prevents weird texture problems that intermittently
+            // happen upon model load
+                        
+            transRayTracer.release();
+            
+//            canvas.setOverlayImage(null);
+//            canvas1.setOverlayImage(null);
+//            canvas2.setOverlayImage(null);
+//            canvas3.setOverlayImage(null);
+            
+            setDisplayCTimage(null);
+            setDisplayMRimage(null);
+            
+                        
+//            
+//            canvas.release();
+//            canvas1.release();
+//            canvas2.release();
+//            canvas3.release();
+                        
+//            ImageVolumeUtil.releaseTextures(model.getCtImage());
             
             // re-plumb everything for the new model...
             
             Main.setModel(newModel); // should update M,V,C
             
-            // defensive release of texture resources and names
-            // means texutres have to be built, but doesn't take long
-            // and prevents weird texture problems that intermittently
-            // happen upon model load
-            canvas.release();
-                        
-            ImageVolumeUtil.releaseTextures(model.getCtImage());
+
             
             // make sure any texture name attributes that exist are removed
             // this is a holdover from before we had transient attributes
@@ -2817,20 +2857,22 @@ public class DefaultView extends View {
                     }
                     break;
                 case "showPressure":
-                    boolean bDoPressure = (Boolean)event.getNewValue();
+                    Boolean bDoPressure = (Boolean)event.getNewValue();
+                    Boolean bOldValue = (Boolean)event.getOldValue();
                     if (bDoPressure) {
                         transRayTracer.setShowEnvelope(false); // TODO: this is probably overtaken by events now. remove?
                         canvas.setShowThermometry(false);
                         canvas.setShowPressure(true);
                         model.setAttribute("showThermometry", false);
                         updateTargetAndSteering();
-//                        setDoTransition(true);
                     }
                     else {
                         transRayTracer.setShowEnvelope(false);
                         canvas.setShowPressure(false);
                         canvas.setShowThermometry(false);
-//                        setDoTransition(true);
+                    }
+                    if (bDoPressure != bOldValue) {
+                        setDoTransition(true);
                     }
                     break;
                 case "showPressureEnvelope":
@@ -4311,6 +4353,7 @@ public class DefaultView extends View {
                 if (messageDialog.open()) {
                     if (this.model != null) {
                         this.model.clear();
+                        this.transRayTracer.clearEnvelopeImage();
                         this.setDisplayCTimage(null);
                         this.setDisplayMRimage(null);
                         model.setSelectedSonication(-1); // TODO: SelectedSonication and currentSonication need to be unified
@@ -4336,8 +4379,32 @@ public class DefaultView extends View {
                     }
                 }
                 break;
-            case "CTFilterGpuAcceleration": // This is a preference, update preference key
+            case "prefDoTransitionEffects": // This is a preference, update preference key
                 boolean checked = true;
+                try {
+                    checked = ((Button) e.getSource()).getIndicator();
+                } catch (Exception ex) {
+                }
+                prefs.putBoolean("prefDoTransitionEffects", checked);
+                this.transition.setVisible(checked);
+                
+                break;
+            case "prefDoFullScreenAntialiasing": // This is a preference, update preference key
+                checked = true;
+                try {
+                    checked = ((Button) e.getSource()).getIndicator();
+                } catch (Exception ex) {
+                }
+                prefs.putBoolean("prefDoFullScreenAntialiasing", checked);
+                
+                int nsamples = checked ? 4 : 1;
+                this.overlay.setSize(overlay.getWidth(), overlay.getHeight(), nsamples);
+                this.mainLayer.setSize(mainLayer.getWidth(), mainLayer.getHeight(), nsamples);
+                this.statusOverlay.setSize(statusOverlay.getWidth(), statusOverlay.getHeight(), nsamples);
+                
+                break;
+            case "CTFilterGpuAcceleration": // This is a preference, update preference key
+                checked = true;
                 try {
                     checked = ((Button) e.getSource()).getIndicator();
                 } catch (Exception ex) {
@@ -4608,7 +4675,9 @@ public class DefaultView extends View {
         Vector3f CofR = new Vector3f(currentTarget.getXpos(), currentTarget.getYpos(), currentTarget.getZpos());
 
         canvas.setShowPressure(false);
+        canvas.setShowThermometry(false);
         model.setAttribute("showPressure", false);
+        model.setAttribute("showThermometry", false);
         canvas.setTextureRotatation(CofR.translate(currentSteering.getXpos(), currentSteering.getYpos(), currentSteering.getZpos()), trackball);
 
         transRayTracer.setTextureRotatation(CofR, trackball);

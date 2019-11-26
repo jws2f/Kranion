@@ -34,6 +34,7 @@ package org.fusfoundation.kranion;
 public class AnimatorUtil implements Animator {
     private long startTime, endTime, currentTime;
     private float Start, End, Current;
+    private int framecount = 1;
     
     public AnimatorUtil() {
         endTime = startTime = currentTime = 0L;
@@ -49,6 +50,7 @@ public class AnimatorUtil implements Animator {
        End = end;
        startTime = currentTime = System.currentTimeMillis();
        endTime = startTime + Math.round(durationSecs*1000d);
+       framecount = 0;
     }
     
     public float getCurrent() { return Current; }
@@ -62,13 +64,14 @@ public class AnimatorUtil implements Animator {
     
     @Override
     public boolean isAnimationDone() {
-        return currentTime >= endTime;
+        return framecount>0 && currentTime >= endTime;
     }
 
     @Override
     public void advanceFrame()
     {
         currentTime = System.currentTimeMillis();
+        framecount++;
         
         float t;
         if (endTime > startTime) {

@@ -415,7 +415,7 @@ public class Transducer extends Clippable {
 //<<<<<<< Upstream, based on origin/master
     }
     
-    public static int addDefaultTransducerDef(String name, String filename) {
+    public static int addDefaultTransducerDef(String name, InputStream is) {
         int indexToReturn = -1;
         if (transducers == null) {
             transducers = new ArrayList<Map.Entry<InsightecTxdrGeomReader, Renderable>>();            
@@ -432,15 +432,15 @@ public class Transducer extends Clippable {
                 transducers.remove(searchResult);
             }
             
-            InsightecTxdrGeomReader txdrGeom = new InsightecTxdrGeomReader(new File(filename));
+            InsightecTxdrGeomReader txdrGeom = new InsightecTxdrGeomReader(is);
             txdrGeom.setName(name);
             transducers.add(new AbstractMap.SimpleImmutableEntry<InsightecTxdrGeomReader, Renderable>(
                     txdrGeom,
                     defaultClinicalTransducer));
         }
         catch(IOException e) {
-            System.out.println("Transducer definision load failed: " + filename);
-            Logger.logMsg(Logger.ERROR, "Transducer definision load failed: " + filename);
+            System.out.println("Transducer definision load failed: " + name);
+            Logger.logMsg(Logger.ERROR, "Transducer definision load failed: " + name);
         }
         
         if (listener != null) {

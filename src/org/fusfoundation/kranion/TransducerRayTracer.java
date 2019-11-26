@@ -185,7 +185,12 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         Float value = (Float) image.getAttribute("RescaleIntercept");
         if (value != null) rescaleIntercept = value;
         value = (Float) image.getAttribute("RescaleSlope");
-        if (value != null) rescaleSlope = value;   
+        if (value != null) rescaleSlope = value;
+        
+        if (envelopeImage != null) {
+            ImageVolumeUtil.releaseTextures(envelopeImage);
+            envelopeImage = null;
+        }
     }
     
     public void setTextureRotatation(Vector3f rotationOffset, Trackball tb) {
@@ -268,6 +273,13 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     public float getBoneThreshold() { return boneThreshold; }
     
     public ImageVolume getEnvelopeImage() { return envelopeImage; }
+    
+    public void clearEnvelopeImage() {
+        if (envelopeImage != null) {
+            ImageVolumeUtil.releaseTextures(envelopeImage);
+            envelopeImage = null;
+        }
+    }
     
     public void setSelectedElement(int nelement) {
         selectedElement = nelement;
@@ -2332,7 +2344,20 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     private void setupImageTexture(ImageVolume image, int textureUnit, Vector3f center, Vector4f offset) {
-        if (image == null) return;
+        if (image == null) {
+            
+            // if there is no image for this texture unit, zero it out
+            glEnable(GL_TEXTURE_3D);
+            glActiveTexture(GL_TEXTURE0 + textureUnit);
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+            
+            glBindTexture(GL_TEXTURE_3D, 0);
+            
+            glActiveTexture(GL_TEXTURE0 + 0);
+            glDisable(GL_TEXTURE_3D);
+
+            return;
+        }
         
         Main.glPushAttrib(GL_ENABLE_BIT | GL_TRANSFORM_BIT);
         
@@ -2538,6 +2563,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             pressureShader.release();
             pressureShader = null;
         }
+        
+        clearEnvelopeImage();
     }
 
     @Override

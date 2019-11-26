@@ -279,9 +279,11 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     public void setCTImage(ImageVolume image) {
         //System.out.println("ImageCanvasGL::setCTImage()");
         if (CTimage != image) {
+            setOverlayImage(null);
             setIsDirty(true);
         }
         CTimage = image;
+        
         
 
 //        theImage.setAttribute("textureName", null); ///////HACK
@@ -300,8 +302,8 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
 
         if (OverlayImage != image) {
             
-            if (image != null) {
-                ImageVolumeUtil.releaseTextures(image);
+            if (OverlayImage != null) {
+                ImageVolumeUtil.releaseTextures(OverlayImage);
             }
             setIsDirty(true);
         }
@@ -722,7 +724,20 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     }
     
     private void setupImageTexture(ImageVolume image, int textureUnit) {
-        if (image == null) return;
+        if (image == null) {
+            
+            // if there is no image for this texture unit, zero it out
+            glEnable(GL_TEXTURE_3D);
+            glActiveTexture(GL_TEXTURE0 + textureUnit);
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+            
+            glBindTexture(GL_TEXTURE_3D, 0);
+            
+            glActiveTexture(GL_TEXTURE0 + 0);
+            glDisable(GL_TEXTURE_3D);
+
+            return;
+        }
         
         Integer tn = (Integer) image.getAttribute("textureName");
         
@@ -1028,9 +1043,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             setupImageTexture(MRimage, 1);
         }
         
-        if (OverlayImage != null) {
-            setupImageTexture(OverlayImage, 5);
-        }
+        setupImageTexture(OverlayImage, 5);
         
         buildLutTexture();
         setupLutTexture(2);                

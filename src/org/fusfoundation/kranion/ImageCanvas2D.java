@@ -251,7 +251,7 @@ public class ImageCanvas2D extends GUIControl {
         if (OverlayImage != image) {
             setIsDirty(true);
             
-            if (image == null) {
+            if (OverlayImage != null) {
                 ImageVolumeUtil.releaseTexture(OverlayImage);
             }
         }
@@ -292,10 +292,13 @@ public class ImageCanvas2D extends GUIControl {
     public void setCTImage(ImageVolume image) {
         System.out.println("ImageCanvasGL::setImage()");
         
-        if (image != CTimage) setIsDirty(true);
+        if (image != CTimage) {
+            setIsDirty(true);
+            setOverlayImage(null);
+        }
         
         CTimage = image;
-
+        
 
 //        theImage.setAttribute("textureName", null); ///////HACK
 //        Integer tn = (Integer) CTimage.getAttribute("textureName");
@@ -330,6 +333,10 @@ public class ImageCanvas2D extends GUIControl {
         if (image != MRimage) setIsDirty(true);
 
         MRimage = image;
+        
+        if (MRimage == null) {
+            release();
+        }
 
 
 //        theImage.setAttribute("textureName", null); ///////HACK
@@ -537,9 +544,9 @@ public class ImageCanvas2D extends GUIControl {
     }
 
     public void release() {
-        ImageVolumeUtil.releaseTexture(CTimage);
-        ImageVolumeUtil.releaseTexture(MRimage);
-        ImageVolumeUtil.releaseTexture(OverlayImage);
+        ImageVolumeUtil.releaseTextures(CTimage);
+        ImageVolumeUtil.releaseTextures(MRimage);
+        ImageVolumeUtil.releaseTextures(OverlayImage);
         
         if (shader != null)
         {
@@ -581,10 +588,17 @@ public class ImageCanvas2D extends GUIControl {
     
     private void setupImageTexture(ImageVolume image, int textureUnit) {
         if (image == null) {
+           
+            // if there is no image for this texture unit, zero it out
             glEnable(GL_TEXTURE_3D);
             glActiveTexture(GL_TEXTURE0 + textureUnit);
-
+            glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+            
             glBindTexture(GL_TEXTURE_3D, 0);
+            
+            glActiveTexture(GL_TEXTURE0 + 0);
+            glDisable(GL_TEXTURE_3D);
+
             return;
         }
         

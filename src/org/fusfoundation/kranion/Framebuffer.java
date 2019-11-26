@@ -275,6 +275,8 @@ public class Framebuffer extends Renderable implements Resizeable {
         if (!getVisible()) return;
         setIsDirty(false);
         
+//        System.out.println(this + ": framebuffer.render(" + opacity + ")");
+        
         if (shader == null) {
             shader = new ShaderProgram();
             shader.addShader(GL_VERTEX_SHADER, "shaders/framebuffer.vs.glsl");
