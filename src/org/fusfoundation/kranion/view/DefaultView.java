@@ -89,6 +89,7 @@ import java.lang.reflect.Constructor;
 import java.io.File;
 import java.awt.event.*;
 import java.beans.PropertyChangeEvent;
+import java.util.List;
 import java.util.Map;
 import java.util.Observable;
 import javax.swing.*;
@@ -123,6 +124,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+import org.fusfoundation.kranion.Colorbar;
 import org.fusfoundation.kranion.CompositeRenderable;
 import org.fusfoundation.kranion.DicomSeriesDialog;
 import org.fusfoundation.kranion.FileDialog;
@@ -131,11 +133,14 @@ import org.fusfoundation.kranion.GUIControlModelBinding;
 import org.fusfoundation.kranion.MessageBoxDialog;
 import org.fusfoundation.kranion.ProgressListener;
 import org.fusfoundation.kranion.Rectangle;
+import org.fusfoundation.kranion.Sphere;
+import org.fusfoundation.kranion.TabbedPanel;
 import org.fusfoundation.kranion.model.AttributeList;
 import org.fusfoundation.kranion.model.AttributeListXStreamConverter;
 import org.fusfoundation.kranion.model.ModelXStreamConverter;
 import org.fusfoundation.kranion.model.SonicationXStreamConverter;
 import org.fusfoundation.kranion.model.image.io.DicomImageLoader;
+import org.fusfoundation.kranion.plugin.Plugin;
 import org.knowm.xchart.XYSeries;
 
 
@@ -182,6 +187,8 @@ public class DefaultView extends View {
     private boolean attenuation_term_on = false ;
     private boolean transmissionLoss_term_on = false ;
     private boolean pressureCalcNeedsUpdate = false;
+    
+    private Plugin activePlugin;
 
     private Loader ctloader, mrloader;
 //    private ImageVolume4D ctImage, mrImage;
@@ -258,6 +265,9 @@ public class DefaultView extends View {
     
     private MRCTRegister imageregistration;
     private XYChartControl registrationChart;
+    private Colorbar colorbar;
+    
+    private Sphere testLoc;
 
     // So plugins have access to implemented file choosing mechanism
     @Override
@@ -307,6 +317,8 @@ public class DefaultView extends View {
         selTrans = 0;
         drawingStyle = 0;
         
+        activePlugin = null;
+        
         Keyboard.enableRepeatEvents(false);
         this.setAcceptsKeyboardFocus(true);
         Renderable.setDefaultKeyboardFocus(this);
@@ -342,7 +354,10 @@ public class DefaultView extends View {
 //        fileDialog.setFlyDirection(FlyoutPanel.direction.SOUTH);
         
         
-        
+        colorbar = new Colorbar();
+        colorbar.setBounds(200, 200, 35, 300);        
+        canvas.setColorbar(colorbar);
+                
         
         flyout1.setBounds(0, 100, 400, 800);
         flyout1.setFlyDirection(FlyoutPanel.direction.EAST);
@@ -469,6 +484,7 @@ public class DefaultView extends View {
         flyout2.setAutoExpand(true);
         flyout2.setFlyDirection(FlyoutPanel.direction.SOUTH);
         flyout2.setTag("MainFlyout");
+        flyout2.addActionListener(this);
                 
         Button button = new Button(Button.ButtonType.TOGGLE_BUTTON, 10, 125, 120, 25, controller);
         button.setTitle("Raytracer");
@@ -597,6 +613,20 @@ public class DefaultView extends View {
         slider1.setCurrentValue(2652);
         flyout2.addChild("Transducer", slider1);
         model.addObserver(slider1);
+        
+        slider1 = new Slider(1250, 225, 410, 25, controller);
+        slider1.setTitle("Frequency");
+        slider1.setTag("frequencySlider");
+        slider1.setCommand("sonicationFrequency"); // controller will set command name as propery on model
+        slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        slider1.setPersistAsString();
+        slider1.setMinMax(100, 1000);
+        slider1.setLabelWidth(180);
+        slider1.setFormatString("%3.1f");
+        slider1.setUnitsString(" kHz");
+        flyout2.addChild("Transducer", slider1);
+        model.addObserver(slider1);
+        slider1.setCurrentValue(650.0f);
         
         slider1 = new Slider(1250, 90, 410, 25, controller);
         slider1.setTitle("Phase Correction");
@@ -953,6 +983,7 @@ public class DefaultView extends View {
             e.printStackTrace();
         }
         
+        transRayTracer.setTag("TransducerRayTracer");
         transRayTracer.init(transducerModel);
         transRayTracer.addObserver(this);
         
@@ -1019,7 +1050,8 @@ public class DefaultView extends View {
         frameTransform = new TransformationAdapter(frameOffsetTransform);
         
         
-        RenderList globalTransformList = new RenderList();        
+        RenderList globalTransformList = new RenderList();
+        globalTransformList.setTag("globalTransformRenderList");
         TransformationAdapter globalTransform = new TransformationAdapter(globalTransformList);
         globalTransform.rotate(new Vector3f(0f, 0f, 1f), 180);
         globalTransform.rotate(new Vector3f(0f, 1f, 0f), 180);
@@ -1062,7 +1094,22 @@ public class DefaultView extends View {
         mainLayer.setTag("DefaultView.main_layer");
         mainLayer.setClearColor(0f, 0f, 0f, 0f);
          
+
+        //Have to add trackball controller first.
+        //TODO: better to have transformations applied through parent/child relationship
         mainLayer.addChild(trackball);
+        
+        // This is for testing 3D picking
+        ///////////////////////////////////
+        testLoc = new Sphere(0.5f);
+        testLoc.setVisible(true);
+        testLoc.setColor(1, 0, 0, 1);
+        testLoc.setLocation(0, 0, 0);
+        testLoc.setCommand("Selected3DPoint");
+        testLoc.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addObserver(testLoc);
+        mainLayer.addChild(testLoc);
+        
         mainLayer.addChild(frameTransform);
 //        mainLayer.addChild(mrBoreTransform);
         mainLayer.addChild(globalTransform);
@@ -1115,6 +1162,7 @@ public class DefaultView extends View {
         
         overlay.addChild(incidentAngleChart);
         overlay.addChild(sdrChart);
+        overlay.addChild(colorbar);
         
         statusOverlay.setIs2d(true);
         statusOverlay.setTag("DefaultView.status_overlay_layer");
@@ -1187,6 +1235,10 @@ public class DefaultView extends View {
         
         // TODO: is the best place to update the model transducer?
         model.setTransducer(transducerModel);
+        
+        colorbar.sendToBottom();
+        
+
     }
     
     public int doPick(int mouseX, int mouseY) {
@@ -1209,6 +1261,193 @@ public class DefaultView extends View {
         
         updateSelectedChannelData();
                 
+        return result;
+    }
+    
+    private Matrix4f setupPerspectiveMatrix(float angleOfView, float aspectRatio, float near, float far) {
+        Matrix4f result = new Matrix4f();
+        
+        float bottom, top, left, right;
+        
+        float scale = (float)Math.tan(angleOfView * 0.5 * Math.PI / 180.0); 
+        top = scale * near;
+        bottom = -top;
+        right = top*aspectRatio;
+        left = -right; 
+        
+        // set OpenGL perspective projection matrix
+        result.m00 = 2 * near / (right - left); 
+        result.m01 = 0; 
+        result.m02 = 0; 
+        result.m03 = 0; 
+
+        result.m10 = 0; 
+        result.m11 = 2 * near / (top - bottom); 
+        result.m12 = 0; 
+        result.m13 = 0; 
+
+        result.m20 = (right + left) / (right - left); 
+        result.m21 = (top + bottom) / (top - bottom); 
+        result.m22 = -(far + near) / (far - near); 
+        result.m23 = -1; 
+
+        result.m30 = 0; 
+        result.m31 = 0; 
+        result.m32 = -2 * far * near / (far - near); 
+        result.m33 = 0;
+            
+        return result;
+    }
+    
+        public static boolean intersectRayWithSquare(Vector3f R1, Vector3f R2,
+            Vector3f S1, Vector3f S2, Vector3f S3,
+            Vector3f hitPoint
+    ) {
+        // Adapted from: https://stackoverflow.com/questions/21114796/3d-ray-quad-intersection-test-in-java
+        
+        // 1.
+
+        Vector3f dS21 = new Vector3f();
+        Vector3f.sub(S2, S1, dS21);
+        dS21.normalise();
+        
+        Vector3f dS31 = new Vector3f(S3);
+        Vector3f.sub(S3, S1, dS31);
+        dS31.normalise();
+        
+        Vector3f n = new Vector3f();
+        Vector3f.cross(dS21, dS31, n);
+        n.normalise();
+
+        // 2.
+        Vector3f dR = new Vector3f();
+        Vector3f.sub(R1, R2, dR);
+        dR.normalise();
+
+        float ndotdR = Vector3f.dot(n, dR);
+
+        if (Math.abs(ndotdR) < 1e-6f) { // Choose your tolerance
+            return false;
+        }
+
+ //       float t = -n.dot(new Vector3f(R1).sub(S1)) / ndotdR;
+        float t = -Vector3f.dot(n, Vector3f.sub(R1, S1, null))/ndotdR;
+//        Vector3f M = new Vector3f(R1).add(dR.mul(t));
+        Vector3f M = Vector3f.add(R1, (Vector3f)new Vector3f(dR).scale(t), null);
+
+        // 3.
+//        Vector3f dMS1 = M.sub(S1);
+        Vector3f dMS1 = Vector3f.sub(M, S1, null);
+//        float u = dMS1.dot(dS21);
+//        float v = dMS1.dot(dS31);
+        float u = Vector3f.dot(dMS1, dS21);
+        float v = Vector3f.dot(dMS1, dS31);
+
+//        hitPoint.set(u, v);
+        hitPoint.set(M);
+        
+        // 4.
+//        return (u >= 0.0f && u <= dS21.dot(dS21)
+//                && v >= 0.0f && v <= dS31.dot(dS31));
+        return (u >= 0.0f && u <= Vector3f.dot(dS21, dS21)
+                && v >= 0.0f && v <= Vector3f.dot(dS31, dS31));
+    }
+        
+    public Vector3f doRayPick(int mouseX, int mouseY) {
+        Vector3f result=null;
+        
+        System.out.println("doRayPick: " + mouseX + ", " + mouseY);
+
+        System.out.println(dolly.getValue());
+        
+        float x = (2.0f * mouseX) / Display.getWidth() - 1.0f;
+        float y = 1.0f - (2.0f * mouseY) / Display.getHeight();
+        float z = 1.0f;
+        Vector3f ray_nds = new Vector3f(x, y, z);
+        
+        Vector4f ray_clip = new Vector4f(ray_nds.x, ray_nds.y, -1.0f, 1.0f);
+        
+        System.out.println("Ray_clip: " + ray_clip);
+        
+        Vector4f ray_eye = new Vector4f();
+        
+        // As in Main:
+//        viewportAspect = (float) Display.getWidth() / (float) Display.getHeight();
+//        gluPerspective(40.0f, viewportAspect, 100.0f, 100000.0f);
+        float aspect = (float)Display.getWidth()/(float)Display.getHeight();
+        Matrix4f perspective = (Matrix4f)setupPerspectiveMatrix(40.0f, aspect, 100.0f, 100000.0f);
+        
+//        System.out.println("My perspective mat:\n" + perspective);
+        
+//        FloatBuffer matbuf = BufferUtils.createFloatBuffer(16);
+//        glGetFloat(GL_PROJECTION_MATRIX, matbuf);
+//        perspective.load(matbuf);
+//        
+//        System.out.println("GL perspective mat:\n" + perspective);
+        
+        perspective.invert();
+        
+        Matrix4f.transform(perspective, ray_clip, ray_eye);
+        
+        ray_eye = new Vector4f(ray_eye.x, ray_eye.y, -1, 0.0f);
+        
+        
+        Vector4f ray_world = new Vector4f();
+        
+        Matrix4f modelview = Trackball.toMatrix4f(trackball.getCurrent());
+//        modelview.translate(new Vector3f(0, 0, dolly.getValue()));
+//        System.out.println("modelview:\n:" + modelview);
+        modelview.invert();
+        System.out.println("inverted modelview:\n:" + modelview);
+        
+        // ray_world will contain a vector in world coordinates pointing into the scene based on mouse click position
+        ray_world = Matrix4f.transform(modelview, ray_eye, ray_world);
+        
+        System.out.println("Ray_eye: " + ray_eye);
+        System.out.println("Ray_world: " + ray_world);
+        
+        result = new Vector3f();
+        
+        Vector3f hitpoint = new Vector3f();
+        Vector3f ray_world_norm = new Vector3f(ray_world.x, ray_world.y, ray_world.z);
+        ray_world.normalise();
+        
+        System.out.println("Ray_world_norm: " + ray_world);
+        
+        Vector3f ray_pt0 = new Vector3f(0, 0, 0);
+        Vector3f ray_pt1 = Vector3f.add(ray_pt0, (Vector3f)ray_world_norm.scale(5000), null);
+        
+        Vector4f plane_origin = new Vector4f(0, 0, cameraZ - dolly.getValue(), 0);
+        Vector4f plane_pt0 = new Vector4f(-150, -150, cameraZ - dolly.getValue(), 0);
+        Vector4f plane_pt1 = new Vector4f(150, -150, cameraZ - dolly.getValue(), 0);
+        Vector4f plane_pt2 = new Vector4f(-150, 150, cameraZ - dolly.getValue(), 0);
+        
+        plane_origin = Matrix4f.transform(modelview, plane_origin, null);
+        plane_pt0 = Matrix4f.transform(modelview, plane_pt0, null);
+        plane_pt1 = Matrix4f.transform(modelview, plane_pt1, null);
+        plane_pt2 = Matrix4f.transform(modelview, plane_pt2, null);
+        
+        boolean ishit = intersectRayWithSquare(ray_pt0, ray_pt1, 
+//                new Vector3f(-150, -150, cameraZ - dolly.getValue()),
+//                new Vector3f( 150, -150, cameraZ - dolly.getValue()),
+//                new Vector3f(-150,  150, cameraZ - dolly.getValue()),
+                new Vector3f(plane_pt0.x, plane_pt0.y, plane_pt0.z),
+                new Vector3f(plane_pt1.x, plane_pt1.y, plane_pt1.z),
+                new Vector3f(plane_pt2.x, plane_pt2.y, plane_pt2.z),
+                hitpoint
+        );
+        
+        result.x = hitpoint.x - plane_origin.x;
+        result.y = hitpoint.y - plane_origin.y;
+        result.z = hitpoint.z - plane_origin.z;
+        
+        if (ishit) {
+            System.out.println("Hit: " + hitpoint);
+        }
+        else {
+            System.out.println("No hit.");
+        }
+        
         return result;
     }
     
@@ -1567,6 +1806,14 @@ public class DefaultView extends View {
             
             newModel = Model.loadModel(selectedFile, this);
             
+            // set some defaults if absent
+            if (newModel.getAttribute("sonicationFrequency") == null) {
+                newModel.setAttribute("sonicationFrequency", 650f);
+            }
+            if (newModel.getAttribute("selectedOverlayValue") == null) {
+                newModel.setAttribute("selectedOverlayValue", Float.NEGATIVE_INFINITY);
+            }
+            
             int tmpMRselected = newModel.getSelectedMR();
             int tmpSonicationSelected = newModel.getSelectedSonication();
             
@@ -1798,8 +2045,10 @@ public class DefaultView extends View {
         canvas.setCurrentOverlayFrame(currentFrame);
         ImageVolumeUtil.releaseTexture(image);
         canvas.setOverlayImage(image);
-        
-        model.setAttribute("currentSceneOrienation", (Quaternion)image.getAttribute("ImageOrientationQ"));
+ 
+        model.setAttribute("currentTargetPoint", new Vector3f(model.getSonication(sonicationIndex).getNaturalFocusLocation()));
+        model.setAttribute("currentTargetSteering", new Vector3f(model.getSonication(sonicationIndex).getFocusSteering()));
+        model.setAttribute("currentSceneOrientation", (Quaternion) image.getAttribute("ImageOrientationQ"));
 
     }
     
@@ -2263,21 +2512,41 @@ public class DefaultView extends View {
 //            System.out.println("View mouse down");
 //        }
         
-        if (button2down) {
-            int pickVal = doPick(x, y);
-            System.out.println("*** Picked value: " + pickVal);
-            if (pickVal != 0) {
-                this.mainLayer.setIsDirty(true);
-            }
-        }
         
         if (!scene.OnMouse(x, y, button1down, button2down, dwheel)) {
+            
+            if (activePlugin != null && activePlugin instanceof org.fusfoundation.kranion.MouseListener) {
+                org.fusfoundation.kranion.MouseListener ml = (org.fusfoundation.kranion.MouseListener)activePlugin;
+                if (ml.OnMouse(x, y, button1down, button2down, dwheel)) {
+                    return true;
+                }
+            }
             
             if (dwheel != 0) {
                 scene.setIsDirty(true);
                 dolly.incrementValue(-dwheel/5f); // zoom with mouse wheel
             }
 
+            if (button2down) {
+                int pickVal = doPick(x, y);
+                System.out.println("*** Picked value: " + pickVal);
+                if (pickVal != 0) {
+                    this.mainLayer.setIsDirty(true);
+                }
+
+                // if pickval == Nothing, CT or MR
+                if (pickVal >= 0 && pickVal <= 2) {
+                    Vector3f rayPickPt = this.doRayPick(x, y);
+                    testLoc.setLocation(rayPickPt.x, rayPickPt.y, rayPickPt.z);
+                    System.out.println("picked world coord = " + rayPickPt);
+                    model.setAttribute("Selected3DPoint", rayPickPt, true);
+                    if (canvas.getShowThermometry()) {
+                        this.updateThermometryDisplay(model.getSelectedSonication(), 0, false);
+
+                    }
+                }
+            }
+            
             if (button1down) {
                 this.acquireKeyboardFocus();
             }
@@ -2683,7 +2952,7 @@ public class DefaultView extends View {
             b.x = Display.getWidth()/2 - b.width - 25;
                         
             b = this.tempPredictionIndicator.getBounds();
-            b.x = this.beamBar.getBounds().x;
+            b.x = this.beamBar.getBounds().x;            
        }
         catch(Exception e) {}
         
@@ -2697,6 +2966,14 @@ public class DefaultView extends View {
         //      panel always gets doLayout() after the MRP layout control
         //      since it depends on this
         flyout3.doLayout();
+        
+        // Keep the colorbar somewhere sensible after window resize
+        try {
+            Rectangle b = this.colorbar.getBounds();
+            b.x = Math.min(this.sdrBar.getBounds().x + this.sdrBar.getBounds().width - 100, this.canvas1.getBounds().x - 100);
+            b.y = this.sdrBar.getBounds().y + this.sdrBar.getBounds().height + 50;
+        }
+        catch(Exception e) {}
         
     }
 
@@ -2752,11 +3029,34 @@ public class DefaultView extends View {
 //            System.out.println();
             
             switch(this.getFilteredPropertyName(event)) {
+                case "sonicationFrequency":
+                    if (event.getNewValue() instanceof Float) {
+                        this.transRayTracer.setFrequency((Float)event.getNewValue());
+                        this.pressureCalcNeedsUpdate = true;            
+
+                        //updatePressureCalc();
+                    }
+                    else if (event.getNewValue() instanceof String) {
+                        try {
+                            String val = (String)event.getNewValue();
+                            if (val.length() == 0) {
+                                val = "650.0"; // default value
+                            }
+                            this.transRayTracer.setFrequency(Float.parseFloat(val));
+                            this.pressureCalcNeedsUpdate = true;            
+
+                            //updatePressureCalc();
+                        }
+                        catch(java.lang.NumberFormatException e) {
+                            // fall through for now
+                        }
+                    }
+                    break;
                 case "registerMRCT":
                     Button registerButton = (Button)Renderable.lookupByTag("registerMRCT");
                     registerButton.setIndicator((Boolean)event.getNewValue());
                     break;
-                case "currentSceneOrienation":
+                case "currentSceneOrientation":
                     Quaternion orient = (Quaternion)event.getNewValue();
                     orientAnimator.set(trackball.getCurrent(), orient, 1.5f);
                     orientAnimator.setTrackball(trackball);
@@ -2790,6 +3090,7 @@ public class DefaultView extends View {
                 case "currentSonication":
                     int sonicationIndex = (Integer)model.getAttribute("currentSonication");
                     model.setSelectedSonication(sonicationIndex);
+                    model.setAttribute("Selected3DPoint", new Vector3f(0, 0, 0));
                     if (sonicationIndex>=0 && model.getSonication(sonicationIndex) != null) {
                         model.setAttribute("currentTargetPoint", new Vector3f(model.getSonication(sonicationIndex).getNaturalFocusLocation()));
                         model.setAttribute("currentTargetSteering", new Vector3f(model.getSonication(sonicationIndex).getFocusSteering()));
@@ -2828,7 +3129,21 @@ public class DefaultView extends View {
                         model.setAttribute("sonicationSLoc", String.format("%4.1f", 0f));
                         model.setAttribute("sonicationPower", String.format("%4.1f", 0f));
                         model.setAttribute("sonicationDuration", String.format("%4.1f", 0f));
-                        model.setAttribute("sonicationFrequency", String.format("%4.1f", 0f));
+                        
+                        Object attr = model.getAttribute("sonicationFrequency");
+                        float freqVal = 650;
+                        if (attr!=null) {
+                            if (attr instanceof String) {
+                                try {
+                                    freqVal = Float.parseFloat((String)attr);
+                                }
+                                catch(NumberFormatException e) {}
+                            }
+                            else if (attr instanceof Float) {
+                                freqVal = (Float)attr;
+                            }
+                        }
+                        model.setAttribute("sonicationFrequency", String.format("%4.1f", freqVal));
                         model.setAttribute("sonicationTimestamp", "");
                         model.setAttribute("targetVisible", false);
                     }
@@ -2889,6 +3204,9 @@ public class DefaultView extends View {
                 case "CTcenter":
                     flyout3.bringToTop();
                     break;
+                case "selectedOverlayValue":
+                    colorbar.setSelectedValue((Float)event.getNewValue());
+                    break;
             }
             
             switch(event.getPropertyName()) {
@@ -2903,6 +3221,7 @@ public class DefaultView extends View {
                     ctHistogram.calculate();
                     transFuncDisplay.setHistogram(ctHistogram.getData());
                     ctHistogram.release();
+                    
                     setDoTransition(true);
                     return;
                 case "Model.MrImage[0]":
@@ -3142,20 +3461,63 @@ public class DefaultView extends View {
         if (sonication != null) {
             thermometry = model.getSonication(sonicationIndex).getThermometryPhase();
             sonicationWasAborted = (Boolean)(model.getSonication(sonicationIndex).getAttribute("aborted"));
+            
+            if (!setToMax) {
+                try {
+                    selectedTime = (Float)model.getSonication(sonicationIndex).getAttribute("currentSelectedPhaseTime");
+                }
+                catch(NullPointerException e) {
+//                    selectedTime = 0f;
+                }
+            }
         }
         else {
             sonicationWasAborted = false;
             thermometry = null;
         }
         
+        //TODO: need to be able to update dynamically with the mouse for plot updates.
+//        model.setAttribute("Selected3DPoint", new Vector3f(0, 0, 0));
+        
         if (thermometry != null) {
             float data[] = (float[])thermometry.getData();
 
             int cols = thermometry.getDimension(0).getSize();
             int rows = thermometry.getDimension(1).getSize();
+            float xres = thermometry.getDimension(0).getSampleSpacing();
+            float yres = thermometry.getDimension(1).getSampleSpacing();
             int timepoints = thermometry.getDimension(3).getSize();
+            
+            Matrix4f imageRot = (Matrix4f)new Matrix4f().setIdentity();
+            Quaternion orient = (Quaternion)thermometry.getAttribute("ImageOrientationQ");
+            if (orient != null) {
+                imageRot = Trackball.toMatrix4f(orient);
+            }
 
             float phaseTime = thermometry.getDimension(3).getSampleSpacing();
+            
+            int deltax = 0;
+            int deltay = 0;
+            Vector3f selectedPt = (Vector3f)model.getAttribute("Selected3DPoint");
+
+            Vector4f planePt = new Vector4f(selectedPt.x, selectedPt.y, selectedPt.z, 1);
+            Matrix4f.transform(imageRot, planePt, planePt);
+                       
+            if (selectedPt != null) {
+                // transform selectedPt into the thermometry image plane:
+                
+                
+                //
+                
+                deltax = Math.round(planePt.x / xres - 0.5f);
+                deltax = Math.min(Math.max(deltax, -cols/2+2), cols/2-2);
+                
+                deltay = Math.round(planePt.y / yres - 0.5f);
+                deltay = Math.min(Math.max(deltay, -cols/2+2), cols/2-2);
+            }
+            else {
+                selectedPt = new Vector3f(0, 0, 0);
+            }
 
             double maxVals[] = new double[timepoints];
             double avgVals[] = new double[timepoints];
@@ -3163,7 +3525,7 @@ public class DefaultView extends View {
             double overallMax = 0.0;
             int maxTimePoint = 0;
             for (int i=0; i<timepoints; i++) {
-                maxVals[i] = data[thermometry.getVoxelOffset(cols/2, rows/2, i)];
+                maxVals[i] = data[thermometry.getVoxelOffset(cols/2+deltax, rows/2+deltay, i)];
 
                 double maxVal = 0;
                 double valueSum = 0;
@@ -3171,7 +3533,7 @@ public class DefaultView extends View {
                 for (int x=-1; x<=0; x++) {
                     for (int y=-1; y<=0; y++) {
                         counter++;
-                        double val = data[thermometry.getVoxelOffset(cols/2+x, rows/2+y, i)];
+                        double val = data[thermometry.getVoxelOffset(cols/2+x+deltax, rows/2+y+deltay, i)];
                         valueSum += val;
 //                        if (x==0 || x==1 || y==0 || y==1) {
 //                            counter++;
@@ -3201,7 +3563,18 @@ public class DefaultView extends View {
                 
                 updateSpectrumDisplay(sonicationIndex, maxTimePoint*phaseTime);
             }
+            else {
+                model.getSonication(sonicationIndex).setAttribute("currentFrame", (int)(selectedTime/phaseTime));
+                updateSpectrumDisplay(sonicationIndex, selectedTime);
+            }
             
+            int curFrame = 0;
+            try {
+                curFrame = (Integer)model.getSonication(sonicationIndex).getAttribute("currentFrame");
+            }
+            catch(NullPointerException e) {                
+            }
+                        
             Renderable abortText = Renderable.lookupByTag("tbSonicationAborted");
             if (sonicationWasAborted != null && sonicationWasAborted == true) {
                 abortText.setVisible(true);
@@ -3214,12 +3587,18 @@ public class DefaultView extends View {
             thermometryChart.addSeries("Max", times, maxVals, new Vector4f(0.8f, 0.2f, 0.2f, 1f));
             thermometryChart.addSeries("Avg", times, avgVals, new Vector4f(0.2f, 0.8f, 0.2f, 1f));
             
+            thermometryChart.setChartYAxisMinMax(37, 65);
+            
             double interpolateYval = interpolateTempCurve(selectedTime, times, maxVals);
             
             double[] selectedYval = new double[1];
             selectedYval[0] = setToMax ? maxVals[maxTimePoint] : interpolateYval;
             double[] selectedXval = new double[1];
             selectedXval[0] = setToMax ? maxTimePoint * phaseTime : selectedTime;
+            selectedTime = (float)selectedXval[0];
+            
+            model.getSonication(sonicationIndex).setAttribute("currentSelectedPhaseTime", selectedTime);
+            
             thermometryChart.addSeries("Selected", selectedXval, selectedYval, new Vector4f(0.8f, 0.8f, 0.2f, 1f), true, false);
             
             thermometryChart.generateChart();
@@ -3230,6 +3609,18 @@ public class DefaultView extends View {
             model.setAttribute("sonicationMaxDose", String.format("%4.2f kCEM", maxT.y/1000f));
             
             showThermometry(sonicationIndex);
+            
+            // update selectedOverlayValue for the current 3D canvas  overlay
+            ImageVolume overlay = canvas.getOverlayImage();
+            int nframes = overlay.getDimension(3).getSize();
+            if (overlay != null) {
+                float[] ovly_data = (float[])overlay.getData();
+                float selectedTemp = ovly_data[overlay.getVoxelOffset(cols/2+deltax, rows/2+deltay, Math.min(nframes-1, curFrame))];
+                model.setAttribute("selectedOverlayValue", selectedTemp);
+            }
+            else {
+                model.setAttribute("selectedOverlayValue", Float.NEGATIVE_INFINITY);
+            }
         }
         else {
             thermometryChart.newChart();
@@ -4365,6 +4756,9 @@ public class DefaultView extends View {
                         this.thermometryChart.newChart();
                         this.thermometryChart.generateChart();
                         
+                        this.pcdSpectrumChart.newChart();
+                        this.pcdSpectrumChart.generateChart();
+                        
                         try {
                             ((TextBox)(Renderable.lookupByTag("tbSonicationMaxTemp"))).setText("");
                             ((TextBox)(Renderable.lookupByTag("tbSonicationMaxDose"))).setText("");
@@ -4641,7 +5035,25 @@ public class DefaultView extends View {
                 registrationChart.newChart("Iteration", "Normalized MI", 7);
                 registrationChart.addSeries("MI", imageregistration.getXData(), imageregistration.getYData(), new Vector4f(0.55f, 0.8f, 0.55f, 1f), false);
                 registrationChart.generateChart();
-            break;
+                break;
+            case "tabSelected":
+                Object src = e.getSource();
+                if (src != null && src instanceof TabbedPanel) {
+                    System.out.println(((TabbedPanel) src).getSelectedTab().getLabel());
+                    System.out.println(((TabbedPanel) src).getSelectedTab().getRefObj());
+                    Object refObj = ((TabbedPanel) src).getSelectedTab().getRefObj();
+                    if (refObj != null && refObj instanceof Plugin) {
+                        this.activePlugin = (Plugin) refObj;
+                        model.setAttribute("showPressure", false);
+                        model.setAttribute("showThermometry", false);
+                    }
+                    else {
+                        this.activePlugin = null;
+                    }
+                } else {
+                    this.activePlugin = null;
+                }
+                break;
         }
     }
     

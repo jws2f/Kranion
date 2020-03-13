@@ -36,6 +36,7 @@ import org.fusfoundation.kranion.FlyoutPanel;
 import org.fusfoundation.kranion.GUIControlModelBinding;
 import org.fusfoundation.kranion.Landmark;
 import org.fusfoundation.kranion.Main;
+import org.fusfoundation.kranion.MouseListener;
 import org.fusfoundation.kranion.RadioButtonGroup;
 import org.fusfoundation.kranion.RenderLayer;
 import org.fusfoundation.kranion.Renderable;
@@ -46,11 +47,14 @@ import org.fusfoundation.kranion.view.View;
 import org.fusfoundation.kranion.model.*;
 import org.fusfoundation.kranion.controller.Controller;
 import org.fusfoundation.kranion.model.image.ImageVolumeUtil;
+import org.fusfoundation.kranion.view.DefaultView;
+import org.lwjgl.input.Mouse;
+import org.lwjgl.opengl.Display;
 import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Vector3f;
 
-public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
+public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseListener  {
 
     private Model model;
     private View view;
@@ -62,6 +66,8 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
     private Button showACPCbut;
     
     private final String propertyPrefix = "Model.Attribute";
+    
+    private boolean mouseButton2down = false;
     
     @Override
     public void init(Controller controller) {
@@ -118,7 +124,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener  {
             }
 
             // AC-PC registration and target calculator
-            flyout.addTab("Planning");
+            flyout.addTab("Planning", this);
             Button acButton = new Button(Button.ButtonType.BUTTON, 10, 205, 125, 25, this);
             acButton.setTitle("Set AC").setCommand("setAC").setTag("setAC");
             acButton.setPropertyPrefix("Model.Attribute");
@@ -612,7 +618,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
 
             Quaternion q = matToQuaternion(mat);
             
-            model.setAttribute("currentSceneOrienation", q);
+            model.setAttribute("currentSceneOrientation", q);
             
         }
     }
@@ -687,6 +693,51 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                     break;
             }
         }       
+    }
+
+    @Override
+    public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
+        if (!button2down && this.mouseButton2down) {
+            this.mouseButton2down = false;
+            return true;
+        }
+        
+        if (button2down && !this.mouseButton2down) {
+            this.mouseButton2down = true;
+            
+//            System.out.println(this.getName());
+            if (Main.getView() instanceof DefaultView) {
+                DefaultView view  = (DefaultView)Main.getView();
+                Vector3f pt = view.doRayPick((int)x, (int)y);
+                System.out.println(pt);
+                
+                Vector3f startSteering = (Vector3f)model.getAttribute("currentTargetSteering");                
+                Vector3f start = (Vector3f)model.getAttribute("currentTargetPoint");
+                start = Vector3f.add(start, startSteering, null);
+
+                model.setAttribute("currentTargetSteering", new Vector3f());
+                model.setAttribute("currentTargetPoint", Vector3f.add(start, pt, null));
+                
+                model.setAttribute("Selected3DPoint", new Vector3f(), true);
+                
+                Mouse.setCursorPosition(Display.getWidth()/2, Display.getHeight()/2);
+                
+                view.doTransition(250);
+                
+                return true;
+            }
+            else {
+                return false;
+            }
+        }
+        else {
+            return false;
+        }
+    }
+
+    @Override
+    public boolean MouseIsInside(float x, float y) {
+        return false;
     }
 }
 

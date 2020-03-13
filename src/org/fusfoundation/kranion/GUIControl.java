@@ -50,8 +50,10 @@ import static org.fusfoundation.kranion.TextBox.getScreenCoords;
 import static org.fusfoundation.kranion.TextBox.getWorldCoords;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.ARBClearTexture.glClearTexImage;
+import static org.lwjgl.opengl.ARBClearTexture.glClearTexSubImage;
 import org.lwjgl.opengl.Display;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
 import org.lwjgl.util.glu.GLU;
 import org.lwjgl.util.vector.Matrix4f;
 import org.lwjgl.util.vector.Vector4f;
@@ -206,6 +208,15 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
         }
     }
     
+    public void sendToBottom() {
+        // If we have a parent, move us to the last to be drawn and first to get mouse events
+        if (parent != null) {
+            if (parent.children.remove(this)) {
+                parent.children.add(0, this);
+            }
+        }
+    }
+    
     public void renderPickableChildren() {
         Iterator<Renderable> i = children.iterator();
         while (i.hasNext()) {
@@ -325,6 +336,10 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     
     public void fireActionEvent() {
         ActionEvent event = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, command);
+        fireActionEvent(event);
+    }
+    
+    public void fireActionEvent(ActionEvent event) {
         Iterator<ActionListener> i = listeners.iterator();
         while (i.hasNext()) {
             i.next().actionPerformed(event);
@@ -333,6 +348,10 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     
     public void fireActionEvent(ActionListener dontNotifyMe) {
         ActionEvent event = new ActionEvent(this, ActionEvent.ACTION_PERFORMED, command);
+        fireActionEvent(event, dontNotifyMe);
+    }
+    
+    public void fireActionEvent(ActionEvent event, ActionListener dontNotifyMe) {
         Iterator<ActionListener> i = listeners.iterator();
         while (i.hasNext()) {
             ActionListener al = i.next();
@@ -631,7 +650,10 @@ System.out.println();
                 break;
         }
         
-        
+        // defensive clear, prob not necessary
+        gc.setColor(new Color(0, 0, 0, 0));
+        gc.fillRect(0, 0, rect.getIntWidth()+2, rect.getIntHeight()+2);
+
         gc.setFont(font);
         
         // draw selection if any
@@ -648,6 +670,10 @@ System.out.println();
         if (fill != null) {
             gc.setColor(fill);
             gc.fillRect(0, 0, rect.getIntWidth(), rect.getIntHeight());
+        }
+        else {
+            gc.setColor(new Color(0, 0, 0, 0));
+            gc.fillRect(0, 0, dest.getWidth(), dest.getHeight());
         }
         
         if (shadowed) {
@@ -803,8 +829,8 @@ System.out.println();
             backingTextureHeight = Display.getHeight();
 
             glBindTexture(GL_TEXTURE_2D, backingTextureName);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, backingTextureWidth, backingTextureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer)null);
@@ -833,8 +859,10 @@ System.out.println();
                     
                     createBackingTexture();
 
-// This doesn't seem to be necessary since we always init the rectangular region specified                    
-//                    glClearTexImage(backingTextureName, 0, GL_RGBA, GL_UNSIGNED_BYTE, BufferUtils.createByteBuffer(4));
+// This doesn't seem to be necessary since we always init the rectangular region specified
+// These calls are REALLY SLOW on the Linux NVIDIA driver
+//                    glClearTexImage(backingTextureName, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer)null);
+//                    glClearTexSubImage(backingTextureName, 0, 0, 0, 0, img.getWidth()+2, img.getHeight()+2, 1, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer)null);
                     
                     glBindTexture(GL_TEXTURE_2D, backingTextureName);
 //                int textureName = glGenTextures();
@@ -870,16 +898,16 @@ System.out.println();
                     glEnable(GL_TEXTURE_2D);
                     glBegin(GL_QUADS);
                         glTexCoord2f(texRect.x, texRect.y+texRect.height);
-                        glVertex2f(imgRect.x, imgRect.y);
+                        glVertex2f(imgRect.getIntX(), imgRect.getIntY());
                         
                         glTexCoord2f(texRect.x+texRect.width, texRect.y+texRect.height);
-                        glVertex2f(imgRect.x + imgRect.width, imgRect.y);
+                        glVertex2f(imgRect.getIntX() + imgRect.getIntWidth(), imgRect.getIntY());
                         
                         glTexCoord2f(texRect.x+texRect.width, texRect.y);
-                        glVertex2f(imgRect.x + imgRect.width, imgRect.y + imgRect.height);
+                        glVertex2f(imgRect.getIntX() + imgRect.getIntWidth(), imgRect.getIntY() + imgRect.getIntHeight());
                         
                         glTexCoord2f(texRect.x, texRect.y);
-                        glVertex2f(imgRect.x, imgRect.y + imgRect.height);
+                        glVertex2f(imgRect.getIntX(), imgRect.getIntY() + imgRect.getIntHeight());
                     glEnd();
                     glDisable(GL_TEXTURE_2D);
                     
@@ -917,13 +945,20 @@ System.out.println();
     }
     
     public static Vector3f getWorldCoords(double screenx, double screeny) {
-        
+        return getWorldCoords(screenx, screeny, 0);
+    }
+    
+    public static Vector3f getWorldCoords(double screenx, double screeny, double screenZ) {
+
         glGetFloat(GL_MODELVIEW_MATRIX, modelView);
         glGetFloat(GL_PROJECTION_MATRIX, projection);
         glGetInteger(GL_VIEWPORT, viewport);
 
-        boolean result = GLU.gluUnProject((float) screenx, (float) screeny, (float) 0, modelView, projection, viewport, worldCoords);            
-         
+        float winX = (float) screenx;
+        float winY = (float) viewport.get(3) - (float) screeny;
+
+        boolean result = GLU.gluUnProject((float) screenx, (float) screeny, (float)screenZ, modelView, projection, viewport, worldCoords);
+
         if (result) {
             return new Vector3f(worldCoords.get(0), worldCoords.get(1), worldCoords.get(2));
         }

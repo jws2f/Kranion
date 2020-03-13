@@ -239,7 +239,7 @@ public class DefaultController extends Controller {
             if (source instanceof ImageCanvas2D) {
                 ImageCanvas2D canvas = (ImageCanvas2D)source;
                 Quaternion orient = canvas.getPlaneQuaternion();
-                model.setAttribute("currentSceneOrienation", orient);
+                model.setAttribute("currentSceneOrientation", orient);
             }
         }        
         // Else call the model binding code of the control if it supports it

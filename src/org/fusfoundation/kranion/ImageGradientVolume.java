@@ -160,6 +160,7 @@ public class ImageGradientVolume {
         Integer gradientTextureName = (Integer) image.getAttribute("gradientTexName");
 
         if (imageTextureName == null) {
+            System.out.println("ImageGradientVolume.calculate: textureName not found.");
             return; //TODO: should prob throw exception
         }
         // we already have a gradient texture built, return

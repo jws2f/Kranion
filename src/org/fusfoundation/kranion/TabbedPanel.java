@@ -33,6 +33,7 @@ import java.util.List;
 import static org.fusfoundation.kranion.Main.glPopAttrib;
 import static org.fusfoundation.kranion.Main.glPushAttrib;
 import org.fusfoundation.kranion.view.DefaultView;
+import org.fusfoundation.kranion.view.View;
 import org.lwjgl.opengl.Display;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
 import static org.lwjgl.opengl.GL11.GL_ENABLE_BIT;
@@ -50,21 +51,42 @@ import static org.lwjgl.opengl.GL11.glVertex2f;
  * @author john
  */
 public class TabbedPanel extends GUIControl implements ActionListener, Animator, Resizeable {
-    private class Tab {
-        public String label;
-        public int id;
-        public int width;
-        public RenderList children = new RenderList();
-        public String viewTagName = null;
+    public class Tab {
+        private String label;
+        private int id;
+        private int width;
+        private RenderList children = new RenderList();
+        private Object refObj;
         
         public Tab(int id, String label) {
             this.id = id;
             this.label = label;
             this.width = 100;
-        }        
+            this.refObj = null;
+        }
+        
+        public Tab(int id, String label, Object refObj) {
+            this.id = id;
+            this.label = label;
+            this.width = 100;
+            this.refObj = refObj;
+        }
+
+        public String getLabel() {
+            return label;
+        }
+        
+        public int getID() {
+            return id;
+        }
+        
+        public Object getRefObj() {
+            return refObj;
+        }
+        
     }
     
-    private int selectedTab = 0;
+    private Tab selectedTab = null;
     private List<Tab> tabs = new ArrayList<>(1);
     
     public TabbedPanel() {
@@ -73,16 +95,19 @@ public class TabbedPanel extends GUIControl implements ActionListener, Animator,
 //            addTab("Transducer");        
     }
     
-    public int addTab(String label, String viewNameToLink) {
+    public Tab addTab(String label, Object refObj) {
         int id = tabs.size();
         
         Rectangle stringBounds = getStringBounds(label, null);
         
-        Tab tab = new Tab(id, label);
-        tab.viewTagName = viewNameToLink;
+        Tab tab = new Tab(id, label, refObj);
         tab.width = (int)(stringBounds.width) + 40;
         
         tabs.add(tab);
+        
+        if (selectedTab == null) {
+            selectedTab = tab;
+        }
         
         // if this is the first tab created, redirect children to
         // tab's child list
@@ -90,11 +115,15 @@ public class TabbedPanel extends GUIControl implements ActionListener, Animator,
             children = tab.children.renderlist;
         }
         
-        return id;
+        return tab;
     }
     
-    public int addTab(String label) {
+    public Tab addTab(String label) {
         return addTab(label, null);
+    }
+    
+    public Tab getSelectedTab() {
+        return selectedTab;
     }
     
     public void addChild(String tabLabel, Renderable child) {
@@ -151,7 +180,7 @@ public class TabbedPanel extends GUIControl implements ActionListener, Animator,
                 Rectangle rect = new Rectangle(bounds.x + tabOffset, bounds.y + bounds.height - 25, tab.width, 25);
                 
                 glBegin(GL_QUADS);
-                    if (selectedTab == tab.id) {
+                    if (selectedTab == tab) {
                         tabIndent = 0;
                         glColor4f(0.25f, 0.25f, 0.25f, 0.85f);
                         
@@ -228,13 +257,15 @@ public class TabbedPanel extends GUIControl implements ActionListener, Animator,
                 Tab tab = iter.next();
                 
                 if (x > tabOffset && x < tabOffset + tab.width) {
-                    this.selectedTab = tabCount;
+                    this.selectedTab = tab;
                     children = tab.children.renderlist;
                     setIsDirty(true);
-                    DefaultView df = (DefaultView)Renderable.lookupByTag("DefaultView");
+                    
+                    View df = Main.getView();//Renderable.lookupByTag("DefaultView");
                     if (df != null) {
-                        df.setDoTransition(true, 0.2f);
+                        df.doTransition(200); // milliseconds
                     }
+                    fireActionEvent("tabSelected");
                     return true;
                 }
                 

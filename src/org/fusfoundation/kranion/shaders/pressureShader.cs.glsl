@@ -29,6 +29,7 @@ uniform float       boneSpeed;
 uniform float       waterSpeed;
 uniform int         elementCount;
 uniform float       phaseCorrectAmount; // 0 to 1
+uniform float       frequency; // in Hz
 
 struct elemStart{
          vec4 pos;
@@ -82,7 +83,7 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 #define BONE_SPEED 3400000.0 // mm/s
 #define WATER_SPEED 1482000.0 // mm/s
-#define CENTER_FREQ 670000.0 // 220000
+//#define CENTER_FREQ 670000.0 // 220000
 
 float remap( float minval, float maxval, float curval )
 {
@@ -164,13 +165,13 @@ void main()
 
 //        float phi = skullThickness * (1.0/waterSpeed - 1.0/boneSpeed);
 
-        float phase = 2.0 * M_PI * CENTER_FREQ * ( (sampleRayTime - blend(rayTimeWaterOnly, rayTime, phaseCorrectAmount)));
+        float phase = 2.0 * M_PI * frequency * ( (sampleRayTime - blend(rayTimeWaterOnly, rayTime, phaseCorrectAmount)));
 
         p[gid].pressure = mag * cos(phase);// - 150/(waterSpeed*1000));
 
         // outPhase should be the phase correction amount for this element, not the phase used to compute the pressure for display,
         // which is actual signal phase and includes offset for pressure samples around the geometric focus
-        outPhase[gid] = 2.0 * M_PI * CENTER_FREQ * (rayTime - rayTimeWaterOnly); // time delta should be negative, so the more bone the larger the delay
+        outPhase[gid] = 2.0 * M_PI * frequency * (rayTime - rayTimeWaterOnly); // time delta should be negative, so the more bone the larger the delay
 
     }
     else {

@@ -65,6 +65,8 @@ public class Slider extends GUIControl implements GUIControlModelBinding, Action
     private float labelScale = 1f;
     private boolean mouseButton1down = false;
     private long previousClickTime;
+    
+    private boolean persistAsString = false;
         
     private float min=0f, max=100f, current=0f, grabbedCurrent=0f;
     
@@ -123,6 +125,13 @@ public class Slider extends GUIControl implements GUIControlModelBinding, Action
         troughLength = bounds.width - labelWidth - 16;
         
         valueTextBox.setBounds(labelWidth, 0, troughLength, bounds.height);
+    }
+    
+    public void setPersistAsString() {
+        this.persistAsString = true;
+    }
+    public void setPersistAsFloat() {
+        this.persistAsString = false;
     }
     
     public void setState(SliderState state) { this.state = state; }
@@ -513,7 +522,15 @@ glDisable(GL_CULL_FACE);
     @Override
     public void update(Object newValue) {
         try {
-            setCurrentValue((Float)newValue);  
+            if (newValue instanceof Float) {
+                setCurrentValue((Float)newValue);
+            }
+            else if (newValue instanceof String) {
+                setCurrentValue(Float.parseFloat((String)newValue));
+            }
+            else {
+                throw new Exception("Wrong type");
+            }
         }
         catch(Exception e) {
             System.out.println(this + " Wrong or NULL new value.");
@@ -532,7 +549,12 @@ glDisable(GL_CULL_FACE);
     @Override
     public void doBinding(Model model) {
         if (model != null && getCommand().length() > 0) {
-            model.setAttribute(this.getCommand(), this.getCurrentValue());
+            if (persistAsString) {
+                model.setAttribute(this.getCommand(), String.format(format, this.getCurrentValue()));
+            }
+            else {
+                model.setAttribute(this.getCommand(), this.getCurrentValue());
+            }
         }
     }
     

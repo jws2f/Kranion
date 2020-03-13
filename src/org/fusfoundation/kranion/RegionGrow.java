@@ -259,7 +259,10 @@ public class RegionGrow {
             tn = (Integer) src.getAttribute("textureName");
         }
         
-        if (tn == null) return; //TODO: should prob throw exception
+        if (tn == null) {
+            System.out.println("RegioGrow.gpu_calculate: textureName not found.");
+            return;
+        } //TODO: should prob throw exception
         
         // build mask texture
         this.buildTexture(src);

@@ -111,6 +111,10 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
 //    private Quaternion mrImageOrientation = new Quaternion();
     
     private int lutTextureName=0;
+    private LookupTable thermometryLUT = new LookupTable(512);
+    private LookupTable doseLUT = new LookupTable(512);
+    
+    private Colorbar colorbar;
 
     // we use this to rotate our imaging plane in the 3D texture space
     private Trackball trackball;
@@ -143,8 +147,53 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     public ImageCanvas3D() {
         TransferFunction = null;
         
+        thermometryLUT.setMinValue(37);
+        thermometryLUT.setMaxValue(60);
+/*
+        if (ovlyTexVal <= 43.0) {
+            //ovlyColor = mix(vec4(0.0, 0.0, 0.0, 0.0), vec4(0.1, 0.1, 0.7, 0.6), clamp((ovlyTexVal-37.0)/6.0f, 0, 1));
+            ovlyColor = mix(vec4(0.0, 0.0, 0.0, 0.0), vec4(0.1, 0.1, 0.7, 0.0), clamp((ovlyTexVal-37.0)/6.0f, 0, 1));
+        }
+        else if (ovlyTexVal <= 55.0) {
+            //ovlyColor = mix(vec4(0.1, 0.1, 0.7, 0.65), vec4(1, 0.3, 0.3, 1), clamp((ovlyTexVal-43)/12.0, 0, 1));
+            ovlyColor = mix(vec4(0.1, 0.1, 0.7, 0.05), vec4(1, 0.3, 0.3, 1), clamp((ovlyTexVal-43)/12.0, 0, 1));
+        }
+        else {
+            ovlyColor = mix(vec4(1, 0.3, 0.3, 1), vec4(1, 0.8, 0.8, 1), clamp((ovlyTexVal-55)/5.0, 0, 1));
+        }
+*/
+        thermometryLUT.setLUTvalueRamp(37, 43, new Vector4f(0, 0, 0, 0), new Vector4f(0.1f, 0.1f, 0.7f, 0.4f));
+        thermometryLUT.setLUTvalueRamp(43, 55, new Vector4f(0.1f, 0.1f, 0.7f, 0.4f), new Vector4f(1f, 0.3f, 0.3f, 1f));
+        thermometryLUT.setLUTvalueRamp(55, 60, new Vector4f(1f, 0.3f, 0.3f, 1f), new Vector4f(1f, 0.8f, 0.7f, 1f));
+        thermometryLUT.setUnitsName("\u00b0C");
+
+/*        
+       if (ovlyTexVal <= 50.0) {
+            //ovlyColor = mix(vec4(0.0, 0.0, 0.0, 0.0), vec4(0.1, 0.1, 0.7, 0.6), clamp((ovlyTexVal-37.0)/6.0f, 0, 1));
+            ovlyColor = mix(vec4(0.1, 0.1, 0.7, 0.0), vec4(0.1, 0.1, 0.7, 0.3), clamp((ovlyTexVal)/50.0f, 0, 1));
+        }
+        else if (ovlyTexVal <= 100.0) {
+            //ovlyColor = mix(vec4(0.1, 0.1, 0.7, 0.65), vec4(1, 0.3, 0.3, 1), clamp((ovlyTexVal-43)/12.0, 0, 1));
+            ovlyColor = mix(vec4(0.1, 0.1, 0.7, 0.3), vec4(1, 1, 0.1, 0.3), clamp((ovlyTexVal-50)/50.0, 0, 1));
+        }
+        else {
+            ovlyColor = mix(vec4(1, 1, 0.1, 0.3), vec4(1, 0.1, 0.1, 0.5), clamp((ovlyTexVal-100)/140.0, 0, 1));
+        }
+*/
+        doseLUT.setMinValue(0);
+        doseLUT.setMaxValue(240);
+        doseLUT.setLUTvalueRamp(0, 50, new Vector4f(0.1f, 0.1f, 0.7f, 0.0f), new Vector4f(0.1f, 0.1f, 0.7f, 0.2f));
+        doseLUT.setLUTvalueRamp(50, 100, new Vector4f(0.1f, 0.1f, 0.7f, 0.2f), new Vector4f(1f, 1f, 0.1f, 0.3f));
+        doseLUT.setLUTvalueRamp(100, 240, new Vector4f(1f, 1f, 0.1f, 0.3f), new Vector4f(1f, 0.1f, 0.1f, 0.5f));
+        doseLUT.setUnitsName("CEM");
+        
+        
         renderOverlay();
         
+    }
+    
+    public void setColorbar(Colorbar cb) {
+        colorbar = cb;
     }
    
     public void setTransferFunction(ImageVolume4D lut) {
@@ -294,6 +343,10 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
 
         renderOverlay();
 
+    }
+    
+    public ImageVolume getOverlayImage() {
+        return OverlayImage;
     }
     
     public void setOverlayImage(ImageVolume image) {
@@ -488,7 +541,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
         if (!getVisible()) return;
         
         draw();
-        
+                
         setIsDirty(false);
     }
 
@@ -1027,6 +1080,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         Integer tn = (Integer) CTimage.getAttribute("textureName");
         if (tn == null) {
             Main.glPopAttrib();
+            System.out.println("ImageCanvas3D.display: textureName not found.");
             return;
         }
         
@@ -1044,6 +1098,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         }
         
         setupImageTexture(OverlayImage, 5);
+        
         
         buildLutTexture();
         setupLutTexture(2);                
@@ -1081,25 +1136,37 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
 
             ShaderProgram shaderToUse = null;
             
+            LookupTable lutToUse = thermometryLUT;
+            
             if (doVolumeRender) {
                 shaderToUse = shader;
                 if (showThermometry ) {
                     if (this.showDose) {
-                        shaderToUse = this.thermometryDoseShader;
+                        //shaderToUse = this.thermometryDoseShader;
+                        shaderToUse = thermometryShader;
+                        doseLUT.setupTexture(6);
+                        colorbar.setLookupTable(doseLUT);
+                        lutToUse = doseLUT;
                     }
                     else {
                         shaderToUse = thermometryShader;
+                        thermometryLUT.setupTexture(6);
+                        colorbar.setLookupTable(thermometryLUT);
+                        lutToUse = thermometryLUT;
                     }
                 }
                 else if (showPressure) {
                     shaderToUse = pressureShader;
+                    colorbar.setLookupTable(null);
                 }
                 else {
                     shaderToUse = shader;                
+                    colorbar.setLookupTable(null);
                 }
             }
             else {
                 shaderToUse = shader2D;
+                colorbar.setLookupTable(null);
             }
             
             if (doPicking) {
@@ -1136,6 +1203,12 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
                 glUniform1i(texLoc, 4);
                 texLoc = glGetUniformLocation(shaderProgID, "ovly_tex");
                 glUniform1i(texLoc, 5);
+                texLoc = glGetUniformLocation(shaderProgID, "ovly_lut_tex");
+                glUniform1i(texLoc, 6);
+                texLoc = glGetUniformLocation(shaderProgID, "ovly_lut_tex_min");
+                glUniform1f(texLoc, lutToUse.getMinValue());
+                texLoc = glGetUniformLocation(shaderProgID, "ovly_lut_tex_max");
+                glUniform1f(texLoc, lutToUse.getMaxValue());
                 
                 texLoc = glGetUniformLocation(shaderProgID, "ct_rescale_slope");
                 glUniform1f(texLoc, ct_rescale_slope);

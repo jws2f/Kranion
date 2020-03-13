@@ -90,6 +90,7 @@ public class ACPCdisplay extends GUIControl {
 //    //                Vector3f color = getColor(selectedTarget);
 //    //                sphere.setColor(color.x, color.y, color.z, 1f);
 //                    sphere.render();
+                glLineWidth(2);
                 glBegin(GL_LINES);
                     glColor4f(1f, 0.5f, 0.5f, 0.9f);
                     

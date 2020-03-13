@@ -232,7 +232,7 @@ public class DicomSeriesDialog extends FlyoutDialog {
                         canvas.setCTThreshold(-1024);
                         canvas.setMRThreshold(-1024);
                         try {
-                            canvas.setCenterWindow(((Float) previewImage.getAttribute("WindowCenter")).intValue(), ((Float) previewImage.getAttribute("WindowWidth")).intValue());
+                            canvas.setCenterWindow(((Float) previewImage.getAttribute("WindowCenter")).intValue()/2, ((Float) previewImage.getAttribute("WindowWidth")).intValue()/2);
                             canvas.setCTrescale(((Float) previewImage.getAttribute("RescaleSlope")).intValue(), ((Float) previewImage.getAttribute("RescaleIntercept")).intValue());
                         } catch (Exception e3) {
                             // image didn't have center/window tags

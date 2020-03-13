@@ -50,6 +50,19 @@ public class ImageLabel extends GUIControl {
     {
         zDepth = depth;    
     }
+
+    @Override
+    public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
+        if (super.OnMouse(x, y, button1down, button2down, dwheel)) {
+            return true;
+        }
+        else if (this.MouseIsInside(x, y) && (button1down || button2down)) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
     
     @Override
     public void render() {

@@ -260,6 +260,13 @@ public class Framebuffer extends Renderable implements Resizeable {
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
     }
     
+    public void bindForRead() {
+        if (myFBOId == 0) return;
+        
+        glBindFramebuffer(GL_FRAMEBUFFER, myFBOId);
+        glReadBuffer(GL_FRONT_LEFT);
+    }
+    
     public void unbind() {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 //        glDrawBuffer(0);

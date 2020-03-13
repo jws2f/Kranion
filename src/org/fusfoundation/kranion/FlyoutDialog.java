@@ -209,7 +209,9 @@ public class FlyoutDialog extends FlyoutPanel {
         return true; // always modal behavior
     }
     
-
+    protected void doEveryFrame() {
+        // Override to allow some processing while the dialog is open
+    }
     
     public void show() {
         this.grabMouse(0f, 0f);
@@ -218,6 +220,7 @@ public class FlyoutDialog extends FlyoutPanel {
         flyout();
         isClosed = false;
         while(!isClosed || !anim.isAnimationDone()) {
+            doEveryFrame(); // call to let subclasses do something while the dialog is open
             Main.processNextFrame();
         }
         this.ungrabMouse();

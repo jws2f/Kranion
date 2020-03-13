@@ -394,6 +394,9 @@ public class MutualInformation {
 
             glMatrixMode(GL_MODELVIEW);
         }
+        else {
+            System.out.println("MutualInformation.setupImageTexture: textureName not found.");
+        }
 
         Main.glPopAttrib();
     }

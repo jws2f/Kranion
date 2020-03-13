@@ -125,6 +125,13 @@ public class XYChartControl extends GUIControl {
         }
 
     }
+    
+    public void setChartYAxisMinMax(double min, double max) {
+        if (chart != null) {
+            chart.getStyler().setYAxisMin(min);
+            chart.getStyler().setYAxisMax(max);
+        }
+    }
 
     public XYChart getChart() {
         return chart;
@@ -178,6 +185,11 @@ public class XYChartControl extends GUIControl {
             selectedXValue = Math.max(0, Math.min(1f, (float)(x-71)/(bounds.width-71)));
             this.fireActionEvent();
             
+            return true;
+        }
+        
+        if (this.mouseInside && button2down) {
+            // eat all the mouse clicks
             return true;
         }
         

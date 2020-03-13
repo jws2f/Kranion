@@ -90,6 +90,10 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
         return frameBuffer.getHeight();
     }
     
+    public Framebuffer getFrameBuffer() {
+        return this.frameBuffer;
+    }
+    
     public void setIs2d(boolean is2D) {
         this.is2D = is2D;
     }

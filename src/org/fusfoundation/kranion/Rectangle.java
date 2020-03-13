@@ -59,18 +59,22 @@ public class Rectangle {
     
     public int getIntWidth() {
         return (int)Math.ceil(width);
+        //return (int)Math.round(width);
     }
     
     public int getIntHeight() {
         return (int)Math.ceil(height);
+        //return (int)Math.round(height);
     }
     
     public int getIntX() {
         return (int)Math.floor(x);
+        //return (int)Math.round(x);
     }
     
     public int getIntY() {
         return (int)Math.floor(y);
+        //return (int)Math.round(y);
     }
     
     public void setBounds(Rectangle r) {

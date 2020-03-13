@@ -30,6 +30,7 @@ import java.beans.PropertyChangeEvent;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
+import org.fusfoundation.kranion.Main;
 import org.fusfoundation.kranion.ProgressListener;
 import org.fusfoundation.kranion.Transducer;
 import org.fusfoundation.kranion.TransducerXStreamConverter;
@@ -106,6 +107,13 @@ public class Model extends Observable implements Serializable, Observer {
     // When loading a model from disk we need to alert all observers of all new attribute values
     // This should update GUI observers
     public void updateAllAttributes() {
+        setChanged();
+        notifyObservers(new PropertyChangeEvent(this, "Model.CtImage", null, getCtImage()));
+        for (int n=0; n<this.getMrImageCount(); n++) {
+            setChanged();
+            notifyObservers(new PropertyChangeEvent(this, "Model.MrImage["+n+"]", null, getMrImage(n)));            
+        }
+
         Iterator<String> i = getAttributeKeys();
         while(i.hasNext()) {
             String key = i.next();
@@ -379,6 +387,13 @@ public class Model extends Observable implements Serializable, Observer {
     
     public static Model loadModel(File file, ProgressListener listener) throws IOException, ClassNotFoundException {
         
+            // attempt to put up the progress bar immediately since
+            // some storage can be slow to respond
+            if (listener != null) {
+                listener.percentDone("Loading scene", 0);
+                Main.processNextFrame();
+            }
+                
             Model newModel = null;
             ObjectInputStream is = null;
                     
@@ -440,6 +455,7 @@ public class Model extends Observable implements Serializable, Observer {
 
                 // read entries for each image data channel
                 imageConverter.unmarshalVoxelData(modelFile, listener);
+                // read entries for transducer model meshes
                 transducerConverter.unmarshalMeshData(modelFile, listener);
                 
                 modelFile.close();

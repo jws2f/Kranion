@@ -28,9 +28,17 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.ClosedWatchServiceException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFileChooser;
 import org.fusfoundation.kranion.view.DefaultView;
 
@@ -62,7 +70,11 @@ public class FileDialog extends FlyoutDialog {
     
     public static enum fileChooseMode {EXISTING_FILES, EXISTING_DIRECTORIES, EXISTING_FILES_AND_DIRECTORIES, FILES};
     
+    private WatchService watchService;
+    private WatchKey watchKey;
+    
     public FileDialog() {
+
         this.setBounds(0, 0, 512, 256);
         this.setFlyDirection(direction.SOUTH);
         
@@ -135,6 +147,8 @@ public class FileDialog extends FlyoutDialog {
     }
     
     public File open(String[] filters) {
+        populateRoots();
+        
         if (chooseMode == fileChooseMode.FILES) {
             this.selectedFileDisplay.setTextEditable(true);
             this.fileList.setIsEnabled(true);
@@ -169,6 +183,31 @@ public class FileDialog extends FlyoutDialog {
         return selectedFile;
     }
     
+    @Override
+    protected void doEveryFrame() {
+//        System.out.println("File dialog doEveryFrame()");
+        boolean updateDir = false;
+        
+        try {
+            watchKey = watchService.poll();
+
+            if (watchKey != null) {
+                for (WatchEvent<?> event : watchKey.pollEvents()) {
+                    updateDir = true;
+                }
+
+                watchKey.reset();
+            }
+        } catch (ClosedWatchServiceException ex) {
+//            Logger.getLogger(FileDialog.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        if (updateDir) {
+            populateLists(currentDirectory);
+        }
+        
+    }
+    
     protected void populateRoots() {
         rootSelector.clear();
         File[] roots = File.listRoots();
@@ -183,13 +222,52 @@ public class FileDialog extends FlyoutDialog {
         rootSelector.setTitle(roots[0].toString());
     }
     
+    protected void setDirWatch(File dirToWatch) throws IOException {
+        Path path = Paths.get(dirToWatch.getPath());
+ 
+        if (watchService != null) {
+            try {
+            watchService.close();
+            }
+            catch(ClosedWatchServiceException ex) {
+                Logger.getLogger(FileDialog.class.getName()).log(Level.SEVERE, null, ex);                
+            }
+        }
+
+        try {
+            watchService = FileSystems.getDefault().newWatchService();
+        } catch (IOException ex) {
+            Logger.getLogger(FileDialog.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        path.register(
+          watchService, 
+            StandardWatchEventKinds.ENTRY_CREATE, 
+            StandardWatchEventKinds.ENTRY_DELETE,
+            StandardWatchEventKinds.ENTRY_MODIFY);
+                
+    }
+    
     protected void populateLists(File root) {
 
         if (root == null) {
             return;
         }
         
+        if (currentDirectory != root) {
+            dirScroll.setValue(0);
+            fileScroll.setValue(0);
+            dirList.setScroll(0);
+            fileList.setScroll(0);
+        }
+        
         currentDirectory = root;
+        
+        try {
+            setDirWatch(currentDirectory);
+        } catch (IOException ex) {
+            Logger.getLogger(FileDialog.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
         if (root.toString().equals("HOME")) {
             root = new File(System.getProperty("user.home"));
@@ -245,11 +323,6 @@ public class FileDialog extends FlyoutDialog {
             }
         }
 
-        dirScroll.setValue(0);
-        fileScroll.setValue(0);
-        dirList.setScroll(0);
-        fileList.setScroll(0);
-
         doLayout();
     }
     
@@ -291,6 +364,18 @@ public class FileDialog extends FlyoutDialog {
 //                    }
 //                }
                 flyin();
+                
+                // stop watching for directory updates
+                if (watchKey != null) {
+                    watchKey.reset();
+                }
+                if (watchService != null) {
+                    try {
+                        watchService.close();
+                    } catch (IOException ex) {
+                        Logger.getLogger(FileDialog.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
                 isClosed = true;
                 break;
             case "fileScroll":

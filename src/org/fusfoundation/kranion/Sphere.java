@@ -38,7 +38,7 @@ import org.lwjgl.BufferUtils;
 
 import java.nio.*;
 
-public class Sphere extends Renderable {
+public class Sphere extends GUIControl {
 	
 
 	private static int vertsID, normsID;
@@ -167,7 +167,15 @@ public class Sphere extends Renderable {
         }
         
         public Sphere setLocation(float x, float y, float z) {
+            if (x != location.x || y != location.y || z != location.z) {
+                setIsDirty(true);
+            }
             location.set(x, y, z);
+            return this;
+        }
+        
+        public Sphere setLocation(Vector3f loc) {
+            location.set(loc.x, loc.y, loc.z);
             return this;
         }
 	
@@ -223,8 +231,23 @@ public class Sphere extends Renderable {
             
         Main.glPopMatrix();
         //Main.popMatrixWithCheck();
-}	
+}
         
+@Override
+    public void update(Object newValue) {
+        try {
+            if (newValue instanceof Vector3f) {
+                setLocation((Vector3f)newValue);
+            }
+            else {
+                throw new Exception("Wrong type");
+            }
+        }
+        catch(Exception e) {
+            System.out.println(this + " Wrong or NULL new value.");
+        }
+    }
+    
     public void release() {
         refCount--;
 //        System.out.println("Hemisphere refCount = " + refCount);

@@ -225,6 +225,20 @@ public class ProgressBar extends GUIControl {
         gc.drawString(svalue, 5, textVPos);
                 
     }
+
+    @Override
+    public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
+        if (super.OnMouse(x, y, button1down, button2down, dwheel)) {
+            return true;
+        }
+        else if (this.MouseIsInside(x, y) && (value>=0 && isVisible) && (button1down || button2down)) {
+            // eat all mouse clicks if we are visible
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
     
     public synchronized void renderLabel() {
         // Overlay demographics

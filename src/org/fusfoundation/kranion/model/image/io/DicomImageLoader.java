@@ -393,7 +393,10 @@ public class DicomImageLoader implements ImageLoader {
     // load a dicom series from a list of files, sort them by slice position
     public ImageVolume load(List<File> listOfFiles, ProgressListener listener) {
         ImageVolume image = null;
-       
+
+        if (listener != null) {
+            listener.percentDone("Scanning dicom headers", 0);
+        }
                 
         try {
             
@@ -605,7 +608,7 @@ System.out.println(selectedDicomObj);
                     }
                     
                     if (obj == null) {
-                        return null;
+                        throw new Exception("Invalid DICOM object.");
                     }
                     
                
@@ -954,7 +957,10 @@ System.out.println(selectedDicomObj);
     public ImageVolume load(File file, ProgressListener listener) {
         ImageVolume image = null;
        
-                
+        if (listener != null) {
+            listener.percentDone("Scanning dicom headers", 0);
+        }
+        
         try {
             
             DicomObject selectedDicomObj = openDicomFile(file);
@@ -1136,7 +1142,7 @@ System.out.println(selectedDicomObj);
                     }
                     
                     if (obj == null) {
-                        return null;
+                        throw new Exception("Invalid DICOM object.");
                     }
                     
                     if (i==s.size()/2) {

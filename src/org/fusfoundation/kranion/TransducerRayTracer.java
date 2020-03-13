@@ -107,6 +107,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private int activeElementCount = 0;
     private float sdr = 0f;
     private float avgTransmitCoeff = 0f;
+    private float frequency = 650f;
     
     private boolean showPressureEnvelope = false; // show pressure waveform or envelope?
     private float phaseCorrectAmount = 1f; // to vary the amount of phase correction 0 to 1
@@ -130,6 +131,13 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         }
     }
             
+    public void setFrequency(float f_kHz) {
+        if (frequency != f_kHz * 1000.0f) {
+            frequency = f_kHz * 1000.0f;
+            setIsDirty(true);
+        }
+    }
+    
     public int getActiveElementCount() { return activeElementCount; }
     
     public void setPhaseCorrectionAmount(float amount) {
@@ -676,6 +684,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         this.updateObservers(new PropertyChangeEvent(this, "rayCalc", null, null));        
     }
+    
     private void doPickCalc() {
         pickShader.start();
         
@@ -804,6 +813,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         paramLoc = glGetUniformLocation(shaderProgID, "phaseCorrectAmount");
         glUniform1f(paramLoc, phaseCorrectAmount);
+        
+        paramLoc = glGetUniformLocation(shaderProgID, "frequency");
+        glUniform1f(paramLoc, frequency);
                 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, posSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outSSBo);
@@ -1222,6 +1234,76 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             }
 
         }
+    }
+    
+    public class RayData {
+        public Vector3f outerNormal;
+        public Vector3f rayVerts[];
+    }
+    
+    public RayData[] getRayData() {
+        RayData result[] = new RayData[this.elementCount];
+        
+        glBindBuffer(GL_ARRAY_BUFFER, this.outSSBo);
+        ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+        FloatBuffer floatValues = dists.asFloatBuffer();
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);        
+       
+        glBindBuffer(GL_ARRAY_BUFFER, this.outDiscSSBo);
+        ByteBuffer buf = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+        FloatBuffer floatDiscValues = buf.asFloatBuffer();
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        for (int i=0; i<this.elementCount; i++) {
+            
+            // get first triangle in surface strike disc to compute normal
+            int offset = i*12*3*20; // 12 floats per vertex * 3 per triangle * 20 triangles per disk
+            Vector3f center = new Vector3f(floatDiscValues.get(offset + 0), floatDiscValues.get(offset + 1), floatDiscValues.get(offset + 2));
+            Vector3f first = new Vector3f(floatDiscValues.get(offset + 12 + 0), floatDiscValues.get(offset + 12 + 1), floatDiscValues.get(offset + 12 + 2));
+            Vector3f second = new Vector3f(floatDiscValues.get(offset + 24 + 0), floatDiscValues.get(offset + 24 + 1), floatDiscValues.get(offset + 24 + 2));
+            
+            Vector3f normal = Vector3f.cross(Vector3f.sub(second, center, null), Vector3f.sub(first, center, null), null);
+            if (normal.lengthSquared() > 0f) {
+                normal.normalise();
+            }
+            
+            result[i] = new RayData();
+            result[i].outerNormal = normal;
+            result[i].rayVerts = new Vector3f[4];
+            
+            // element center
+            result[i].rayVerts[0] = new Vector3f(floatValues.get(), floatValues.get(), floatValues.get());
+            floatValues.get();
+            
+            // outer skull surface intercept
+            result[i].rayVerts[1] = new Vector3f(floatValues.get(), floatValues.get(), floatValues.get());
+            floatValues.get();
+            
+            //skip repeated outer skull surface intercept
+            floatValues.get();
+            floatValues.get();
+            floatValues.get();
+            floatValues.get();
+            
+            // inner skull surface intercept
+            result[i].rayVerts[2] = new Vector3f(floatValues.get(), floatValues.get(), floatValues.get());
+            floatValues.get();
+            
+            //skip repeated inner skull surface intercept
+            floatValues.get();
+            floatValues.get();
+            floatValues.get();
+            floatValues.get();
+            
+            // nearest focal point intercept
+            result[i].rayVerts[3] = new Vector3f(floatValues.get(), floatValues.get(), floatValues.get());
+            floatValues.get();
+        }
+        
+        
+        return result;
     }
     
     public List<Double> getIncidentAngles() {
@@ -1959,7 +2041,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         if (CTimage == null) return;
         
         setupImageTexture(CTimage, 0, centerOfRotation);
-        
+
         doCalc();
         doSDRCalc();
         
@@ -2370,7 +2452,14 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         Integer tn = (Integer) image.getAttribute("textureName");
         
-        if (tn == null) return; // TODO: this should be handled when the 3D texture doesn't exist for some reason (i.e. after some image filter)
+        if (tn == null) {
+            ImageVolumeUtil.buildTexture(image);
+            tn = (Integer) image.getAttribute("textureName");
+            if (tn == null) {
+                System.out.println("TransducerRayTracer.setupImageTexture: textureName not found.");
+                return;
+            }
+        } // TODO: this should be handled when the 3D texture doesn't exist for some reason (i.e. after some image filter)
         
         int textureName = tn.intValue();
         glBindTexture(GL_TEXTURE_3D, textureName);  
@@ -2495,6 +2584,14 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             glMatrixMode(GL_MODELVIEW);
         
         Main.glPopAttrib();
+    }
+    
+    public Matrix4f getCTMatrix() {
+        return ctTexMatrix;
+    }
+    
+    public FloatBuffer getCTMatrixFloatBuffer() {
+        return matrixBuf;
     }
         
     @Override

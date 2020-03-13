@@ -72,6 +72,7 @@ public class CoordinateWidget extends GUIControl{
 //        catch (IOException e) {
 //            System.out.println(e);
 //        }
+        this.bounds.setBounds(0, 0, 150, 150);
     }
     
     public void setTrackball(Trackball trackball) {
@@ -165,6 +166,20 @@ public class CoordinateWidget extends GUIControl{
         if (body != null) {
             body.release();
             body = null;
+        }
+    }
+
+    @Override
+    public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
+        if (super.OnMouse(x, y, button1down, button2down, dwheel)) {
+            return true;
+        }
+        else if (this.MouseIsInside(x, y) && (button1down || button2down)){
+            // eat all mouse clicks
+            return true;
+        }
+        else {
+            return false;
         }
     }
     

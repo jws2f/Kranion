@@ -232,7 +232,7 @@ public class TextBox extends GUIControl implements Animator {
                 this.ungrabMouse();
                 return true;
             }
-            else if (button2down) {
+            else if (MouseIsInside(x, y) && button2down) {
                 this.showCaret = true;
                 return true;
             }

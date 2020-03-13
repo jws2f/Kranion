@@ -211,6 +211,20 @@ public class HistogramChartControl extends GUIControl {
 
     }
 
+    @Override
+    public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
+        if (super.OnMouse(x, y, button1down, button2down, dwheel)) {
+            return true;
+        }
+        else if (this.MouseIsInside(x, y) && (button1down || button2down)) {
+            // eat all mouse clicks
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
     public void generateChart() {
         image = new BufferedImage(Math.round(bounds.width), Math.round(bounds.height), BufferedImage.TYPE_4BYTE_ABGR);
 

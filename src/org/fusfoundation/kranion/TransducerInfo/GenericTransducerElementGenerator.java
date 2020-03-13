@@ -30,29 +30,33 @@ package org.fusfoundation.kranion.TransducerInfo;
 public class GenericTransducerElementGenerator {
     public static void main(String[] args) {
         
-        System.out.println("NUM_OF_X_CHANNELS	=	1024");
+        int channelCount = 1024;
+        double focalLength = 150;
+        double elementArea = 113.54;
+        double fractionOfHemisphereHeight = 1;
+        
+        System.out.println("NUM_OF_X_CHANNELS	=	" + channelCount);
         
         double phi = (Math.sqrt(5.0) - 1.0)/2.0;
         //double ga = phi * 2.0 * Math.PI;
         double ga = 2.0 * Math.PI * (1.0 - 1/phi);
         
-        double scale = (Math.PI*Math.PI/4.0)/1024.0;
-        for (int n=1; n<=1024; n++) {
-            //double rn = Math.asin(Math.sqrt(n/1024.0));
-            //double rn = Math.sqrt((Math.PI*Math.PI/4)/1024.0 * n) *0.97;
+//        double scale = (Math.PI*Math.PI/4.0)/channelCount;
+        
+        for (int n=1; n<=channelCount; n++) {
             
-            double c = 1024/(1.0 + Math.cos((Math.PI/2.0) * 1.025));
-            double rn = Math.acos((c - n)/c);
+            double c = channelCount/(1.0 + Math.cos((Math.PI/2) * 1.025));
+            double rn = Math.acos((c - n)/c) * fractionOfHemisphereHeight;
             double thetan = ga * n;
             
-            double x = 150d * Math.sin(rn) * Math.cos(thetan);
-            double y = 150d * Math.sin(rn) * Math.sin(thetan);
-            double z = 150d * Math.cos(rn);
+            double x = focalLength * Math.sin(rn) * Math.cos(thetan);
+            double y = focalLength * Math.sin(rn) * Math.sin(thetan);
+            double z = focalLength * Math.cos(rn);
             
             System.out.print("XCH" + (n-1) + "	=	");
 //            System.out.println(x + " " + y + " " + z + " 113.64");
             
-            System.out.printf("%4.4f %4.4f %4.4f 113.54", x, y, 150d - z);
+            System.out.printf("%4.4f %4.4f %4.4f %4.4f", x, y, 150d - z, elementArea);
             System.out.println();
         }
     }

@@ -71,11 +71,27 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
             pinButton.setColor(0,0,0,0);
             
             addChild(tabbedPanel = new TabbedPanel());
-            addChild(pinButton);            
+            addChild(pinButton);
+
+            tabbedPanel.addActionListener(this);
+    }
+    
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        String command = e.getActionCommand();
+        Object source = e.getSource();
+
+        if (e.getSource() == tabbedPanel) {
+            fireActionEvent(e);
+        }
     }
 
     public void addTab(String tabName) {
         tabbedPanel.addTab(tabName);
+    }
+    
+    public void addTab(String tabName, Object refObj) {
+        tabbedPanel.addTab(tabName, refObj);
     }
     
     public void addChild(String tabName, Renderable child) {
@@ -126,11 +142,6 @@ public class FlyoutPanel extends GUIControl implements ActionListener, Animator,
                 
     }
     
-    @Override
-    public void actionPerformed(ActionEvent e) {
-    }
-    
-
     @Override
     public void setBounds(float x, float y, float width, float height) {
         super.setBounds(x, y, width*guiScale, height*guiScale);

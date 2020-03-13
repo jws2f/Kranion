@@ -198,6 +198,10 @@ public class Main implements ProgressListener {
         }
     }
     
+    public static List<Plugin> getPlugins() {
+        return plugins;
+    }
+    
     public static void updateAllControlBindings() {
         if (Main.main.model != null) {
             Iterator<Renderable> controls = Renderable.iterator();
@@ -615,7 +619,13 @@ public class Main implements ProgressListener {
         glLoadIdentity();
         viewportAspect = (float) Display.getWidth() / (float) Display.getHeight();
         gluPerspective(40.0f, viewportAspect, 100.0f, 100000.0f);
-
+        
+//        org.lwjgl.util.vector.Matrix4f perspective = new org.lwjgl.util.vector.Matrix4f();
+//        FloatBuffer matbuf = BufferUtils.createFloatBuffer(16);
+//        glGetFloat(GL_PROJECTION_MATRIX, matbuf);
+//        perspective.load(matbuf);        
+//        System.out.println("MAIN GL perspective mat:\n" + perspective);
+ 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
 
@@ -626,13 +636,14 @@ public class Main implements ProgressListener {
         if (view.doOkCancelMessageBox("RESEARCH USE ONLY", "Kranion is intended for research purposes only.")) {
             while (true) {
 
-                handleResize();
-
-                view.processInput();
-
-                nextFrame();
-
-                Main.checkForGLError();
+//                handleResize();
+//
+//                view.processInput();
+//
+//                nextFrame();
+//
+//                Main.checkForGLError();
+                messageLoop();
 
                 if (Display.isCloseRequested()) {
 //                int result = JOptionPane.showConfirmDialog(null, "Are you sure you want to exit?", "Exit Kranion", JOptionPane.YES_NO_OPTION);
@@ -701,7 +712,7 @@ public class Main implements ProgressListener {
                 view.render();
                 
                 // swap display buffers
-                Display.update();
+//                Display.update();
                 wasRendered = true;
             }
             else {
@@ -710,9 +721,13 @@ public class Main implements ProgressListener {
 
         }
         
+        // This needs to be here for window resizing to get handled correctly
+        // swap display buffers
+        Display.update();
         
 
-        Display.processMessages();
+//        Display.processMessages(); // Unnecessary
+
         currentBuffer = (currentBuffer + 1) % 3; // keep track of front/back buffers
 
         try {

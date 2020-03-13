@@ -212,7 +212,10 @@ public class ImageHistogram {
         
         Integer tn = (Integer) image.getAttribute("textureName");
         
-        if (tn == null) return;
+        if (tn == null) {
+            System.out.println("ImageHistogram.setupImageTexture: textureName not found.");
+            return;
+        }
         
         int textureName = tn.intValue();
        

@@ -44,7 +44,7 @@ public abstract class Renderable {
     private boolean acceptsKeyboardFocus = false;
     
     public Renderable() {
-        renderableMap.add(this); // TODO: Slightly dangerous, not thread safe. The Rebderable Set is private, so shouldn't publish "this" outside the constructor.
+        renderableMap.add(this); // TODO: Slightly dangerous, not thread safe. The Renderable Set is private, so shouldn't publish "this" outside the constructor.
     }
     
     public void removeFromSet() {

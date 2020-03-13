@@ -40,7 +40,12 @@ uniform sampler3D ct_tex;
 uniform sampler3D mr_tex;
 uniform sampler3D ct_grad_tex;
 uniform sampler1D lut_tex;
-uniform sampler3D ovly_tex;
+
+uniform sampler3D   ovly_tex;
+uniform sampler1D   ovly_lut_tex;
+uniform float       ovly_lut_tex_min;
+uniform float       ovly_lut_tex_max;
+
 //layout(location=0) out vec4 colorout;
 varying vec3 frag_position;
 uniform vec3 light_position;
@@ -91,7 +96,9 @@ void main(void)
         bool noLighting = false;
         bool useMRval = false;
 
-        vec4 ovlyColor = vec4(1.0);
+        vec4 ovlyColor = vec4(0.0);
+
+
 /*
         if (ovlyTexVal > 699.0) {
             ovlyColor = vec4(0.3, 1.0, 0.3, 1.0);
@@ -103,6 +110,7 @@ void main(void)
             ovlyColor = vec4(1.0, 0.7, 0.7, 1.0);
         }
 */
+/*
         if (ovlyTexVal <= 43.0) {
             //ovlyColor = mix(vec4(0.0, 0.0, 0.0, 0.0), vec4(0.1, 0.1, 0.7, 0.6), clamp((ovlyTexVal-37.0)/6.0f, 0, 1));
             ovlyColor = mix(vec4(0.0, 0.0, 0.0, 0.0), vec4(0.1, 0.1, 0.7, 0.0), clamp((ovlyTexVal-37.0)/6.0f, 0, 1));
@@ -114,8 +122,10 @@ void main(void)
         else {
             ovlyColor = mix(vec4(1, 0.3, 0.3, 1), vec4(1, 0.8, 0.8, 1), clamp((ovlyTexVal-55)/5.0, 0, 1));
         }
-
+*/
         if (slice==last_slice) {
+            ovlyColor = texture1D(ovly_lut_tex, clamp((ovlyTexVal - ovly_lut_tex_min)/(ovly_lut_tex_max - ovly_lut_tex_min), 0, 1));
+
             if (showMR==1) {
                 mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 65535.0 * mr_rescale_slope + mr_rescale_intercept;
                 if (mrsample < mr_threshold && color.a < 0.05 && ovlyTexVal == 0) {
