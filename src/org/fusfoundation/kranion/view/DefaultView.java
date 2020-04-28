@@ -130,6 +130,7 @@ import org.fusfoundation.kranion.DicomSeriesDialog;
 import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.FlyoutDialog;
 import org.fusfoundation.kranion.GUIControlModelBinding;
+import org.fusfoundation.kranion.ImageLandmark;
 import org.fusfoundation.kranion.MessageBoxDialog;
 import org.fusfoundation.kranion.ProgressListener;
 import org.fusfoundation.kranion.Rectangle;
@@ -267,7 +268,7 @@ public class DefaultView extends View {
     private XYChartControl registrationChart;
     private Colorbar colorbar;
     
-    private Sphere testLoc;
+    private ImageLandmark testLoc;
 
     // So plugins have access to implemented file choosing mechanism
     @Override
@@ -1101,10 +1102,8 @@ public class DefaultView extends View {
         
         // This is for testing 3D picking
         ///////////////////////////////////
-        testLoc = new Sphere(0.5f);
+        testLoc = new ImageLandmark(null);
         testLoc.setVisible(true);
-        testLoc.setColor(1, 0, 0, 1);
-        testLoc.setLocation(0, 0, 0);
         testLoc.setCommand("Selected3DPoint");
         testLoc.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
         model.addObserver(testLoc);
@@ -1241,6 +1240,7 @@ public class DefaultView extends View {
 
     }
     
+    @Override
     public int doPick(int mouseX, int mouseY) {
         int result = 0;
         
@@ -1349,16 +1349,138 @@ public class DefaultView extends View {
         // 4.
 //        return (u >= 0.0f && u <= dS21.dot(dS21)
 //                && v >= 0.0f && v <= dS31.dot(dS31));
-        return (u >= 0.0f && u <= Vector3f.dot(dS21, dS21)
+        return (u >= 0.0f && u <= Vector3f.dot(dS21, dS21) // TODO: this is not correct yet
                 && v >= 0.0f && v <= Vector3f.dot(dS31, dS31));
     }
-        
-    public Vector3f doRayPick(int mouseX, int mouseY) {
+                
+    public Vector3f getCameraLocation() {
+        Matrix4f modelview = Trackball.toMatrix4f(trackball.getCurrent());
+        modelview.invert();
+
+        Vector4f camera = new Vector4f(0, 0, cameraZ, 1);
+
+        Vector4f transCamera = Matrix4f.transform(modelview, camera, null);
+
+        return new Vector3f(transCamera.x, transCamera.y, transCamera.z);
+
+    }
+   
+    
+//    // per http://schabby.de/picking-opengl-ray-tracing/
+//    private Vector3f doAltRayPick(int mouseX, int mouseY, Vector3f pickRay) {
+//        Vector3f result = new Vector3f();
+//        
+//        float nearClippingPlaneDistance = 100f;
+//        Vector3f cameraLookAt = new Vector3f(0,0,cameraZ);
+//        Vector3f cameraUp = new Vector3f(0, -1, 0);
+//        Vector3f cameraPosition = new Vector3f(0, 0, dolly.getValue());
+//        
+//        float x = mouseX;
+//        float y = mouseY;
+//        float width = Display.getWidth();
+//        float height = Display.getHeight();
+//        
+//        Vector3f view = Vector3f.sub(cameraLookAt, cameraPosition, null);
+//        view.normalise();
+//        
+//        Vector3f h = Vector3f.cross(view, cameraUp, null);
+//        h.normalise();
+//        
+//        Vector3f v = Vector3f.cross(h, view, null);
+//        v.normalise();
+//        
+//        float rad = 40.0f * (float)Math.PI / 180.0f;
+//        float vLength = (float)Math.tan(rad/2) * nearClippingPlaneDistance;
+//        float hLength = vLength * (width / height);
+//
+//        System.out.println("vLength: " + vLength);
+//        System.out.println("hLength: " + hLength);
+//        
+//        v.scale(vLength);
+//        h.scale(hLength);
+//        
+//        System.out.println("v vector: " + v);
+//        System.out.println("h vector: " + h);
+//        
+//        x -= width / 2f;
+//        y -= height / 2f;
+//        
+//        x /= (width/2f);
+//        y /= -(height/2f);
+//        
+//        System.out.println("x = " + x);
+//        System.out.println("y = " + y);
+//        
+//        Vector3f pos = Vector3f.add(cameraPosition, (Vector3f)view.scale(nearClippingPlaneDistance), null);
+//        Vector3f.add(pos, (Vector3f)h.scale(x), pos);
+//        Vector3f.add(pos, (Vector3f)v.scale(y), pos);
+//        
+//        System.out.println("pos = " + pos);
+//        
+//        Vector3f dir = Vector3f.sub(pos, cameraPosition, null);
+//        dir.normalise();
+//        
+//        Matrix4f modelview = Trackball.toMatrix4f(trackball.getCurrent());
+//        modelview.invert();
+//         
+//        Vector4f dir4 = new Vector4f(dir.x, dir.y, dir.z, 0);
+//        Matrix4f.transform(modelview, dir4, dir4);
+//        dir.set(dir4.x, dir4.y, dir4.z);
+//        
+//       
+//        dir4.set(pos.x, pos.y, pos.z, 1);
+//        Matrix4f.transform(modelview, dir4, dir4);
+//        pos.set(dir4.x, dir4.y, dir4.z);
+//        
+//        
+//        System.out.println("dir = " + dir);
+//        
+//        if (pickRay != null) {
+//            pickRay.set(dir);
+//        }
+//        
+//        
+//        Vector3f ray_pt0 = new Vector3f().set(pos);
+//        Vector3f ray_pt1 = Vector3f.add(ray_pt0, (Vector3f)dir.scale(-500), null);
+//        
+//        Vector4f plane_origin = new Vector4f(0, 0,  -dolly.getValue(), 0);
+//        Vector4f plane_pt0 = new Vector4f(-150, -150, -dolly.getValue(), 0);
+//        Vector4f plane_pt1 = new Vector4f(150, -150, -dolly.getValue(), 0);
+//        Vector4f plane_pt2 = new Vector4f(-150, 150, -dolly.getValue(), 0);
+//        
+//        plane_origin = Matrix4f.transform(modelview, plane_origin, null);
+//        plane_pt0 = Matrix4f.transform(modelview, plane_pt0, null);
+//        plane_pt1 = Matrix4f.transform(modelview, plane_pt1, null);
+//        plane_pt2 = Matrix4f.transform(modelview, plane_pt2, null);
+//        
+//        Vector3f hitpoint = new Vector3f();
+//        
+//        boolean ishit = intersectRayWithSquare(ray_pt0, ray_pt1, 
+////                new Vector3f(-150, -150, cameraZ - dolly.getValue()),
+////                new Vector3f( 150, -150, cameraZ - dolly.getValue()),
+////                new Vector3f(-150,  150, cameraZ - dolly.getValue()),
+//                new Vector3f(plane_pt0.x, plane_pt0.y, plane_pt0.z),
+//                new Vector3f(plane_pt1.x, plane_pt1.y, plane_pt1.z),
+//                new Vector3f(plane_pt2.x, plane_pt2.y, plane_pt2.z),
+//                hitpoint
+//        );
+//        
+//        result.x = hitpoint.x - plane_origin.x;
+//        result.y = hitpoint.y - plane_origin.y;
+//        result.z = hitpoint.z - plane_origin.z;  
+//        
+//        return result;
+//    }
+    
+    @Override
+    public Vector3f doRayPick(int mouseX, int mouseY, Vector3f pickRay) {
         Vector3f result=null;
         
-        System.out.println("doRayPick: " + mouseX + ", " + mouseY);
+//        return this.doAltRayPick(mouseX, mouseY, pickRay);
+        
+//        System.out.println("doRayPick: " + mouseX + ", " + mouseY);
 
-        System.out.println(dolly.getValue());
+//        System.out.println(dolly.getValue());
         
         float x = (2.0f * mouseX) / Display.getWidth() - 1.0f;
         float y = 1.0f - (2.0f * mouseY) / Display.getHeight();
@@ -1367,7 +1489,7 @@ public class DefaultView extends View {
         
         Vector4f ray_clip = new Vector4f(ray_nds.x, ray_nds.y, -1.0f, 1.0f);
         
-        System.out.println("Ray_clip: " + ray_clip);
+//        System.out.println("Ray_clip: " + ray_clip);
         
         Vector4f ray_eye = new Vector4f();
         
@@ -1398,21 +1520,25 @@ public class DefaultView extends View {
 //        modelview.translate(new Vector3f(0, 0, dolly.getValue()));
 //        System.out.println("modelview:\n:" + modelview);
         modelview.invert();
-        System.out.println("inverted modelview:\n:" + modelview);
+//        System.out.println("inverted modelview:\n:" + modelview);
         
         // ray_world will contain a vector in world coordinates pointing into the scene based on mouse click position
         ray_world = Matrix4f.transform(modelview, ray_eye, ray_world);
         
-        System.out.println("Ray_eye: " + ray_eye);
-        System.out.println("Ray_world: " + ray_world);
+//        System.out.println("Ray_eye: " + ray_eye);
+//        System.out.println("Ray_world: " + ray_world);
         
         result = new Vector3f();
         
         Vector3f hitpoint = new Vector3f();
         Vector3f ray_world_norm = new Vector3f(ray_world.x, ray_world.y, ray_world.z);
-        ray_world.normalise();
+        ray_world_norm.normalise();
         
-        System.out.println("Ray_world_norm: " + ray_world);
+        if (pickRay != null) {
+            pickRay.set(ray_world_norm);
+        }
+                
+//        System.out.println("Ray_world_norm: " + ray_world_norm);
         
         Vector3f ray_pt0 = new Vector3f(0, 0, 0);
         Vector3f ray_pt1 = Vector3f.add(ray_pt0, (Vector3f)ray_world_norm.scale(5000), null);
@@ -1441,11 +1567,18 @@ public class DefaultView extends View {
         result.y = hitpoint.y - plane_origin.y;
         result.z = hitpoint.z - plane_origin.z;
         
-        if (ishit) {
-            System.out.println("Hit: " + hitpoint);
-        }
-        else {
-            System.out.println("No hit.");
+//        if (ishit) {
+//            System.out.println("Hit: " + hitpoint);
+//        }
+//        else {
+//            System.out.println("No hit.");
+//        }
+        if (pickRay != null) {
+            Vector4f cameraPt = new Vector4f(0, 0,  -cameraZ + dolly.getValue(), 0);
+            cameraPt = Matrix4f.transform(modelview, cameraPt, null);
+//          Vector between origin plan hitpoint and camera location
+            pickRay.set(Vector3f.sub(result, new Vector3f(-cameraPt.x, -cameraPt.y, -cameraPt.z), null));
+            
         }
         
         return result;
@@ -1525,11 +1658,14 @@ public class DefaultView extends View {
     }
     
     public void setDisplayCTimage(ImageVolume image) {
+//        testLoc.setImage(image);
+        
         if (image == null) {
             canvas.setCTImage(image);
             canvas1.setCTImage(image);
             canvas2.setCTImage(image);
             canvas3.setCTImage(image);
+            
 
             return;
         }
@@ -2536,10 +2672,11 @@ public class DefaultView extends View {
 
                 // if pickval == Nothing, CT or MR
                 if (pickVal >= 0 && pickVal <= 2) {
-                    Vector3f rayPickPt = this.doRayPick(x, y);
-                    testLoc.setLocation(rayPickPt.x, rayPickPt.y, rayPickPt.z);
-                    System.out.println("picked world coord = " + rayPickPt);
+                    Vector3f rayPickPt = this.doRayPick(x, y, null);
+
+                    testLoc.setImage(null); // world coordinates
                     model.setAttribute("Selected3DPoint", rayPickPt, true);
+                    
                     if (canvas.getShowThermometry()) {
                         this.updateThermometryDisplay(model.getSelectedSonication(), 0, false);
 
@@ -3169,6 +3306,10 @@ public class DefaultView extends View {
                     boolean bDoShowThermometry = (Boolean)event.getNewValue();
                     if (bDoShowThermometry) {
                         model.setAttribute("showPressure", false);
+                        testLoc.setVisible(true);
+                    }
+                    else {
+                        testLoc.setVisible(false);
                     }
                     break;
                 case "showPressure":
@@ -5039,8 +5180,8 @@ public class DefaultView extends View {
             case "tabSelected":
                 Object src = e.getSource();
                 if (src != null && src instanceof TabbedPanel) {
-                    System.out.println(((TabbedPanel) src).getSelectedTab().getLabel());
-                    System.out.println(((TabbedPanel) src).getSelectedTab().getRefObj());
+//                    System.out.println(((TabbedPanel) src).getSelectedTab().getLabel());
+//                    System.out.println(((TabbedPanel) src).getSelectedTab().getRefObj());
                     Object refObj = ((TabbedPanel) src).getSelectedTab().getRefObj();
                     if (refObj != null && refObj instanceof Plugin) {
                         this.activePlugin = (Plugin) refObj;

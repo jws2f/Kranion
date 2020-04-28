@@ -24,14 +24,20 @@
 package org.fusfoundation.kranion.plugins.stxtools;
 
 import org.fusfoundation.kranion.GUIControl;
+import org.fusfoundation.kranion.ImageLandmark;
 import org.fusfoundation.kranion.Main;
 import static org.fusfoundation.kranion.Main.glPopAttrib;
 import static org.fusfoundation.kranion.Main.glPopMatrix;
 import static org.fusfoundation.kranion.Main.glPushAttrib;
 import static org.fusfoundation.kranion.Main.glPushMatrix;
+import org.fusfoundation.kranion.Renderable;
+import org.fusfoundation.kranion.model.Model;
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.fusfoundation.kranion.model.image.ImageVolumeUtil;
+import org.fusfoundation.kranion.view.View;
 import static org.lwjgl.opengl.GL11.GL_BLEND;
+import static org.lwjgl.opengl.GL11.GL_CLIP_PLANE0;
+import static org.lwjgl.opengl.GL11.GL_CLIP_PLANE1;
 import static org.lwjgl.opengl.GL11.GL_DEPTH_TEST;
 import static org.lwjgl.opengl.GL11.GL_ENABLE_BIT;
 import static org.lwjgl.opengl.GL11.GL_LIGHTING;
@@ -64,19 +70,155 @@ public class ACPCdisplay extends GUIControl {
     private Vector3f currentTarget = new Vector3f();
     private Vector3f currentSteering = new Vector3f();
     
+    private Model model;
+    private View view;
+    private ImageVolume image;
+    private ImageLandmark ac_lm, pc_lm, sup_lm;
+    
     public ACPCdisplay() {
         ac = pc = sup = null;
         this.setVisible(true);
     }
+    
+    public void setModel(Model m, View v) {
+        model = m;
+        view = v;
+        
+        if (ac_lm == null) {
+            ac_lm = new ImageLandmark(model.getCtImage());
+            ac_lm.setColor(1, 0, 0, 1);
+            ac_lm.setPropertyPrefix("Model.Attribute");
+            ac_lm.setName("AC");
+            ac_lm.setCommand("AC");
+            ac_lm.setShowOnlyIfSelected(true);
+            model.addObserver(ac_lm);
+            model.setAttribute("AC", new Vector3f(0, -10, 0));
+        }
+        if (pc_lm == null) {
+            pc_lm = new ImageLandmark(model.getCtImage());
+            pc_lm.setColor(0, 1, 0, 1);
+            pc_lm.setPropertyPrefix("Model.Attribute");
+            pc_lm.setName("PC");
+            pc_lm.setCommand("PC");
+            pc_lm.setShowOnlyIfSelected(true);
+            model.addObserver(pc_lm);
+            model.setAttribute("PC", new Vector3f(0, 10, 0));
+        }
+        if (sup_lm == null) {
+            sup_lm = new ImageLandmark(model.getCtImage());
+            sup_lm.setColor(0.3f, 0.3f, 1, 1);
+            sup_lm.setPropertyPrefix("Model.Attribute");
+            sup_lm.setName("ACPCSup");
+            sup_lm.setCommand("ACPCSup");
+            sup_lm.setShowOnlyIfSelected(false);
+            model.addObserver(sup_lm);
+            model.setAttribute("ACPCSup", new Vector3f(0, 0, 20));
+        }
+    }
+
+    @Override
+    public Renderable setIsDirty(boolean dirty) {
+        super.setIsDirty(dirty);
+        ac_lm.setIsDirty(dirty);
+        pc_lm.setIsDirty(dirty);
+        sup_lm.setIsDirty(dirty);
+        
+        return this;
+    }
+    
+    @Override
+    public boolean getIsDirty() {
+        return super.getIsDirty() || ac_lm.getIsDirty() || pc_lm.getIsDirty() || sup_lm.getIsDirty();
+    }
+
+    @Override
+    public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
+//        if (this.model != null && this.view != null && this.model.getCtImage() != null) {
+//            Vector3f pickRay = new Vector3f();
+//            Vector3f pt = view.doRayPick((int)x, (int)y, pickRay);
+//            if (pt != null) {
+//                Vector3f pt2 = new Vector3f(pt);
+//                Vector3f.add(pt2, this.currentTarget, pt2);
+//                Vector3f.add(pt2, this.currentSteering, pt2);
+//                Vector3f.add(pt2, pickRay, pt2);
+//                Vector3f imagePt2 = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), pt2);
+//                
+//                Vector3f.add(pt, this.currentTarget, pt);
+//                Vector3f.add(pt, this.currentSteering, pt);
+//                Vector3f imagePt = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), pt);
+//                                
+//                Vector3f closestIntercept = GetClosestPoint(imagePt, imagePt2, ac_lm.getLocation());
+//                imagePt = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), closestIntercept);
+//                
+//                float dist = Vector3f.sub(closestIntercept, ac_lm.getLocation(), null).length();
+//                System.out.println("close = " + closestIntercept);
+//                System.out.println("ac = " + ac_lm.getLocation());
+//                System.out.println("pt = " + pt);
+//                System.out.println("imagePt = " + imagePt);
+//                System.out.println("ac dist = " + dist);
+//                if (dist < 2) {
+//                    ac_lm.setColor(1, 1, 1, 1);
+//                    setIsDirty(true);
+//                    return true;
+//                }
+//                else {
+//                    ac_lm.setColor(1, 0 , 0, 1);
+//                    setIsDirty(true);
+//                }
+//            }
+//        }
+
+        if (getVisible()) {
+            if (ac_lm.OnMouse(x, y, button1down, button2down, dwheel)) {
+                setIsDirty(true);
+                return true;
+            } else if (pc_lm.OnMouse(x, y, button1down, button2down, dwheel)) {
+                setIsDirty(true);
+                return true;
+            } else if (sup_lm.OnMouse(x, y, button1down, button2down, dwheel)) {
+                setIsDirty(true);
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
 
     @Override
     public void render() {
+        setIsDirty(false);
+        
         if (!isVisible) {
-            setIsDirty(false);
             return;
         }
         
         if (ac != null && pc != null) {
+        ImageVolume ctimage = Main.getModel().getCtImage();
+        
+        glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT | GL_POINT_BIT);
+                glDisable(GL_CLIP_PLANE0);
+                glDisable(GL_CLIP_PLANE1);
+                glDisable(GL_DEPTH_TEST);
+                if (ac_lm != null) {
+                    ac_lm.setImage(ctimage);
+                    ac_lm.render();
+                }
+                if (pc_lm != null) {
+                    pc_lm.setImage(ctimage);
+                    pc_lm.render();
+                }
+                
+                // Gets a little confusing with perspective if no depth test
+                // for the superior point
+                glEnable(GL_DEPTH_TEST);
+                if (sup_lm != null) {
+                    sup_lm.setImage(ctimage);
+                    sup_lm.render();
+                }
+        glPopAttrib();
+        
         glPushAttrib(GL_ENABLE_BIT | GL_LINE_BIT | GL_POINT_BIT);
         glEnable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
@@ -94,7 +236,6 @@ public class ACPCdisplay extends GUIControl {
                 glBegin(GL_LINES);
                     glColor4f(1f, 0.5f, 0.5f, 0.9f);
                     
-                    ImageVolume ctimage = Main.getModel().getCtImage();
                     Vector3f acpt=null, pcpt=null;
                     if (ctimage != null) {
                         acpt = ImageVolumeUtil.pointFromImageToWorld(ctimage, ac);
@@ -176,9 +317,12 @@ public class ACPCdisplay extends GUIControl {
                         glEnd();
                     }
                 }
-                
+                                
                 glPopMatrix();
-        glPopAttrib();
+                
+
+                
+         glPopAttrib();
             
         }
         
@@ -213,7 +357,12 @@ public class ACPCdisplay extends GUIControl {
                 System.out.println("ACPCdisplay: AC update");
                 if (newValue instanceof Vector3f) {
                     if (ac == null) ac = new Vector3f();
-                    ac.set((Vector3f)newValue);
+                    ac.set(new Vector3f((Vector3f)newValue));
+                    if (ac_lm != null && model != null && model.getCtImage() != null) {
+                        ac_lm.setImage(model.getCtImage());
+//                        ac_lm.setLocation(ImageVolumeUtil.pointFromImageToWorld(image, new Vector3f((Vector3f)newValue)));
+                        ac_lm.setLocation(new Vector3f((Vector3f)newValue));
+                    }
                 }
                 else {
                     ac = null;
@@ -224,7 +373,12 @@ public class ACPCdisplay extends GUIControl {
                 System.out.println("ACPCdisplay: PC update");
                 if (newValue instanceof Vector3f) {
                     if (pc == null) pc = new Vector3f();
-                    pc.set((Vector3f)newValue);
+                    pc.set(new Vector3f((Vector3f)newValue));
+                    if (pc_lm != null && model != null && model.getCtImage() != null) {
+                        pc_lm.setImage(model.getCtImage());
+//                        pc_lm.setLocation(ImageVolumeUtil.pointFromImageToWorld(image, new Vector3f((Vector3f)newValue)));
+                        pc_lm.setLocation(new Vector3f((Vector3f)newValue));
+                    }
                 }
                 else {
                     pc = null;
@@ -235,6 +389,11 @@ public class ACPCdisplay extends GUIControl {
                 if (newValue instanceof Vector3f) {
                     if (sup == null) sup = new Vector3f();
                     sup.set((Vector3f)newValue);
+                    if (sup_lm != null && model != null && model.getCtImage() != null) {
+                        sup_lm.setImage(model.getCtImage());
+//                        sup_lm.setLocation(ImageVolumeUtil.pointFromImageToWorld(image, new Vector3f((Vector3f)newValue)));
+                        sup_lm.setLocation(new Vector3f((Vector3f)newValue));
+                    }
                 }
                 else {
                     sup = null;

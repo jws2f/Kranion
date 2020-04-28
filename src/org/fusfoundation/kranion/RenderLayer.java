@@ -170,6 +170,7 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
 
         
         frameBuffer.render();
+        setIsDirty(false);
     }
 
     @Override

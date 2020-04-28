@@ -367,7 +367,8 @@ public class TextBox extends GUIControl implements Animator {
     
     @Override
     public void render() {
-        
+        setIsDirty(false);
+
         if (!this.getVisible() ) return;
         
         float scale = getGuiScale();

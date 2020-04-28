@@ -296,6 +296,7 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     
     @Override
     public boolean getVisible() { return isVisible; }
+    
     @Override
     public Renderable setVisible(boolean visible) {
         if (isVisible != visible) {

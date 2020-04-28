@@ -338,7 +338,7 @@ public class ImageVolumeUtil {
     public static Vector3f pointFromImageToWorld(ImageVolume image, Vector3f imagePoint) {
         Vector3f result = new Vector3f();
         
-        if (image == null || imagePoint == null) return null;
+        if (image == null || imagePoint == null) return imagePoint;
         
         Quaternion imageOrient = (Quaternion)image.getAttribute("ImageOrientationQ");
         if (imageOrient == null) {
@@ -368,7 +368,7 @@ public class ImageVolumeUtil {
     public static Vector3f pointFromWorldToImage(ImageVolume image, Vector3f worldPoint) {
         Vector3f result = new Vector3f();
         
-        if (image == null || worldPoint == null) return null;
+        if (image == null || worldPoint == null) return worldPoint;
         
         Quaternion imageOrient = (Quaternion)image.getAttribute("ImageOrientationQ");
         if (imageOrient == null) {

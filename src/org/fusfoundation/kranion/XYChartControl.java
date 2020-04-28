@@ -58,6 +58,8 @@ public class XYChartControl extends GUIControl {
     
     @Override
     public void render() {
+        setIsDirty(false);
+
         if (image != null) {
             Main.glPushAttrib(GL_POLYGON_BIT | GL_LINE_BIT | GL_ENABLE_BIT | GL_TRANSFORM_BIT);
             renderBufferedImageViaTexture(image, bounds);

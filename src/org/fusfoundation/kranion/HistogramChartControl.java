@@ -69,6 +69,8 @@ public class HistogramChartControl extends GUIControl {
 
     @Override
     public void render() {
+        setIsDirty(false);
+
         if (!this.getVisible()) return;
         
         if (image == null) {

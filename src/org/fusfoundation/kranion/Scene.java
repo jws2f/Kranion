@@ -35,10 +35,10 @@ public class Scene extends GUIControl implements Resizeable, Pickable {
     
     @Override
     public void render() {
-        if (getIsDirty()) {
+//        if (getIsDirty()) {
             renderChildren();
             setIsDirty(false);
-        }
+//        }
     }
 
     @Override

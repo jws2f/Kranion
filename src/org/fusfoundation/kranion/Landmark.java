@@ -30,7 +30,7 @@ import org.lwjgl.util.vector.Vector3f;
  * @author John Snell
  */
 public class Landmark extends GUIControl {
-    private Vector3f location = new Vector3f();
+    protected Vector3f location = new Vector3f();
     
     public Landmark() {}
     

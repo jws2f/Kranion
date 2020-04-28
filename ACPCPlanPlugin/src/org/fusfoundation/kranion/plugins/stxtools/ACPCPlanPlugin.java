@@ -92,11 +92,13 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
         if (acpcDisplay == null) {
             acpcDisplay = new ACPCdisplay();
             acpcDisplay.setPropertyPrefix("Model.Attribute");
+            acpcDisplay.setModel(model, view);
+            acpcDisplay.setVisible(false); // not shown by default
 
             // have the display main layer draw the ac pc graphic
             Renderable parent = Renderable.lookupByTag("DefaultView.main_layer");
             if (parent != null && parent instanceof RenderLayer) {
-                System.out.println("ACPCdisplay bering added to main layer for rendering");
+                //System.out.println("ACPCdisplay bering added to main layer for rendering");
                 ((RenderLayer) parent).addChild(acpcDisplay);
             }
             // listen to model changes
@@ -301,7 +303,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             showACPCbut = new Button(Button.ButtonType.TOGGLE_BUTTON, 400, 55, 150, 25, this);
             showACPCbut.setTitle("Show AC-PC").setCommand("showACPCgraphic");
             showACPCbut.setTag("showACPCgraphic");
-            showACPCbut.setIndicator(true);
+            showACPCbut.setIndicator(false);
             
             flyout.addChild("Planning", showACPCbut);
             
@@ -674,21 +676,30 @@ System.out.println("ACPCPlanPlugin got command: " + command);
             PropertyChangeEvent event = (PropertyChangeEvent)arg;
 //            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName());
 //            System.out.println();
+            if (goacButton == null || gopcButton == null || goacpcSupButton == null) {
+                setupGUI();
+            }
             
-            switch(this.getFilteredPropertyName(event)) {
+            switch (this.getFilteredPropertyName(event)) {
                 case "AC":
                     if (event.getNewValue() != null) {
                         goacButton.setIsEnabled(true);
+                        calcACPCLength();
+                        updateTargetGeometry();
                     }
                     break;
                 case "PC":
                     if (event.getNewValue() != null) {
                         gopcButton.setIsEnabled(true);
+                        calcACPCLength();
+                        updateTargetGeometry();
                     }
                     break;
                 case "ACPCSup":
                     if (event.getNewValue() != null) {
                         goacpcSupButton.setIsEnabled(true);
+                        calcACPCLength();
+                        updateTargetGeometry();
                     }
                     break;
             }
@@ -697,6 +708,11 @@ System.out.println("ACPCPlanPlugin got command: " + command);
 
     @Override
     public boolean OnMouse(float x, float y, boolean button1down, boolean button2down, int dwheel) {
+        
+        if (acpcDisplay.OnMouse(x, y, button1down, button2down, dwheel)) {
+            return true;
+        }
+        
         if (!button2down && this.mouseButton2down) {
             this.mouseButton2down = false;
             return true;
@@ -708,7 +724,8 @@ System.out.println("ACPCPlanPlugin got command: " + command);
 //            System.out.println(this.getName());
             if (Main.getView() instanceof DefaultView) {
                 DefaultView view  = (DefaultView)Main.getView();
-                Vector3f pt = view.doRayPick((int)x, (int)y);
+                Vector3f pickRay = new Vector3f();
+                Vector3f pt = view.doRayPick((int)x, (int)y, pickRay);
                 System.out.println(pt);
                 
                 Vector3f startSteering = (Vector3f)model.getAttribute("currentTargetSteering");                
@@ -737,7 +754,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
 
     @Override
     public boolean MouseIsInside(float x, float y) {
-        return false;
+        return (x >= 0 && x<Display.getWidth() && y>=0 && y<Display.getHeight());
     }
 }
 

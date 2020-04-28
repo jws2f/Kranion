@@ -105,7 +105,8 @@ public class ProgressBar extends GUIControl {
     
     @Override
     public void render() {
-        
+        setIsDirty(false);
+
         if (value < 0 || !getVisible()) {
             return;
         }

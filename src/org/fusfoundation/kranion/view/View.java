@@ -92,6 +92,10 @@ public abstract class View extends Renderable implements Observer, ActionListene
         return propName;
     }
     
+    public abstract int doPick(int mouseX, int mouseY);
+    
+    public abstract org.lwjgl.util.vector.Vector3f doRayPick(int mouseX, int mouseY, /* out */org.lwjgl.util.vector.Vector3f pickRay);
+
     public abstract boolean okToExit();
     
     public abstract File chooseFile(String title, FileDialog.fileChooseMode mode, String[] fileFilters);

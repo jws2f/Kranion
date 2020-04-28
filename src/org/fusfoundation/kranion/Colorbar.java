@@ -89,6 +89,7 @@ public class Colorbar extends GUIControl {
     
     @Override
     public void render() {
+        setIsDirty(false);
         if (this.getVisible() && lut != null) {
             
             

@@ -156,7 +156,9 @@ public class Sphere extends GUIControl {
         }
 
         public Sphere setColor(float red, float green, float blue, float alpha) {
-            setIsDirty(true);
+            if (red != color.x || green != color.y || blue != color.z || alpha != color.w) {
+                setIsDirty(true);
+            }
             color.set(red, green, blue, alpha);
             shader.setAmbientColor(color.x/20f, color.y/20f, color.z/20f, 1f);
             shader.setDiffusetColor(color.x, color.y, color.z, color.w);
@@ -175,7 +177,9 @@ public class Sphere extends GUIControl {
         }
         
         public Sphere setLocation(Vector3f loc) {
-            location.set(loc.x, loc.y, loc.z);
+            if (loc != null) {
+                location.set(loc.x, loc.y, loc.z);
+            }
             return this;
         }
 	
@@ -187,6 +191,8 @@ public class Sphere extends GUIControl {
 	  
             setIsDirty(false);
             if (!getVisible()) return;
+            
+            Main.glPushAttrib(GL_ENABLE_BIT | GL_POLYGON_BIT | GL_LIGHTING_BIT | GL_TRANSFORM_BIT);
             
         glMatrixMode(GL_MODELVIEW);
         Main.glPushMatrix();
@@ -209,8 +215,8 @@ public class Sphere extends GUIControl {
 	    glBindBuffer(GL_ARRAY_BUFFER, normsID);
 	    glNormalPointer(GL_FLOAT, 0, 0);
 	    
-//            glEnable(GL_CULL_FACE);
-//            glCullFace(GL_FRONT);
+            glEnable(GL_CULL_FACE);
+            glCullFace(GL_FRONT);
         // Flip faces if we are an "inside" surface
             
             shader.start();
@@ -218,7 +224,7 @@ public class Sphere extends GUIControl {
 	    	glDrawArrays(GL_QUAD_STRIP, r*(int)(longAngleStepCount+1)*2, (int)(longAngleStepCount+1)*2);
 	    }
             shader.stop();
-//            glDisable(GL_CULL_FACE);
+            glDisable(GL_CULL_FACE);
         // Flip faces if we are an "inside" surface    
 	    
 	    // turn off client state flags
@@ -231,6 +237,8 @@ public class Sphere extends GUIControl {
             
         Main.glPopMatrix();
         //Main.popMatrixWithCheck();
+        
+        Main.glPopAttrib();
 }
         
 @Override

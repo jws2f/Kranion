@@ -698,11 +698,13 @@ public class Main implements ProgressListener {
     
     public void nextFrame() {
         boolean wasRendered = false;
+        
         if (Display.isVisible()) {
             // manage rendering into double buffer
             if (view.getIsDirty()) {
-//                bufferNeedsRendering[0] = bufferNeedsRendering[1] = bufferNeedsRendering[2] = true;
-                bufferNeedsRendering[currentBuffer] = true;
+                bufferNeedsRendering[0] = true;
+                bufferNeedsRendering[1] = true;
+                bufferNeedsRendering[2] = true;
             }
 
             if (bufferNeedsRendering[currentBuffer]) {
@@ -711,8 +713,6 @@ public class Main implements ProgressListener {
                 // Render the scene
                 view.render();
                 
-                // swap display buffers
-//                Display.update();
                 wasRendered = true;
             }
             else {
@@ -723,19 +723,19 @@ public class Main implements ProgressListener {
         
         // This needs to be here for window resizing to get handled correctly
         // swap display buffers
-        Display.update();
+        Display.update(); 
         
-
+        
 //        Display.processMessages(); // Unnecessary
 
         currentBuffer = (currentBuffer + 1) % 3; // keep track of front/back buffers
 
         try {
             if (!wasRendered) { // if no rendering updates, sleep a bit
-                Thread.sleep(10);
+                Thread.sleep(50);
             }
             else {
-                Display.sync(60);
+                Display.sync(60); // not sure this makes any difference
             }
         }
         catch(Exception e) {}        
