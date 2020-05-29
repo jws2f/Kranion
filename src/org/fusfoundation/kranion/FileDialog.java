@@ -292,10 +292,6 @@ public class FileDialog extends FlyoutDialog {
         dirList.clear();
         fileList.clear();
 
-        if (root.getParent() != null) {
-//            System.out.println("Adding parent directory: " + root.getParent());
-            dirList.addItem("[Parent directory]", new File(root.getParent()));
-        }
 
         File[] files = root.listFiles();
         if (files != null) {
@@ -321,6 +317,15 @@ public class FileDialog extends FlyoutDialog {
                     }
                 }
             }
+        }
+        
+        dirList.sort();
+        fileList.sort();
+        
+        // Add parent directory after sorting so its always first in the list
+        if (root.getParent() != null) {
+//            System.out.println("Adding parent directory: " + root.getParent());
+            dirList.addItem(0, "[Parent directory]", new File(root.getParent()));
         }
 
         doLayout();

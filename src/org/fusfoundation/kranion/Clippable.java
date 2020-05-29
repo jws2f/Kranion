@@ -171,6 +171,7 @@ public abstract class Clippable extends Renderable {
             FloatBuffer c = BufferUtils.createFloatBuffer(4);
             c.put(new float[] { clipColor.x, clipColor.y, clipColor.z, clipColor.w }).flip();
             glMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, c);
+            glColor4f(clipColor.x, clipColor.y, clipColor.z, clipColor.w);
 
             glMatrixMode(GL_MODELVIEW);
             Main.glPushMatrix();

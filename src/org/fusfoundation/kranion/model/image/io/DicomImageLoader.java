@@ -147,7 +147,7 @@ public class DicomImageLoader implements ImageLoader {
             result = obj.getVR(key).getValue().toString();
         }
         catch(NullPointerException e) {
-            result = null;
+            result = "";
         }
         
         return result;
@@ -160,7 +160,7 @@ public class DicomImageLoader implements ImageLoader {
                 String seriesUID;
                 seriesUID = safeGetVRStringValue(selectedDicomObj, "SeriesInstanceUID");
 
-                if (seriesUID != null) {
+                if (seriesUID != null && seriesUID.length() > 0) {
                     seriesDescriptor descriptor = seriesMap.get(seriesUID);
                     if (descriptor == null) {
                         descriptor = new seriesDescriptor();
@@ -171,6 +171,7 @@ public class DicomImageLoader implements ImageLoader {
                     try {
                         sliceLocation = new Float(selectedDicomObj.getVR("SliceLocation").getFloatValue());
                     } catch (Exception e) {
+                        sliceLocation = new Float(Float.NaN);
                     }
 
                     descriptor.sliceFiles.add(file);

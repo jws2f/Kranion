@@ -123,6 +123,11 @@ public class ListControl extends GUIControl {
         items.add(new Pair(name, value));
         setIsDirty(true);
     }
+    
+    public void addItem(int index, String name, Object value) {
+        items.add(index, new Pair(name, value));
+        setIsDirty(true);
+    }
         
     public void sort() {
         Collections.sort(items);

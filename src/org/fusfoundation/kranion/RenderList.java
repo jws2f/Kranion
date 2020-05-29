@@ -90,10 +90,17 @@ public class RenderList extends Clippable implements Resizeable, Pickable {
     public void render() {
         if (!getVisible()) return;
         
-        ListIterator<Renderable> it = renderlist.listIterator();
-        while (it.hasNext()) {
-            Renderable r = it.next(); 
-            r.render();
+        if (isClipped) {
+            isClipped = false;
+            renderClipped();
+            isClipped = true;
+        }
+        else {
+            ListIterator<Renderable> it = renderlist.listIterator();
+            while (it.hasNext()) {
+                Renderable r = it.next(); 
+                r.render();
+            }
         }
     }
     

@@ -601,7 +601,7 @@ void main()
 
         term1 = WATER_DENSITY*waterSpeed*cos(thetai2);
         term2 = SKULL_OUTER_TABLE_DENSITY*boneSpeed*cos(thetat2);
-        float innerTransmissionCoeff = 1.0 - (term1-term2)/(term1+term2);;
+        float innerTransmissionCoeff = 1.0 - (term1-term2)/(term1+term2);
 
         float totalThick = d[gid].skullThickness;
         float corticalThickness = min(totalThick, OUTER_TABLE_THICKNESS + INNER_TABLE_THICKNESS);

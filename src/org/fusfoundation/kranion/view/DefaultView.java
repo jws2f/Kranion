@@ -269,6 +269,9 @@ public class DefaultView extends View {
     private Colorbar colorbar;
     
     private ImageLandmark testLoc;
+    
+//  Temp for Fred's exp setup figure    
+//    private RenderList tophat;
 
     // So plugins have access to implemented file choosing mechanism
     @Override
@@ -674,7 +677,7 @@ public class DefaultView extends View {
         slider1.setTitle("Transducer X tilt");
         slider1.setCommand("transducerXTilt"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-        slider1.setMinMax(-45, 45);
+        slider1.setMinMax(-45, 90); // TODO: set back to +45 limit?
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.1f");
         slider1.setUnitsString(" degrees");
@@ -936,10 +939,26 @@ public class DefaultView extends View {
         model.addObserver(button);
         flyout2.addChild("Preferences", button);
         
-//        mrBore = new Cylinder(300.0f, 50.0f, -25.0f, -1f);
-//        mrBoreOuter = new Cylinder(310.0f, 50.0f, -25.0f, 1f);
-//        mrBoreFront = new Ring(310.0f, 10.0f, -25.0f, -1f);
-//        mrBoreBack = new Ring(310.0f, 10.0f, 25.0f, 1f);
+        
+//        // Model for Insightec "top hat" hydrophone skull mount
+//        ////////////
+//        tophat = new RenderList();
+//        Cylinder mrBoreInner = new Cylinder(164.0f, 75.0f, -85.0f, 1f);
+//        mrBoreInner.setColor(1, 1, 1);
+//        Cylinder mrBoreOuter = new Cylinder(150.0f, 75.0f, -85.0f, -1f);
+//        mrBoreOuter.setColor(1, 1, 1);
+//        Ring mrBoreFront = new Ring(164.0f, 14.0f, -10.0f, 1f);
+//        mrBoreFront.setColor(1, 1, 1);
+//        Ring mrBoreBack = new Ring(164.0f, 14.0f, -85.0f, -1f);
+//        mrBoreBack.setColor(1, 1, 1);
+//        tophat.add(mrBoreInner);
+//        tophat.add(mrBoreOuter);
+//        tophat.add(mrBoreFront);
+//        tophat.add(mrBoreBack);
+//        tophat.setClipColor(0.7f, 0.7f, 0.7f, 1);
+//       /////////////
+        
+
 //
 //        mrBore.setColor(0.7f, 0.7f, 0.8f);
 //        mrBoreOuter.setColor(0.7f, 0.7f, 0.8f);
@@ -1079,6 +1098,8 @@ public class DefaultView extends View {
         boreTransformGroup.add(mrBoreGroup);
         
 //        globalTransformList.add(transducerModel);
+
+//steeringTransformGroup.add(tophat);
         steeringTransformGroup.add(transducerModel);
         steeringTransformGroup.add(mrBoreTransform);
         
@@ -2525,11 +2546,16 @@ public class DefaultView extends View {
             transducerModel.setTrackball(trackball);
             transducerModel.setDolly(cameraZ, dolly.getValue());
             
+//            tophat.setClipped(true);
+//            tophat.setTrackball(trackball);
+//            tophat.setDolly(cameraZ, dolly.getValue());
+            
             mrBoreGroup.setClipped(true);
             mrBoreGroup.setTrackball(trackball);
             mrBoreGroup.setDolly(cameraZ, dolly.getValue());
         } else {
             transducerModel.setClipped(false);
+//            tophat.setClipped(false);
             mrBoreGroup.setClipped(false);
         }
 
