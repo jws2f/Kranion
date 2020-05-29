@@ -404,6 +404,7 @@ public class FileDialog extends FlyoutDialog {
                 break;
             case "dirSelected":
                 if (chooseMode == fileChooseMode.EXISTING_DIRECTORIES || chooseMode == fileChooseMode.EXISTING_FILES_AND_DIRECTORIES) {
+                    try {
                     String selectedDisplayDirName = ((String)dirList.getSelectedKey());
                     String selectedDirPath = ((File)dirList.getSelectedValue()).getPath();
                     if (selectedDisplayDirName.equalsIgnoreCase("[Parent directory]")) {
@@ -413,6 +414,10 @@ public class FileDialog extends FlyoutDialog {
                         selectedFileDisplay.setText(selectedDisplayDirName);
                     }                    
                     okButton.setIsEnabled(true);
+                    }
+                    catch(NullPointerException npe) {
+                        npe.printStackTrace();
+                    }
                 }
                 break;
             case "doubleClick":
