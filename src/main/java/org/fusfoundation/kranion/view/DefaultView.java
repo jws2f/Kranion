@@ -573,8 +573,8 @@ public class DefaultView extends View {
         flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 445, 240, 150, 25, this).setTitle("Filter CT").setCommand("filterCT"));
 
 // DEBUGGING TOOLS FOR NOW. TODO: Remove        
-        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 750, 240, 180, 25, this).setTitle("Add Subsonications").setCommand("addSubsonications"));
-        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 950, 240, 180, 25, this).setTitle("Export Raw MR").setCommand("exportMRRaw"));
+//        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 750, 240, 180, 25, this).setTitle("Add Subsonications").setCommand("addSubsonications"));
+//        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 950, 240, 180, 25, this).setTitle("Export Raw MR").setCommand("exportMRRaw"));
 //
         Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 80, 205, 150, 25, this);
         regButton.setTitle("Register").setCommand("registerMRCT").setTag("registerMRCT");
