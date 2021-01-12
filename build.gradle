@@ -1,0 +1,74 @@
+apply plugin: 'java'
+apply plugin: 'jacoco'
+apply plugin: 'application'
+
+
+mainClassName = 'org.fusfoundation.kranion.Main'
+
+sourceSets.main.resources {
+    srcDirs = ["src/main/java"];
+    exclude "**/*.java"
+}
+
+repositories {
+    jcenter()
+    flatDir {
+        dirs 'lib'
+    }
+}
+
+run {
+    systemProperty "java.library.path", 'lib'
+}
+
+applicationDefaultJvmArgs = ["-D64", "-Xms1800m", "-javaagent:./lib/jar-loader.jar"]
+
+dependencies {
+    compile fileTree(dir: 'lib', include: '*.jar')
+    testImplementation     'junit:junit:4.13'
+}
+
+def getTimestamp() {
+    def date = new Date()
+    def formattedDate = date.format('yyyyMMdd_HHmm')
+    return formattedDate
+}
+
+// update the build number and timestamp in version.properties
+task buildVersionUpdate {
+    doLast {
+        File versionPropsFile = file("src/main/java/version.properties");
+        def props = new Properties()
+        
+        file("src/main/java/version.properties").withInputStream { props.load(it) }
+
+        try {
+            def versionId =  props.getProperty("app.version")
+            props.setProperty("app.version", getTimestamp());
+        }
+        catch(Exception e) {
+            println("Failed to find app.version property. Setting current timestamp")
+            println("Exception: ${e}");
+            props.setProperty("app.version", getTimestamp())
+        }
+
+        try {
+            Integer buildNum =  props.getProperty("app.build").toInteger();
+            props.setProperty("app.build", (buildNum+1).toString());
+        }
+        catch(Exception e) {
+            println("Failed to find app.build property value. Setting to zero.")
+            println("Exception: ${e}");
+            props.setProperty("app.build", "0");
+        }
+
+        file("src/main/java/version.properties").withWriter { props.store(it, null) }
+    }
+}
+
+build.finalizedBy(buildVersionUpdate)
+
+
+//application {
+//    mainClass = 'org.fusfoundation.kranion.Main' 
+//}

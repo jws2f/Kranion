@@ -40,3 +40,5 @@ build.xml
 /TractographyPlugin/nbproject/private/
 /TractographyPlugin/build/
 /TractographyPlugin/dist/
+/.gradle/
+/.settings/

@@ -369,10 +369,13 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 break;
             case "goAC":
             {
-                Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("AC"));
-                model.setAttribute("currentTargetPoint", p);
-                model.setAttribute("currentTargetSteering", new Vector3f());
-                view.doTransition(250);
+                Vector3f acPt = (Vector3f)model.getAttribute("AC");
+                if (acPt != null) {
+                    Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), acPt);
+                    model.setAttribute("currentTargetPoint", p);
+                    model.setAttribute("currentTargetSteering", new Vector3f());
+                    view.doTransition(250);
+                }
             }
                 break;
             case "setPC":
@@ -386,11 +389,14 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 break;
             case "goPC":
             {
-                Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("PC"));
-                model.setAttribute("currentTargetPoint", p);
-                model.setAttribute("currentTargetSteering", new Vector3f());
+                Vector3f pcPt = (Vector3f)model.getAttribute("PC");
+                if (pcPt != null) {
+                    Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), pcPt);
+                    model.setAttribute("currentTargetPoint", p);
+                    model.setAttribute("currentTargetSteering", new Vector3f());
+                    view.doTransition(250);
+                }
             }
-                view.doTransition(250);
                 break;
             case "setSuperior":
             {
@@ -402,11 +408,14 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 break;
             case "goSuperior":
             {
-                Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), (Vector3f)model.getAttribute("ACPCSup"));
-                model.setAttribute("currentTargetPoint", p);
-                model.setAttribute("currentTargetSteering", new Vector3f());
+                Vector3f acpcsupPt = (Vector3f)model.getAttribute("ACPCSup");
+                if (acpcsupPt != null) {
+                    Vector3f p = ImageVolumeUtil.pointFromImageToWorld(model.getCtImage(), acpcsupPt);
+                    model.setAttribute("currentTargetPoint", p);
+                    model.setAttribute("currentTargetSteering", new Vector3f());
+                    view.doTransition(250);
+                }
             }
-                view.doTransition(250);
                 break;
             case "goTarget":
             {
@@ -550,9 +559,9 @@ System.out.println("ACPCPlanPlugin got command: " + command);
 
                 model.setAttribute("acpcRefPoint", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target));
 
-                Vector3f.add(target, (Vector3f) up.scale(superiorOffsetVal), target);
+                Vector3f.add(target, (Vector3f) new Vector3f(up).scale(superiorOffsetVal), target);
                 Vector3f.add(target, (Vector3f) new Vector3f(right).scale(lateralOffsetVal + ventricleOffsetVal), target);
-                Vector3f.add(target, (Vector3f) posterior.scale(-anteriorOffsetVal), target);
+                Vector3f.add(target, (Vector3f) new Vector3f(posterior).scale(-anteriorOffsetVal), target);
 
                 // Calculate the perpendicular intercept of between
                 // the target point and the ac-pc line
@@ -567,7 +576,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 Vector3f.sub(pq, (Vector3f) u.scale(Vector3f.dot(pq, u) / u.lengthSquared()), w2);
                 Vector3f.sub(q, w2, refPt);
 
-                Vector3f.add(refPt, (Vector3f) right.scale(ventricleOffsetVal), refPt);
+                Vector3f.add(refPt, (Vector3f) new Vector3f(right).scale(ventricleOffsetVal), refPt);
 
                 model.setAttribute("acpcTarget", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target));
                 model.setAttribute("acpcPerpendicularPoint", ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), refPt));
@@ -680,6 +689,11 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 setupGUI();
             }
             
+            if (event.getPropertyName().equals("Model.CtImage.Attribute[ImageOrientationQ]")) {
+                updateTargetGeometry();
+                return;
+            }
+            
             switch (this.getFilteredPropertyName(event)) {
                 case "AC":
                     if (event.getNewValue() != null) {
@@ -728,18 +742,28 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 Vector3f pt = view.doRayPick((int)x, (int)y, pickRay);
                 System.out.println(pt);
                 
-                Vector3f startSteering = (Vector3f)model.getAttribute("currentTargetSteering");                
+                Vector3f startSteering = (Vector3f)model.getAttribute("currentTargetSteering");
+                if (startSteering == null) {
+                    startSteering = new Vector3f(0, 0, 0);
+                }
+                
                 Vector3f start = (Vector3f)model.getAttribute("currentTargetPoint");
-                start = Vector3f.add(start, startSteering, null);
+                if (start == null) {
+                    start = new Vector3f(0, 0, 0);
+                }
+                
+                if (startSteering != null && start != null) {
+                    start = Vector3f.add(start, startSteering, null);
 
-                model.setAttribute("currentTargetSteering", new Vector3f());
-                model.setAttribute("currentTargetPoint", Vector3f.add(start, pt, null));
-                
-                model.setAttribute("Selected3DPoint", new Vector3f(), true);
-                
-                Mouse.setCursorPosition(Display.getWidth()/2, Display.getHeight()/2);
-                
-                view.doTransition(250);
+                    model.setAttribute("currentTargetSteering", new Vector3f());
+                    model.setAttribute("currentTargetPoint", Vector3f.add(start, pt, null));
+
+                    model.setAttribute("Selected3DPoint", new Vector3f(), true);
+
+                    Mouse.setCursorPosition(Display.getWidth()/2, Display.getHeight()/2);
+
+                    view.doTransition(250);
+                }
                 
                 return true;
             }
