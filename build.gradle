@@ -2,7 +2,6 @@ apply plugin: 'java'
 apply plugin: 'jacoco'
 apply plugin: 'application'
 
-
 mainClassName = 'org.fusfoundation.kranion.Main'
 
 sourceSets.main.resources {
@@ -15,6 +14,20 @@ repositories {
     flatDir {
         dirs 'lib'
     }
+}
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+    }
+}
+apply plugin: 'com.github.johnrengelman.shadow'
+
+shadowJar {
+    destinationDir = ["dist"];
 }
 
 run {
@@ -68,6 +81,14 @@ task buildVersionUpdate {
 
 build.finalizedBy(buildVersionUpdate)
 
+jar {
+  manifest {
+    attributes(
+      'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
+      'Main-Class': 'org.fusfoundation.kranion.Main'
+    )
+  }
+}
 
 //application {
 //    mainClass = 'org.fusfoundation.kranion.Main' 
