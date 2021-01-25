@@ -89,6 +89,7 @@ import java.util.Iterator;
 import java.util.MissingResourceException;
 import java.util.ResourceBundle;
 import javax.imageio.ImageIO;
+import org.fusfoundation.util.CLI;
 import org.lwjgl.opencl.CL10GL;
 import org.lwjgl.opencl.CLCapabilities;
 import org.lwjgl.opencl.CLCommandQueue;
@@ -249,7 +250,8 @@ public class Main implements ProgressListener {
             if (mySplash != null) {
                 mySplash.close();
             }
-  
+            Thread t = new CLI(main);
+            t.start();
             main.run();
         } catch (Exception ex) {
             LOGGER.log(Level.SEVERE, ex.toString(), ex);
