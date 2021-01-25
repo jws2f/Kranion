@@ -43,11 +43,15 @@ public class ModelXStreamConverter  implements Converter{
         Model model = (Model)o;
         
         writer.startNode("Attributes");
+        if (model.getAttributeList() != null) {
             mc.convertAnother(model.getAttributeList());
+        }
         writer.endNode();
         
         writer.startNode("CT_Image");
+        if (model.getCtImage() != null) {
             mc.convertAnother(model.getCtImage());
+        }
         writer.endNode();
         
         writer.startNode("MR_Images");
