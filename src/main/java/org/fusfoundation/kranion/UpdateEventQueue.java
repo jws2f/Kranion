@@ -23,6 +23,8 @@
  */
 package org.fusfoundation.kranion;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.Observer;
 import java.util.Observable;
 
@@ -31,29 +33,20 @@ import java.util.Observable;
  * @author John Snell
  */
 public class UpdateEventQueue {
-    private final java.util.Queue<updateEvent> updateEventQueue = new java.util.LinkedList<>();
+    private final java.util.Queue<PropertyChangeEvent> updateEventQueue = new java.util.LinkedList<>();
 
     public UpdateEventQueue() {
         
     }
-    
-    private class updateEvent {
-        public updateEvent(Observable o, Object arg) {
-            this.o = o;
-            this.arg = arg;
-        }
-        public Observable o;
-        public Object arg;
+        
+    public synchronized void push(PropertyChangeEvent arg) {
+        updateEventQueue.add(arg);
     }
     
-    public synchronized void push(Observable o, Object arg) {
-        updateEventQueue.add(new updateEvent(o, arg));
-    }
-    
-    public synchronized void handleEvents(Observer target) {
-        updateEvent e;
+    public synchronized void handleEvents(PropertyChangeListener target) {
+        PropertyChangeEvent e;
         while((e = updateEventQueue.poll()) != null) {
-            target.update(e.o, e.arg);
+            target.propertyChange(e);
         }        
     }
     

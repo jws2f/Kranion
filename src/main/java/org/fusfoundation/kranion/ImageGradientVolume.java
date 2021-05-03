@@ -30,6 +30,8 @@ import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.Sys;
@@ -160,7 +162,7 @@ public class ImageGradientVolume {
         Integer gradientTextureName = (Integer) image.getAttribute("gradientTexName");
 
         if (imageTextureName == null) {
-            System.out.println("ImageGradientVolume.calculate: textureName not found.");
+            Logger.getGlobal().log(Level.WARNING, "ImageGradientVolume.calculate: textureName not found.");
             return; //TODO: should prob throw exception
         }
         // we already have a gradient texture built, return
@@ -272,7 +274,7 @@ public class ImageGradientVolume {
         short idata[] = (short[]) image.getData();
 
         for (int x = 1; x < iWidth - 1; x++) {
-            System.out.println("Gradient calc: x = " + x);
+//            System.out.println("Gradient calc: x = " + x);
             int index = x;
 
             for (int y = 1; y < iHeight - 1; y++) {
@@ -299,7 +301,7 @@ public class ImageGradientVolume {
         }
 
         gradArray.put(gradients);
-        System.out.println("gradArray size = " + gradArray.capacity());
+//        System.out.println("gradArray size = " + gradArray.capacity());
         gradArray.flip();
         gradients = null;
 
@@ -328,7 +330,7 @@ public class ImageGradientVolume {
         int height = image.getDimension(1).getSize();
         int depth = image.getDimension(2).getSize();
 
-        System.out.println("  building 16bit gradient texture");
+//        System.out.println("  building 16bit gradient texture");
 
         //ShortBuffer pixelBuf = (tmp.asShortBuffer());
         //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
@@ -339,7 +341,6 @@ public class ImageGradientVolume {
 
     public void calculateCL() {
         //create cl context with custom cl object
-        System.out.println("got here");
         CLGLObj CLObj = new CLGLObj();
         //init the textures: gl & writable
         Integer imageTextureName = (Integer) image.getAttribute("textureName");
@@ -411,7 +412,7 @@ public class ImageGradientVolume {
 
 //            System.out.println("   textureName = " + tn);
             if (tn != null && tn > 0) {
-                System.out.println("Got previously built gradient texture = " + tn);
+//                System.out.println("Got previously built gradient texture = " + tn);
             } else {
 
                 //System.out.println("build new texture");
@@ -439,7 +440,7 @@ public class ImageGradientVolume {
                 int height = image.getDimension(1).getSize();
                 int depth = image.getDimension(2).getSize();
 
-                System.out.println("  building 16bit gradient texture");
+//                System.out.println("  building 16bit gradient texture");
 
                 //ShortBuffer pixelBuf = (tmp.asShortBuffer());
                 //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
@@ -449,11 +450,11 @@ public class ImageGradientVolume {
             }
             int value;
             value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_WIDTH);
-            System.out.println("Gradient Texture Width = " + value);
+//            System.out.println("Gradient Texture Width = " + value);
             value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_HEIGHT);
-            System.out.println("Gradient Texture Height = " + value);
+//            System.out.println("Gradient Texture Height = " + value);
             value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_DEPTH);
-            System.out.println("Gradient Texture Depth = " + value);
+//            System.out.println("Gradient Texture Depth = " + value);
 
             glBindTexture(GL_TEXTURE_3D, 0);
         }

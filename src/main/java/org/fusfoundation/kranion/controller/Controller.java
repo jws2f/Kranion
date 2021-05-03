@@ -25,6 +25,7 @@ package org.fusfoundation.kranion.controller;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeListener;
 import java.util.Observer;
 import java.util.List;
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ import org.fusfoundation.kranion.view.View;
  *
  * @author john
  */
-public abstract class Controller  implements Observer, ActionListener, ProgressListener{
+public abstract class Controller  implements PropertyChangeListener, ActionListener, ProgressListener{
     protected Model model;
     protected View view;
     protected List<ActionListener> actionListeners;
@@ -49,11 +50,11 @@ public abstract class Controller  implements Observer, ActionListener, ProgressL
        
     public void setModel(Model m) {
         if (model != null) {
-            model.deleteObserver(this);
+            model.removePropertyChangeListener(this);
         }
         model = m;
         if (model != null) {
-            model.addObserver(this);
+            model.addPropertyChangeListener(this);
         }
     }
     

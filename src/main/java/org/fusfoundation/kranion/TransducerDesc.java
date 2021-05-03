@@ -116,11 +116,11 @@ public class TransducerDesc {
         catch (FileNotFoundException e) {
             
             logger.log(Level.SEVERE, "TransducerDesc: File not found.");
-            System.out.println("TransducerDesc: File not found.");
+//            System.out.println("TransducerDesc: File not found.");
         }
         catch (ConversionException ce) {
             logger.log(Level.SEVERE, "TransducerDesc: Malformed transducer XML descriptor file.");
-            System.out.println("TransducerDesc: Malformed transducer XML descriptor file.");
+//            System.out.println("TransducerDesc: Malformed transducer XML descriptor file.");
         }
         return result;
     }

@@ -143,7 +143,7 @@ public class ImageVolumeUtil {
                 // texDepth = nextPowerOfTwo(texDepth);
                 //System.out.println("size: " + texWidth + " x " + texHeight + " x " + texDepth);
                 if (pixelType == ImageVolume.UBYTE_VOXEL) {
-                    System.out.println("  building 8bit texture");
+//                    System.out.println("  building 8bit texture");
 
                     ByteBuffer pixelBuf = image.getByteBuffer();
                     pixelBuf.order(ByteOrder.LITTLE_ENDIAN);
@@ -151,7 +151,7 @@ public class ImageVolumeUtil {
                     //glTexImage3D(GL_TEXTURE_3D, 0, GL_ALPHA8, texWidth, texHeight, texDepth, 0, GL_ALPHA, GL_UNSIGNED_BYTE, pixelBuf);
                     glTexImage3D(GL_TEXTURE_3D, 0, GL_R8, texWidth, texHeight, texDepth, 0, GL_RED, GL_UNSIGNED_BYTE, pixelBuf);
                 } else if (pixelType == ImageVolume.USHORT_VOXEL) {
-                    System.out.println("  building 16bit texture");
+//                    System.out.println("  building 16bit texture");
 
  //For debugging center/window display                    
 //                    short[] tmpBuf = (short[]) image.getData();
@@ -172,7 +172,7 @@ public class ImageVolumeUtil {
                     glTexImage3D(GL_TEXTURE_3D, 0, GL_R16, texWidth, texHeight, texDepth, 0, GL_RED, GL_UNSIGNED_SHORT, tmp);
 //                    glGenerateMipmap(GL_TEXTURE_3D);
                 } else if (pixelType == ImageVolume.FLOAT_VOXEL) {
-                    System.out.println("  building float32 texture");
+//                    System.out.println("  building float32 texture");
 
                     ByteBuffer tmp = image.getByteBuffer();
 
@@ -185,11 +185,11 @@ public class ImageVolumeUtil {
                 }
                 int value;
                 value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_WIDTH);
-                System.out.println("Texture Width = " + value);
+//                System.out.println("Texture Width = " + value);
                 value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_HEIGHT);
-                System.out.println("Texture Height = " + value);
+//                System.out.println("Texture Height = " + value);
                 value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_DEPTH);
-                System.out.println("Texture Depth = " + value);
+//                System.out.println("Texture Depth = " + value);
 
 //                needsTexture = false;
 //                glBindTexture(GL_TEXTURE_3D, 0); // TODO: Not sure this is correct
@@ -289,8 +289,8 @@ public class ImageVolumeUtil {
         image.setAttribute("ImageOrientationY", imageOrientationY);
         image.setAttribute("ImageOrientationZ", imageOrientationZ);
 
-        System.out.println("Image X vector = " + imageOrientationX);
-        System.out.println("Image Y vector = " + imageOrientationY);
+//        System.out.println("Image X vector = " + imageOrientationX);
+//        System.out.println("Image Y vector = " + imageOrientationY);
 
         float[] imagePosition = (float[]) image.getAttribute("ImagePosition");
 
@@ -331,8 +331,8 @@ public class ImageVolumeUtil {
 //            image.setAttribute("ImageTranslation", new Vector3f(0f,0f,0f));
 //        }
         
-        System.out.println("Image orient quat: " + imageOrientationQ);
-        System.out.println("Image position = " + imageOriginPosition);
+//        System.out.println("Image orient quat: " + imageOrientationQ);
+//        System.out.println("Image position = " + imageOriginPosition);
     }
     
     public static Vector3f pointFromImageToWorld(ImageVolume image, Vector3f imagePoint) {
@@ -423,13 +423,13 @@ public class ImageVolumeUtil {
             Vector3f axis = (Vector3f.cross(v1, v2, null).normalise(null));
             float s = (float) Math.sin(angle / 2);
 
-            System.out.println("angle = " + angle);
-            System.out.println("axis = " + axis);
-            System.out.println("image plane normal = " + v1);
+//            System.out.println("angle = " + angle);
+//            System.out.println("axis = " + axis);
+//            System.out.println("image plane normal = " + v1);
 
             Vector3f correctZ = Vector3f.cross(v1, v2, null).normalise(null);
-            System.out.println("cross product = " + correctZ);
-            System.out.println("dot product = " + Vector3f.dot(v1, v2));
+//            System.out.println("cross product = " + correctZ);
+//            System.out.println("dot product = " + Vector3f.dot(v1, v2));
 
             result.set(axis.x * s, axis.y * s, axis.z * s, (float) Math.cos(angle / 2.0));
             result.normalise(null);

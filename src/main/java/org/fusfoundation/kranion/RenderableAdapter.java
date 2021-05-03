@@ -25,6 +25,8 @@ package org.fusfoundation.kranion;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.InvocationTargetException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 /**
  *
  * @author john
@@ -42,12 +44,12 @@ public class RenderableAdapter extends Renderable {
         }
         catch (SecurityException e) {
             method = null;
-            System.out.println(renderable);
+//            System.out.println(renderable);
             e.printStackTrace();
         }
         catch (NoSuchMethodException e) {
             method = null;
-            System.out.println(renderable);
+//            System.out.println(renderable);
             e.printStackTrace();
         }
     }
@@ -61,16 +63,19 @@ public class RenderableAdapter extends Renderable {
             method.invoke(renderable);
             }
             catch (IllegalArgumentException e) {
-                System.out.println(renderable);
-                e.printStackTrace();
+//                System.out.println(renderable);
+                Logger.getGlobal().log(Level.WARNING, "RenderableAdapter", e);
+//                e.printStackTrace();
             }
             catch (IllegalAccessException e) {
-                System.out.println(renderable);
-                e.printStackTrace();
+//                System.out.println(renderable);
+                Logger.getGlobal().log(Level.WARNING, "RenderableAdapter", e);
+//                e.printStackTrace();
             }
             catch (InvocationTargetException e) {
-                System.out.println(renderable);
-                e.printStackTrace();
+//                System.out.println(renderable);
+                Logger.getGlobal().log(Level.WARNING, "RenderableAdapter", e);
+//                e.printStackTrace();
             }
         }
     }

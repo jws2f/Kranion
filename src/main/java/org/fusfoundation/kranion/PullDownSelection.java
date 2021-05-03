@@ -429,7 +429,7 @@ glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
     @Override
     public void doBinding(Model model) {
-        if (model != null) {
+        if (model != null && !getCommand().isBlank()) {
             model.setAttribute(this.getCommand(), this.getSelectionIndex());
         }
     }

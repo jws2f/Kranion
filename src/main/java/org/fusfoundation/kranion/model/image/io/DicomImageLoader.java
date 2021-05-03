@@ -39,6 +39,8 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.dicom.DicomDate;
 import org.lwjgl.util.vector.Vector3f;
 
@@ -90,7 +92,7 @@ public class DicomImageLoader implements ImageLoader {
         try {
             for (int index = 0; index < 6; index++) {
                 ImageOrientationPatient[index] = obj.getVR("ImageOrientationPatient").getFloatValue(index);
-                System.out.println("ImageOrientationPatinet[" + index + "] = " + ImageOrientationPatient[index]);
+//                System.out.println("ImageOrientationPatinet[" + index + "] = " + ImageOrientationPatient[index]);
             }
         } catch (NullPointerException e) {
             ImageOrientationPatient[0] = 1f;
@@ -200,7 +202,7 @@ public class DicomImageLoader implements ImageLoader {
 //            System.out.println(dicomDir);
             
             String fileSetID = dicomDir.getVR("FileSetID").getStringValue();
-            System.out.println("FileSetID = " + fileSetID);
+//            System.out.println("FileSetID = " + fileSetID);
 //            if (fileSetID.equalsIgnoreCase("STDSET")) {
                 Iterator items = dicomDir.getVR("DirectoryRecordSequence").getSequenceItems();
                 
@@ -316,7 +318,7 @@ public class DicomImageLoader implements ImageLoader {
                 Map<String, seriesDescriptor> seriesMap = new HashMap<>();
                 
                 if (file.isDirectory()) {
-                    System.out.println("Scanning directory: " + file.getPath());
+//                    System.out.println("Scanning directory: " + file.getPath());
                     listOfFiles = file.listFiles();
                 }
                 else if (file.getName().equalsIgnoreCase("DICOMDIR")) {
@@ -371,7 +373,7 @@ public class DicomImageLoader implements ImageLoader {
 //                    }
                     // recurse into subdirectories. not sure this is a good idea or not
                     else if (theFile.isDirectory()) {
-                        System.out.println("   Scanning subdir: " + theFile.getPath());
+//                        System.out.println("   Scanning subdir: " + theFile.getPath());
                         Map<String, seriesDescriptor> subdirMap = this.scanDirectoryForSeries(theFile, listener);
                         seriesMap.putAll(subdirMap);
                     }
@@ -410,9 +412,9 @@ public class DicomImageLoader implements ImageLoader {
             float sliceZ=0f;
             
             if (selectedDicomObj != null) {
-System.out.println(selectedDicomObj);
+                //System.out.println(selectedDicomObj);
                 selectedSeriesUID = selectedDicomObj.getVR("SeriesInstanceUID").getStringValue();
-                System.out.println("Selected series = " + selectedSeriesUID);
+//                System.out.println("Selected series = " + selectedSeriesUID);
                 
                 
                 ImageOrientationPatient = getImageOrientationPatient(selectedDicomObj);
@@ -424,7 +426,7 @@ System.out.println(selectedDicomObj);
                 ImagePositionPatient = getImagePositionPatient(selectedDicomObj);
                 try {
                 for (int index =0; index < 3; index++) {
-                    System.out.println("ImagePositionPatient[" + index + "] = " + ImagePositionPatient[index]);
+//                    System.out.println("ImagePositionPatient[" + index + "] = " + ImagePositionPatient[index]);
                     
                     sliceZ += ImagePositionPatient[index] * ImageNormal[index];
                 }
@@ -433,7 +435,7 @@ System.out.println(selectedDicomObj);
                     sliceZ = 0;
                 }
                 
-                System.out.println("slice Z = " + sliceZ);
+//                System.out.println("slice Z = " + sliceZ);
             }
             
             if (selectedDicomObj != null && selectedSeriesUID != null) {
@@ -451,7 +453,7 @@ System.out.println(selectedDicomObj);
                     File sliceFile = fileIterator.next();
 
                     if (sliceFile.isFile()) {
-                        System.out.println(sliceFile.getName());
+//                        System.out.println(sliceFile.getName());
                     }
                     else {
                         continue;
@@ -475,16 +477,16 @@ System.out.println(selectedDicomObj);
 //                        continue;
 //                    }
 
-                    try {
-                        System.out.print(obj.getVR("Modality").getStringValue() + " -- ");
-                    } catch (Exception e) {}
-                    try {
-                        System.out.print(obj.getVR("ProtocolName").getStringValue() + " -- ");
-                    } catch (Exception e) {}
-                    try {
-                        System.out.print(obj.getVR("AcquisitionDate").getDateValue());
-                    } catch (Exception e) {}
-                    System.out.println();
+//                    try {
+//                        System.out.print(obj.getVR("Modality").getStringValue() + " -- ");
+//                    } catch (Exception e) {}
+//                    try {
+//                        System.out.print(obj.getVR("ProtocolName").getStringValue() + " -- ");
+//                    } catch (Exception e) {}
+//                    try {
+//                        System.out.print(obj.getVR("AcquisitionDate").getDateValue());
+//                    } catch (Exception e) {}
+//                    System.out.println();
                     
                     // Make sure we include files from the same dicom series
                     if (obj.getVR("SeriesInstanceUID") == null || selectedSeriesUID.compareTo(obj.getVR("SeriesInstanceUID").getStringValue()) != 0) {
@@ -533,7 +535,7 @@ System.out.println(selectedDicomObj);
                                          
                     sliceFiles.add(sliceFile.getPath());
                                      
-                    System.out.println("Slice position = " + sliceNormalOffset);
+//                    System.out.println("Slice position = " + sliceNormalOffset);
                     slicePositions.add(new Float(sliceNormalOffset));
                     
                     positionsFiles.put(sliceNormalOffset, sliceFile);
@@ -546,12 +548,12 @@ System.out.println(selectedDicomObj);
                 }
                 
                 
-                Iterator<String> fileNamesIter = sliceFiles.iterator();
-                System.out.println("Selected series file names:");
-                while(fileNamesIter.hasNext()) {
-                    System.out.println(fileNamesIter.next());
-                }
-                System.out.println("/n");
+//                Iterator<String> fileNamesIter = sliceFiles.iterator();
+//                System.out.println("Selected series file names:");
+//                while(fileNamesIter.hasNext()) {
+//                    System.out.println(fileNamesIter.next());
+//                }
+//                System.out.println("/n");
                 
                 Object[] positions = slicePositions.toArray();
                 
@@ -590,7 +592,7 @@ System.out.println(selectedDicomObj);
                     
                     Map.Entry entry = (Map.Entry)iter.next();
                     
-                    System.out.println("slice position stored = " + (float)entry.getKey());
+//                    System.out.println("slice position stored = " + (float)entry.getKey());
                     
                     File sliceFile = (File)entry.getValue();
 
@@ -604,9 +606,9 @@ System.out.println(selectedDicomObj);
                     
                     DicomObject obj = openDicomFile(sliceFile);
                     
-                    if (i==0) {
-                        System.out.println(obj);
-                    }
+//                    if (i==0) {
+//                        System.out.println(obj);
+//                    }
                     
                     if (obj == null) {
                         throw new Exception("Invalid DICOM object.");
@@ -614,7 +616,7 @@ System.out.println(selectedDicomObj);
                     
                
                     if (i==0) {
-                        System.out.println("ImageVolume init");
+//                        System.out.println("ImageVolume init");
                         
                         int cols;
                         int rows;
@@ -622,7 +624,7 @@ System.out.println(selectedDicomObj);
                             cols = obj.getVR("Columns").getIntValue();
                             rows = obj.getVR("Rows").getIntValue();
                             
-                        System.out.println(cols + " x " + rows + " x " + positions.length );
+//                        System.out.println(cols + " x " + rows + " x " + positions.length );
                             
 //                        try {
 //                            sliceThickness = obj.getVR("SliceThickness").getFloatValue();
@@ -699,7 +701,7 @@ System.out.println(selectedDicomObj);
                             image.setAttribute("RescaleSlope", 1f);
                         }
                         
-                        System.out.println("ImageVolume init done");
+//                        System.out.println("ImageVolume init done");
                     }
                     
                     if (i==s.size()/2) {
@@ -739,7 +741,7 @@ System.out.println(selectedDicomObj);
                         }
                         
                         float zres = sliceThickness;
-                        System.out.println(xres + " x " + yres + " x " + zres);
+//                        System.out.println(xres + " x " + yres + " x " + zres);
                         
                         image.getDimension(0).setSampleSpacing(xres);
                         image.getDimension(1).setSampleSpacing(yres);
@@ -750,7 +752,7 @@ System.out.println(selectedDicomObj);
                         image.getDimension(2).setSampleWidth(zres);
                     }
                     
-                    System.out.println("Set DICOM attributes on ImageVolume");
+//                    System.out.println("Set DICOM attributes on ImageVolume");
                     
 //                    float thick = obj.getVR("SliceThickness").getFloatValue();
                     
@@ -778,7 +780,7 @@ System.out.println(selectedDicomObj);
                     }
                     catch (Exception e) {}
                     
-                    System.out.println("InstanceNumber = " + sliceTime);
+//                    System.out.println("InstanceNumber = " + sliceTime);
                     
                     float slicePosition = 0f;
                     try {
@@ -786,21 +788,21 @@ System.out.println(selectedDicomObj);
                     }
                     catch(Exception e) {}
                     
-                    System.out.println("SliceLocation = " + slicePosition);
+//                    System.out.println("SliceLocation = " + slicePosition);
                     
                     float sliceTE = 0f;
                     try {
                         VR vr = obj.getVR("EchoTime");
-                        System.out.println("Got EchoTime VR");
+//                        System.out.println("Got EchoTime VR");
                         if (vr != null) {
                             sliceTE = obj.getVR("EchoTime").getFloatValue();
                         }
                     }
                     catch(Exception e) {
-                        System.out.println("No EchoTime attr");
+                        Logger.getGlobal().log(Level.WARNING, "No EchoTime attr");
                     }
                     
-                    System.out.println("EchoTime = " + sliceTE);                                                                                                  
+//                    System.out.println("EchoTime = " + sliceTE);                                                                                                  
                                         
 //                    image.getDimension(2).setSamplePosition(i, (Float)entry.getKey());
 //                    
@@ -888,7 +890,7 @@ System.out.println(selectedDicomObj);
 
                                 // handle pixel padding value if given for CT
                                 if (v*2>sliceData.length) {
-                                    System.out.println("Dicom loader accessing beyond frame array size");
+                                    Logger.getGlobal().log(Level.WARNING, "Dicom loader accessing beyond frame array size");
                                 }
                                 
                                 short rawValue;
@@ -923,13 +925,13 @@ System.out.println(selectedDicomObj);
                         }
                     }
                     } catch (Exception e) {
-                        System.out.println("Unexpected dicom loading error");
-                        e.printStackTrace();
+                        Logger.getGlobal().log(Level.WARNING, "Unexpected dicom loading error", e);
+//                        e.printStackTrace();
                     }
                     
-                    System.out.println("Image min = " + min + " max = " + max);
+//                    System.out.println("Image min = " + min + " max = " + max);
                     
-                    System.out.println("Loaded " + (int)Math.round((double)(i+1)/(positions.length)*100.0));
+//                    System.out.println("Loaded " + (int)Math.round((double)(i+1)/(positions.length)*100.0));
                     
                     if (listener != null) {
                         listener.percentDone("Loading dicom image data", (int)Math.round((double)(i+1)/(positions.length)*100.0));
@@ -973,9 +975,9 @@ System.out.println(selectedDicomObj);
             float sliceZ=0f;
             
             if (selectedDicomObj != null) {
-System.out.println(selectedDicomObj);
+//System.out.println(selectedDicomObj);
                 selectedSeriesUID = selectedDicomObj.getVR("SeriesInstanceUID").getStringValue();
-                System.out.println("Selected series = " + selectedSeriesUID);
+//                System.out.println("Selected series = " + selectedSeriesUID);
                 
                 
                 ImageOrientationPatient = getImageOrientationPatient(selectedDicomObj);
@@ -987,7 +989,7 @@ System.out.println(selectedDicomObj);
                 ImagePositionPatient = getImagePositionPatient(selectedDicomObj);
                 try {
                 for (int index =0; index < 3; index++) {
-                    System.out.println("ImagePositionPatient[" + index + "] = " + ImagePositionPatient[index]);
+//                    System.out.println("ImagePositionPatient[" + index + "] = " + ImagePositionPatient[index]);
                     
                     sliceZ += ImagePositionPatient[index] * ImageNormal[index];
                 }
@@ -996,7 +998,7 @@ System.out.println(selectedDicomObj);
                     sliceZ = 0;
                 }
                 
-                System.out.println("slice Z = " + sliceZ);
+//                System.out.println("slice Z = " + sliceZ);
             }
             
             if (selectedDicomObj != null && selectedSeriesUID != null) {
@@ -1012,7 +1014,7 @@ System.out.println(selectedDicomObj);
                 for (int i = 0; i < listOfFiles.length; i++) {
 
                     if (listOfFiles[i].isFile()) {
-                        System.out.println(listOfFiles[i].getName());
+//                        System.out.println(listOfFiles[i].getName());
                     }
                     else {
                         continue;
@@ -1038,16 +1040,16 @@ System.out.println(selectedDicomObj);
 //                        continue;
 //                    }
 
-                    try {
-                        System.out.print(obj.getVR("Modality").getStringValue() + " -- ");
-                    } catch (Exception e) {}
-                    try {
-                        System.out.print(obj.getVR("ProtocolName").getStringValue() + " -- ");
-                    } catch (Exception e) {}
-                    try {
-                        System.out.print(obj.getVR("AcquisitionDate").getDateValue());
-                    } catch (Exception e) {}
-                    System.out.println();
+//                    try {
+//                        System.out.print(obj.getVR("Modality").getStringValue() + " -- ");
+//                    } catch (Exception e) {}
+//                    try {
+//                        System.out.print(obj.getVR("ProtocolName").getStringValue() + " -- ");
+//                    } catch (Exception e) {}
+//                    try {
+//                        System.out.print(obj.getVR("AcquisitionDate").getDateValue());
+//                    } catch (Exception e) {}
+//                    System.out.println();
                     
                     // Make sure we include files from the same dicom series
                     if (obj.getVR("SeriesInstanceUID") == null || selectedSeriesUID.compareTo(obj.getVR("SeriesInstanceUID").getStringValue()) != 0) {
@@ -1096,7 +1098,7 @@ System.out.println(selectedDicomObj);
                      
                     sliceFiles.add(sliceFile.getPath());
                                      
-                    System.out.println("Slice position = " + sliceNormalOffset);
+//                    System.out.println("Slice position = " + sliceNormalOffset);
                     slicePositions.add(new Float(sliceNormalOffset));
                     
                     positionsFiles.put(sliceNormalOffset, sliceFile);
@@ -1106,12 +1108,12 @@ System.out.println(selectedDicomObj);
                     }
                 }
                 
-                Iterator<String> fileNamesIter = sliceFiles.iterator();
-                System.out.println("Selected series file names:");
-                while(fileNamesIter.hasNext()) {
-                    System.out.println(fileNamesIter.next());
-                }
-                System.out.println("/n");
+//                Iterator<String> fileNamesIter = sliceFiles.iterator();
+//                System.out.println("Selected series file names:");
+//                while(fileNamesIter.hasNext()) {
+//                    System.out.println(fileNamesIter.next());
+//                }
+//                System.out.println("/n");
                 
                 Object[] positions = slicePositions.toArray();
                 
@@ -1124,7 +1126,7 @@ System.out.println(selectedDicomObj);
                     
                     Map.Entry entry = (Map.Entry)iter.next();
                     
-                    System.out.println("slice position stored = " + (float)entry.getKey());
+//                    System.out.println("slice position stored = " + (float)entry.getKey());
                     
                     File sliceFile = (File)entry.getValue();
 
@@ -1138,9 +1140,9 @@ System.out.println(selectedDicomObj);
                     
                     DicomObject obj = openDicomFile(sliceFile);
                     
-                    if (i==0) {
-                        System.out.println(obj);
-                    }
+//                    if (i==0) {
+//                        System.out.println(obj);
+//                    }
                     
                     if (obj == null) {
                         throw new Exception("Invalid DICOM object.");
@@ -1155,7 +1157,7 @@ System.out.println(selectedDicomObj);
 //
                     }                    
                     else if (i==0) {
-                        System.out.println("ImageVolume init");
+//                        System.out.println("ImageVolume init");
                         
                         int cols;
                         int rows;
@@ -1200,8 +1202,8 @@ System.out.println(selectedDicomObj);
 //                       }
                         
                         float zres = sliceThickness;
-                        System.out.println(cols + " x " + rows + " x " + positions.length );
-                        System.out.println(xres + " x " + yres + " x " + zres);
+//                        System.out.println(cols + " x " + rows + " x " + positions.length );
+//                        System.out.println(xres + " x " + yres + " x " + zres);
                         
                         // Put the image volume center at the origin for now
                         ImagePositionPatientRoot[0] = 0;
@@ -1271,10 +1273,10 @@ System.out.println(selectedDicomObj);
                             image.setAttribute("RescaleSlope", 1f);
                         }
                         
-                        System.out.println("ImageVolume init done");
+//                        System.out.println("ImageVolume init done");
                     }
                     
-                    System.out.println("Set DICOM attributes on ImageVolume");
+//                    System.out.println("Set DICOM attributes on ImageVolume");
                     
 //                    float thick = obj.getVR("SliceThickness").getFloatValue();
                     
@@ -1287,7 +1289,7 @@ System.out.println(selectedDicomObj);
                     }
                     catch (Exception e) {}
                     
-                    System.out.println("InstanceNumber = " + sliceTime);
+//                    System.out.println("InstanceNumber = " + sliceTime);
                     
                     float slicePosition = 0f;
                     try {
@@ -1295,21 +1297,21 @@ System.out.println(selectedDicomObj);
                     }
                     catch(Exception e) {}
                     
-                    System.out.println("SliceLocation = " + slicePosition);
+//                    System.out.println("SliceLocation = " + slicePosition);
                     
                     float sliceTE = 0f;
                     try {
                         VR vr = obj.getVR("EchoTime");
-                        System.out.println("Got EchoTime VR");
+//                        System.out.println("Got EchoTime VR");
                         if (vr != null) {
                             sliceTE = obj.getVR("EchoTime").getFloatValue();
                         }
                     }
                     catch(Exception e) {
-                        System.out.println("No EchoTime attr");
+                        Logger.getGlobal().log(Level.WARNING, "No EchoTime attr");
                     }
                     
-                    System.out.println("EchoTime = " + sliceTE);                                                                                                  
+//                    System.out.println("EchoTime = " + sliceTE);                                                                                                  
                                         
                     image.getDimension(2).setSamplePosition(i, (Float)entry.getKey());
                     
@@ -1422,9 +1424,9 @@ System.out.println(selectedDicomObj);
                         }
                     }
                     
-                    System.out.println("Image min = " + min + " max = " + max);
+//                    System.out.println("Image min = " + min + " max = " + max);
                     
-                    System.out.println("Loaded " + (int)Math.round((double)(i+1)/(positions.length)*100.0));
+//                    System.out.println("Loaded " + (int)Math.round((double)(i+1)/(positions.length)*100.0));
                     
                     if (listener != null) {
                         listener.percentDone("Loading dicom image data", (int)Math.round((double)(i+1)/(positions.length)*100.0));
@@ -1527,11 +1529,11 @@ System.out.println(selectedDicomObj);
             e.printStackTrace();
         }
         if (cookieStr.equals("dicomserieshack")) {
-            System.out.println("Looks like a hacked dicom directory index");
+//            System.out.println("Looks like a hacked dicom directory index");
             return 100;
         }
         else {
-            System.out.println("Not a hacked dicom directory index");
+//            System.out.println("Not a hacked dicom directory index");
         }
         
         return 0;
@@ -1539,14 +1541,14 @@ System.out.println(selectedDicomObj);
     
     private int probeForDicomFile(File file)
     {
-        System.out.println("Probing for a DICOM file");
+//        System.out.println("Probing for a DICOM file");
         
         DataInputStream is;
         try {
             is = new DataInputStream(new FileInputStream(file));
         }
         catch (FileNotFoundException e) {
-            System.out.println("File not found.");
+//            System.out.println("File not found.");
             return 0;
         }
         byte[] hdr = new byte[128];
@@ -1557,25 +1559,25 @@ System.out.println(selectedDicomObj);
             is.readFully(cookie);
         }
         catch (IOException io) {
-            System.out.println("IOException");
+//            System.out.println("IOException");
             return 0;
         }
         
         for (int i=0; i<4; i++) {
             try {
-            System.out.print(new String(cookie, "8859_1"));
+                Logger.getGlobal().log(Level.WARNING, new String(cookie, "8859_1"));
             }
             catch (UnsupportedEncodingException e) {
             }
-            System.out.println("");
+//            System.out.println("");
         }
         
         if (cookie[0] == 'D' && cookie[1] == 'I' && cookie[2] == 'C' && cookie[3] == 'M') {
-            System.out.println("Looks like a DICOM header.");
+//            System.out.println("Looks like a DICOM header.");
             return 100;
         }
         else {
-            System.out.println("Not a DICOM header.");
+//            System.out.println("Not a DICOM header.");
         }
         
         if (is != null) {

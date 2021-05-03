@@ -10,6 +10,8 @@ import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
 import org.fusfoundation.kranion.model.image.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.GL_TEXTURE_3D;
@@ -118,9 +120,9 @@ public class RegionGrow {
         Float slope = (Float)src.getAttribute("RescaleSlope");
         if (slope == null) { slope = 1f; }
         
-        System.out.println("RegionGrow: " + slope + ", " + intercept);
+//        System.out.println("RegionGrow: " + slope + ", " + intercept);
         
-        System.out.println("RegionGrow: growing " + xsize + "x" + ysize + "x" + zsize);
+//        System.out.println("RegionGrow: growing " + xsize + "x" + ysize + "x" + zsize);
         
         float minVal = Float.MAX_VALUE;
         float maxVal = Float.MIN_VALUE;
@@ -129,9 +131,9 @@ public class RegionGrow {
         while (!growQ.isEmpty()) {
             Seed current = (Seed) growQ.removeFirst();
             
-            if ((count++ % 1000) == 0) {
-                System.out.println("queue sizse = " + growQ.size() + "(" + current.x + ", " + current.y + ", " + current.z + ")");
-            }
+//            if ((count++ % 1000) == 0) {
+//                System.out.println("queue sizse = " + growQ.size() + "(" + current.x + ", " + current.y + ", " + current.z + ")");
+//            }
 
             if ( current.x >= 0 && current.x < xsize
               && current.y >= 0 && current.y < ysize
@@ -142,9 +144,9 @@ public class RegionGrow {
                 float value = slope * (voxels[offset] + intercept);// & 0x0fff;
                 int maskVal = mask[offset] & 0xff;
                 
-            if (((count-1) % 1000) == 0) {
-                System.out.println("seed val = " + value);
-            }
+//            if (((count-1) % 1000) == 0) {
+//                System.out.println("seed val = " + value);
+//            }
                 
                 if (value < minVal) minVal = value;
                 if (value > maxVal) maxVal = value;
@@ -161,9 +163,9 @@ public class RegionGrow {
                 }
             }
         }
-        System.out.println("RegionGrow: range " + minVal + " - " + maxVal);
+//        System.out.println("RegionGrow: range " + minVal + " - " + maxVal);
         
-        System.out.println("RegionGrow: dilating mask");
+//        System.out.println("RegionGrow: dilating mask");
         
         for (int xc = 1; xc < xsize-1; xc++) {
             for (int yc = 1; yc < ysize-1; yc++) {
@@ -202,7 +204,7 @@ public class RegionGrow {
             }
         }
         
-        System.out.println("RegionGrow: clearing background");
+//        System.out.println("RegionGrow: clearing background");
         for (int i = 0; i < framesize * zsize; i++) {
             int value = mask[i] & 0xff;
             if (value == 0) {
@@ -217,7 +219,7 @@ public class RegionGrow {
         
         src.freeChannel(maskChannel);
         
-        System.out.println("RegionGrow: done");
+//        System.out.println("RegionGrow: done");
     }
         
     private void initShader() {
@@ -260,7 +262,7 @@ public class RegionGrow {
         }
         
         if (tn == null) {
-            System.out.println("RegioGrow.gpu_calculate: textureName not found.");
+            Logger.getGlobal().log(Level.WARNING, "RegioGrow.gpu_calculate: textureName not found.");
             return;
         } //TODO: should prob throw exception
         
@@ -343,7 +345,7 @@ public class RegionGrow {
             IntBuffer maskChangeCount = bbuf.asIntBuffer();
 
             changeCount = maskChangeCount.get(0);
-            System.out.println("Mask change count = " + changeCount);
+//            System.out.println("Mask change count = " + changeCount);
 
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -431,11 +433,11 @@ public class RegionGrow {
         
                 int value;
                 value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_WIDTH);
-                System.out.println("Texture Width = " + value);
+//                System.out.println("Texture Width = " + value);
                 value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_HEIGHT);
-                System.out.println("Texture Height = " + value);
+//                System.out.println("Texture Height = " + value);
                 value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_DEPTH);
-                System.out.println("Texture Depth = " + value);
+//                System.out.println("Texture Depth = " + value);
         
         ShortBuffer voxelData = src.getByteBuffer(0, true).asShortBuffer(); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
         
@@ -470,7 +472,7 @@ public class RegionGrow {
         ByteBuffer voxelData = src.getByteBuffer(1, true); // mask channel TODO: need a lookup mechanism, prob by name "Mask"
         
         if (voxelData == null) {
-            System.out.println("RegionGrow: there was now mask channel in the src!");
+            Logger.getGlobal().log(Level.WARNING, "RegionGrow: there was no mask channel in the src!");
             return;
         }
         
@@ -498,7 +500,7 @@ public class RegionGrow {
 
 //            System.out.println("   textureName = " + tn);
             if (tn != null && tn > 0) {
-                System.out.println("Got previously built mask texture = " + tn);
+                Logger.getGlobal().log(Level.INFO, "RegionGrow.buildTexture: Got previously built mask texture = " + tn);
             } else {
 
                 //System.out.println("build new texture");
@@ -526,7 +528,7 @@ public class RegionGrow {
                 int height = image.getDimension(1).getSize();
                 int depth = image.getDimension(2).getSize();
 
-                System.out.println("  building 8bit mask texture");
+//                System.out.println("  building 8bit mask texture");
 
                 //ShortBuffer pixelBuf = (tmp.asShortBuffer());
                 //glTexImage3D(GL_TEXTURE_3D, 0, GL_INTENSITY16, texWidth, texHeight, texDepth, 0, GL_LUMINANCE, GL_SHORT, pixelBuf);
@@ -536,11 +538,11 @@ public class RegionGrow {
             }
             int value;
             value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_WIDTH);
-            System.out.println("Mask Texture Width = " + value);
+//            System.out.println("Mask Texture Width = " + value);
             value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_HEIGHT);
-            System.out.println("Mask Texture Height = " + value);
+//            System.out.println("Mask Texture Height = " + value);
             value = glGetTexLevelParameteri(GL_TEXTURE_3D, 0, GL_TEXTURE_DEPTH);
-            System.out.println("Mask Texture Depth = " + value);
+//            System.out.println("Mask Texture Depth = " + value);
 
             glBindTexture(GL_TEXTURE_3D, 0);
         }

@@ -183,7 +183,7 @@ public class XYChartControl extends GUIControl {
         }
         
         if (button1down && hasGrabbed()) {
-            System.out.println("Chart x = " + x + " (" + (float)(x-71)/(bounds.width-71) + ")");
+//            System.out.println("Chart x = " + x + " (" + (float)(x-71)/(bounds.width-71) + ")");
             selectedXValue = Math.max(0, Math.min(1f, (float)(x-71)/(bounds.width-71)));
             this.fireActionEvent();
             

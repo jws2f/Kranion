@@ -37,6 +37,8 @@ import org.lwjgl.util.vector.*;
 import org.lwjgl.BufferUtils;
 
 import java.nio.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Sphere extends GUIControl {
 	
@@ -252,7 +254,7 @@ public class Sphere extends GUIControl {
             }
         }
         catch(Exception e) {
-            System.out.println(this + " Wrong or NULL new value.");
+            Logger.getGlobal().log(Level.WARNING, this + " Wrong or NULL new value.");
         }
     }
     

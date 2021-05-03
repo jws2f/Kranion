@@ -30,6 +30,8 @@ import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -88,7 +90,7 @@ public class AttributeListXStreamConverter implements Converter {
 //                System.out.println("Failed newInstance(): " + type);
 //            }
             catch(ClassNotFoundException e) {
-                System.out.println("AttributeListXStreamConverter class not found: " + type);
+                Logger.getGlobal().log(Level.SEVERE, "AttributeListXStreamConverter class not found: " + type);
             }
             
             reader.moveUp();

@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL21.*;
@@ -86,7 +88,7 @@ public class ShaderProgram {
     public void compileShaderProgram() {
         if (shaderProgramID != 0) return;
         
-        System.out.println("Attaching and linking shader objects");
+//        System.out.println("Attaching and linking shader objects");
 
         shaderProgramID = glCreateProgram();
         
@@ -102,8 +104,8 @@ public class ShaderProgram {
         glGetProgram(shaderProgramID, GL_LINK_STATUS, resultValidate);
         
         if (resultValidate.get() == 0) {
-            System.out.println("Shader validaiton error:");
-            System.out.println(GetProgramInfoLog());
+            Logger.getGlobal().log(Level.WARNING, "Shader validaiton error:");
+            Logger.getGlobal().log(Level.WARNING, GetProgramInfoLog());
 //            System.exit(-1); // TODO: throw an exception so caller can handle
         }         
     }

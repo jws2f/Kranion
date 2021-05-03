@@ -565,7 +565,7 @@ public class TextBox extends GUIControl implements Animator {
         super.lostKeyboardFocus();
         Keyboard.enableRepeatEvents(false);
         cursorPos2 = cursorPos;
-        System.out.println("TextBox lost focus");
+//        System.out.println("TextBox lost focus");
         fireActionEvent("TEXTBOX_LOST_FOCUS");
     }
 

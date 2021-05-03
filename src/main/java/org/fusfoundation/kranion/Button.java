@@ -45,6 +45,8 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.Rectangle2D;
 import java.beans.PropertyChangeEvent;
 import java.util.Observable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.kranion.model.Model;
 
 
@@ -317,19 +319,19 @@ public class Button extends GUIControl implements GUIControlModelBinding  {
     public void update(Object newValue) {
         try {
             if (newValue == null) {
-                newValue = new Boolean(false);
+                newValue = false;
             }
             setIndicator((Boolean)newValue);
 //            System.out.println("Button.update " + getTitle() + ") = " + (Boolean)newValue);
         }
         catch(Exception e) {
-            System.out.println(this + "Name=" + this.getTitle() + " command=" + this.getCommand() + " Wrong or NULL new value: " + newValue.toString());
+            Logger.getGlobal().log(Level.WARNING, this + "Name=" + this.getTitle() + " command=" + this.getCommand() + " Wrong or NULL new value: " + newValue.toString());
         }
     }
     
     @Override
     public void doBinding(Model model) {
-        if (model != null && (type == ButtonType.TOGGLE_BUTTON || type == ButtonType.RADIO_BUTTON)) {
+        if (model != null && (type == ButtonType.TOGGLE_BUTTON || type == ButtonType.RADIO_BUTTON) && !getCommand().isBlank()) {
             model.setAttribute(this.getCommand(), this.getIndicator());
         }
     }

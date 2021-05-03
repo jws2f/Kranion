@@ -136,7 +136,7 @@ public class AttributeList implements Serializable {
         while (iter.hasNext()) {
             String key = iter.next();
             Object obj = attributes.get(key);
-            System.out.println("Out -> Key: " + key);
+//            System.out.println("Out -> Key: " + key);
             
             out.writeUTF(key);
             out.writeObject(translateOut(obj));
@@ -150,7 +150,7 @@ public class AttributeList implements Serializable {
         int size = in.readInt();
         for (int i=0; i<size; i++) {
             String key = (String)in.readUTF();
-            System.out.println("In <- Key: " + key);
+//            System.out.println("In <- Key: " + key);
             attributes.put(key, translateIn(in.readObject()));
         }
     }
@@ -230,7 +230,7 @@ public class AttributeList implements Serializable {
             // might loose info, but want to protect against saving
             // objects that might not be on classpath in future.
             default:
-                System.out.println("AttributeList: saving " + obj.getClass().getName());
+//                System.out.println("AttributeList: saving " + obj.getClass().getName());
                 return obj.toString();
 
         }

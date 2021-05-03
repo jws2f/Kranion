@@ -40,6 +40,8 @@ import java.beans.PropertyChangeEvent;
 import java.nio.FloatBuffer;
 import java.nio.DoubleBuffer;
 import java.util.Observable;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.kranion.model.Model;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.input.Keyboard;
@@ -533,7 +535,7 @@ glDisable(GL_CULL_FACE);
             }
         }
         catch(Exception e) {
-            System.out.println(this + " Wrong or NULL new value.");
+            Logger.getGlobal().log(Level.WARNING, this + " " + this.getTitle() +  ": Wrong or NULL new value. (" + newValue.toString() + ")");
         }
     }
 
@@ -548,7 +550,7 @@ glDisable(GL_CULL_FACE);
     
     @Override
     public void doBinding(Model model) {
-        if (model != null && getCommand().length() > 0) {
+        if (model != null && !getCommand().isBlank()) {
             if (persistAsString) {
                 model.setAttribute(this.getCommand(), String.format(format, this.getCurrentValue()));
             }

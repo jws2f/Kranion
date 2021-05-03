@@ -28,6 +28,8 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.fusfoundation.kranion.model.image.ImageVolumeUtil;
 import org.lwjgl.BufferUtils;
@@ -119,7 +121,7 @@ public class MutualInformation {
         }
         
         if (samplePointSSBo == 0) {
-            System.out.println("Generating sampling points for joint histogram: " + sampleCount);
+//            System.out.println("Generating sampling points for joint histogram: " + sampleCount);
             Random rnd = new Random(314159);
             FloatBuffer floatPosBuffer = ByteBuffer.allocateDirect(sampleCount * 4 * 4).order(ByteOrder.nativeOrder()).asFloatBuffer();
 
@@ -262,10 +264,10 @@ public class MutualInformation {
                 }
             }
         }
-        System.out.println("HA: " + -ha);
-        System.out.println("HB: " + -hb);
-        System.out.println("HAB: " + -hab);
-        System.out.println("normMI: " + (-ha +  -hb)/-hab);
+//        System.out.println("HA: " + -ha);
+//        System.out.println("HB: " + -hb);
+//        System.out.println("HAB: " + -hab);
+//        System.out.println("normMI: " + (-ha +  -hb)/-hab);
 
         glUnmapBuffer(GL_ARRAY_BUFFER);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -273,7 +275,8 @@ public class MutualInformation {
         //result = ha + hb - hab; //(ha +  hb)/hab;
         result = -(ha +  hb)/hab;
         
-        System.out.println("MI calc time = " + (System.currentTimeMillis() - startTime) + "ms");
+        Logger.getGlobal().log(Level.INFO, "MI calc time = " + (System.currentTimeMillis() - startTime) + "ms");
+        
         return result;
     }
     
@@ -349,7 +352,7 @@ public class MutualInformation {
                 return;
             }
             
-            System.out.println("Image Orient: " + imageOrientation);
+//            System.out.println("Image Orient: " + imageOrientation);
 
             FloatBuffer orientBuffer = BufferUtils.createFloatBuffer(16);
             Trackball.toMatrix4f(imageOrientation).store(orientBuffer);
@@ -395,7 +398,7 @@ public class MutualInformation {
             glMatrixMode(GL_MODELVIEW);
         }
         else {
-            System.out.println("MutualInformation.setupImageTexture: textureName not found.");
+            Logger.getGlobal().log(Level.WARNING, "MutualInformation.setupImageTexture: textureName not found.");
         }
 
         Main.glPopAttrib();

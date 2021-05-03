@@ -167,7 +167,7 @@ public class SonicationXStreamConverter implements Converter {
                         reader.moveDown();
                         if (reader.getNodeName().equalsIgnoreCase("SubSonication")) {
                             int ssNum = Integer.parseInt(reader.getAttribute("num"));
-                            System.out.println("subsonication " + ssNum);
+//                            System.out.println("subsonication " + ssNum);
                             float ssPower = Float.parseFloat(reader.getAttribute("power_w"));
                             float ssDuration = Float.parseFloat(reader.getAttribute("duration_s"));
                             

@@ -108,7 +108,7 @@ public class ACPCdisplay extends GUIControl {
             ac_lm.setName("AC");
             ac_lm.setCommand("AC");
             ac_lm.setShowOnlyIfSelected(true);
-            model.addObserver(ac_lm);
+            model.addPropertyChangeListener(ac_lm);
             model.setAttribute("AC", new Vector3f(0, -10, 0));            
         }
         if (pc_lm == null) {
@@ -118,7 +118,7 @@ public class ACPCdisplay extends GUIControl {
             pc_lm.setName("PC");
             pc_lm.setCommand("PC");
             pc_lm.setShowOnlyIfSelected(true);
-            model.addObserver(pc_lm);
+            model.addPropertyChangeListener(pc_lm);
             model.setAttribute("PC", new Vector3f(0, 10, 0));
         }
         if (sup_lm == null) {
@@ -128,14 +128,14 @@ public class ACPCdisplay extends GUIControl {
             sup_lm.setName("ACPCSup");
             sup_lm.setCommand("ACPCSup");
             sup_lm.setShowOnlyIfSelected(false);
-            model.addObserver(sup_lm);
+            model.addPropertyChangeListener(sup_lm);
             model.setAttribute("ACPCSup", new Vector3f(0, 0, 20));
         }
                 
         for (int i=0; i<tb_landmarks.length; i++) {
             if (tb_landmarks[i] != null) {
                 tb_landmarks[i].setPropertyPrefix("Model.Attribute");
-                model.addObserver(tb_landmarks[i]);
+                model.addPropertyChangeListener(tb_landmarks[i]);
             }
         }
     }

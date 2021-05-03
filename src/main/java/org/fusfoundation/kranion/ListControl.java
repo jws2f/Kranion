@@ -193,12 +193,12 @@ public class ListControl extends GUIControl {
                     long now = System.currentTimeMillis();
                     if (previousClickTime > 0 && now - previousClickTime < 300) {
                         fireActionEvent("doubleClick");
-                        System.out.println("dbClick interval: " + (now - previousClickTime));
+//                        System.out.println("dbClick interval: " + (now - previousClickTime));
                         this.previousClickTime = -1;
                     }
                     else {
                         fireActionEvent();
-                        System.out.println("Click interval: " + (now - previousClickTime));
+//                        System.out.println("Click interval: " + (now - previousClickTime));
                         previousClickTime = now;
                     }
                     setIsDirty(true);

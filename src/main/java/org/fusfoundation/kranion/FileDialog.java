@@ -216,7 +216,7 @@ public class FileDialog extends FlyoutDialog {
         rootSelector.addItem("HOME");
         rootSelector.addItem("DOCUMENTS");
         for (int i = 0; i < roots.length; i++) {
-            System.out.println("Root[" + i + "]:" + roots[i]);
+            Logger.getGlobal().log(Level.INFO, "Root[" + i + "]:" + roots[i]);
             rootSelector.addItem(roots[i].toString());
         }
         rootSelector.setTitle(roots[0].toString());
@@ -254,6 +254,13 @@ public class FileDialog extends FlyoutDialog {
             return;
         }
         
+        if (root.toString().equals("HOME")) {
+            root = new File(System.getProperty("user.home"));
+        }
+        else if (root.toString().equals("DOCUMENTS")) {
+            root = new File(new JFileChooser().getFileSystemView().getDefaultDirectory().toString());
+        }
+        
         if (currentDirectory != root) {
             dirScroll.setValue(0);
             fileScroll.setValue(0);
@@ -269,12 +276,6 @@ public class FileDialog extends FlyoutDialog {
             Logger.getLogger(FileDialog.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        if (root.toString().equals("HOME")) {
-            root = new File(System.getProperty("user.home"));
-        }
-        else if (root.toString().equals("DOCUMENTS")) {
-            root = new File(new JFileChooser().getFileSystemView().getDefaultDirectory().toString());
-        }
 
         Path homePath = root.toPath();
         String currentRoot = homePath.getRoot().toString();

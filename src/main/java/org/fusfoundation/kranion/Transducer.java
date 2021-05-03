@@ -234,7 +234,7 @@ public class Transducer extends Clippable {
         else {
             transducerIndex = index;
         }
-        System.out.println("setTransducerDefinitionIndex="+transducerIndex);
+//        System.out.println("setTransducerDefinitionIndex="+transducerIndex);
         setIsDirty(true);
     }
     
@@ -440,8 +440,7 @@ public class Transducer extends Clippable {
                     defaultClinicalTransducer));
         }
         catch(IOException e) {
-            System.out.println("Transducer definision load failed: " + name);
-            Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Transducer definision load failed: " + name);
+            Logger.getGlobal().log(Level.SEVERE, "Transducer definision load failed: " + name);            Logger.getGlobal().log(java.util.logging.Level.SEVERE, "Transducer definision load failed: " + name);
         }
         
         if (listener != null) {
@@ -472,7 +471,7 @@ public class Transducer extends Clippable {
                     }
                 });
                 for (int i = 0; i < files.length; i++) {
-                    System.out.println(files[i].getPath());
+                    Logger.getGlobal().log(Level.INFO, files[i].getPath());
                     transducers.add(new AbstractMap.SimpleImmutableEntry<InsightecTxdrGeomReader, Renderable>(
                             new InsightecTxdrGeomReader(files[i]),
                             defaultClinicalTransducer)
@@ -486,7 +485,7 @@ public class Transducer extends Clippable {
                 File files[] = transducersDir.listFiles();
                 for (int i = 0; i < files.length; i++) {
                     if (files[i].isDirectory() && !files[i].getName().equalsIgnoreCase("Inactive")) {
-                        System.out.println("Custom Transducer Directory: " + files[i].getName());
+                        Logger.getGlobal().log(Level.INFO, "Custom Transducer Directory: " + files[i].getName());
                         InsightecTxdrGeomReader customGeometry = null;
                         RenderList transducerRenderable = new RenderList();
                         File customFiles[] = files[i].listFiles();

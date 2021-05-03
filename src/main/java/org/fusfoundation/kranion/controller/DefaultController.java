@@ -23,9 +23,10 @@
  */
 package org.fusfoundation.kranion.controller;
 
-import java.util.Observable;
 import java.beans.PropertyChangeEvent;
 import java.awt.event.ActionEvent;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.lwjgl.util.vector.*;
 
@@ -51,10 +52,11 @@ public class DefaultController extends Controller {
     }
     
     @Override
-    public void update(Observable o, Object arg) {
-        System.out.print("----DefaultController update: " + o.toString());
+    public void propertyChange(PropertyChangeEvent arg) {
+        Object o = arg.getSource();
+        Logger.getGlobal().log(Level.INFO, "----DefaultController update: " + o.toString());
         if (arg != null && arg instanceof PropertyChangeEvent) {
-            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName() + " = " + ((PropertyChangeEvent)arg).getNewValue());
+            Logger.getGlobal().log(Level.INFO, " Property Change: " + ((PropertyChangeEvent)arg).getPropertyName() + " = " + ((PropertyChangeEvent)arg).getNewValue());
             
             switch (((PropertyChangeEvent)arg).getPropertyName()) {
                 case "Model.Attribute[currentTargetPoint]":
@@ -66,12 +68,11 @@ public class DefaultController extends Controller {
                     
             }
         }
-        System.out.println();
     }
 
     @Override
     public void actionPerformed(ActionEvent e) {
-        System.out.println(e);
+//        System.out.println(e);
         
         // propagate to any other registerd listeners (plugins, etc)
         super.actionPerformed(e);
@@ -191,7 +192,7 @@ public class DefaultController extends Controller {
         else if (e.getActionCommand().equals("CT_IMAGE_LOADED")) {
             Loader loader = (Loader) e.getSource();
             ImageVolume4D image = (ImageVolume4D) loader.getLoadedImage();
-            System.out.println("MAIN: setImage #1 CT");
+//            System.out.println("MAIN: setImage #1 CT");
             
             model.setCtImage(image);
         }
@@ -199,7 +200,7 @@ public class DefaultController extends Controller {
             Loader loader = (Loader) e.getSource();
 
             ImageVolume4D image = (ImageVolume4D) loader.getLoadedImage();
-            System.out.println("MAIN: setImage #1 MR");
+//            System.out.println("MAIN: setImage #1 MR");
 
 // TODO: Looks like only isometric (or some aspect ratio) voxels will work here
 //          Only the Windows Java bin is available for SimpleITK for now
@@ -218,6 +219,7 @@ public class DefaultController extends Controller {
                 ImageCanvas2D canvas = (ImageCanvas2D)source;
                 Vector3f target = canvas.getSelectedPoint();
                 model.setAttribute("currentTargetPoint", target);
+                model.setAttribute("currentTargetSteering", new Vector3f());
 //                model.setAttribute("sonicationRLoc", String.format("%4.1f", -target.x));
 //                model.setAttribute("sonicationALoc", String.format("%4.1f", -target.y));
 //                model.setAttribute("sonicationSLoc", String.format("%4.1f", target.z));
@@ -244,7 +246,7 @@ public class DefaultController extends Controller {
     
     @Override
     public void percentDone(String msg, int percent) {
-        System.out.println(msg + " " + percent);
+//        System.out.println(msg + " " + percent);
                 Renderable r = Renderable.lookupByTag("statusBar");
                 if (r != null && r instanceof ProgressBar) {
                     ((ProgressBar)r).setFormatString(msg + ": %3.0f%%");

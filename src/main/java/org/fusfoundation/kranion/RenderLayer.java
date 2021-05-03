@@ -28,6 +28,8 @@ import org.lwjgl.opengl.Display;
 
 import org.lwjgl.util.vector.Vector4f;
 import java.util.Iterator;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import static org.lwjgl.opengl.GL11.*;
 
 /**
@@ -71,13 +73,14 @@ public class RenderLayer extends GUIControl implements Resizeable, Pickable {
         if (frameBuffer.getWidth() != width || frameBuffer.getHeight() != height) {
             setIsDirty(true);
         }
-        System.out.println(this + ":setSize");
+//        System.out.println(this + ":setSize");
         try {
             setBounds(0, 0, width, height);
             frameBuffer.build(width, height);
             frameBufferMSAA.build(width, height, oversample);
         }
         catch (LWJGLException e) {
+            Logger.getGlobal().log(Level.WARNING, "RenderLayer.setSize()", e);
             e.printStackTrace();
         }
     }

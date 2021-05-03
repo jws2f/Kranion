@@ -35,6 +35,7 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
@@ -66,7 +67,7 @@ import org.lwjgl.util.vector.Vector3f;
  */
 
 // Some shared bookeeping for GUI controls
-public abstract class GUIControl extends Renderable implements org.fusfoundation.kranion.MouseListener, Observer {
+public abstract class GUIControl extends Renderable implements org.fusfoundation.kranion.MouseListener, PropertyChangeListener {
     private String command = new String();
     private String title = new String();
     private String propertyPrefix = new String();
@@ -430,25 +431,27 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
 
     
     @Override
-    public void update(Observable o, Object arg) {
-        if (arg != null && arg instanceof PropertyChangeEvent) {
-            
-            // If the update is coming from other than the main (OpenGL) thread
-            // then queue it for later when it can be handled on main thread
-            if (myThread != Thread.currentThread()) {
-                this.updateEventQueue.push(o, arg);
-                return;
-            }
-            
-            PropertyChangeEvent propEvt = (PropertyChangeEvent) arg;
-            String propName = this.getFilteredPropertyName(propEvt);
-            if (propName.length() > 0) {
-                if (propName.equals(this.getCommand())) {
-                    update(propEvt.getNewValue());
+    public void propertyChange(PropertyChangeEvent arg) {
+        if (arg.getSource() != this) {
+            if (arg != null && arg instanceof PropertyChangeEvent) {
+
+                // If the update is coming from other than the main (OpenGL) thread
+                // then queue it for later when it can be handled on main thread
+                if (myThread != Thread.currentThread()) {
+                    this.updateEventQueue.push(arg);
+                    return;
                 }
-//            else {
-                update(propName, propEvt.getNewValue()); // TODO: Always pass?
-//            }
+
+                //       System.out.println("GUIContro: " + this + " - command: " + this.getCommand() + " - Property = " + arg.getPropertyName() + " - Filtered: " + getFilteredPropertyName(arg));
+                //       PropertyChangeEvent propEvt = (PropertyChangeEvent) arg;
+                String propName = this.getFilteredPropertyName(arg);
+                if (propName.length() > 0) {
+                    if (propName.equals(this.getCommand())) {
+                        update(arg.getNewValue());
+                    } else {
+                        update(propName, arg.getNewValue()); // TODO: Always pass?
+                    }
+                }
             }
         }
     }
@@ -552,13 +555,13 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
             Rectangle2D r1 = metrics.getStringBounds(str, 0, Math.max(i-1, 0), gc);
             Rectangle2D r2 = metrics.getStringBounds(str, 0, i, gc);
             float index = (float)((r2.getMaxX() - r1.getMaxX())/2f + r1.getMaxX());
-             System.out.println("pos " + i + " = " + index + " ? " + (mouseX-(rect.x-hScroll)) + " hscroll " + hScroll);
+//             System.out.println("pos " + i + " = " + index + " ? " + (mouseX-(rect.x-hScroll)) + " hscroll " + hScroll);
             if (index >= (mouseX-(rect.x-hScroll)) ) {
 //                if (hScroll > 0f) {
 //                    return Math.max(0, i);
 //                }
 //                else {
-System.out.println();
+//System.out.println();
                     return Math.max(0, i-1);
 //                }
             }

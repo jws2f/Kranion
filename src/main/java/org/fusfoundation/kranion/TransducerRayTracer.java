@@ -24,6 +24,8 @@
 package org.fusfoundation.kranion;
 
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.ByteArrayOutputStream;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -35,11 +37,16 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
 import java.io.File;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Observer;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JFileChooser;
+import org.fusfoundation.kranion.model.Model;
 
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.lwjgl.BufferUtils;
@@ -63,6 +70,8 @@ import org.fusfoundation.util.FastFourierTransform;
  */
 public class TransducerRayTracer extends Renderable implements Pickable {
 
+    PropertyChangeSupport propertyChangeSupport;
+    
     private Vector3f steering = new Vector3f(0f, 0f, 0f);
     
     private float boneThreshold = /*1024f +*/ 700f; // 700 HU threshold for bone
@@ -112,23 +121,38 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private boolean showPressureEnvelope = false; // show pressure waveform or envelope?
     private float phaseCorrectAmount = 1f; // to vary the amount of phase correction 0 to 1
     
+    private boolean needsCalc = true;
+    private boolean needsSDRCalc = true;
+    private boolean needsPressureCalc = true;
+    
+    private float normDiscDiam = 1f;
+    
+    protected Thread myThread;
+    
+    public TransducerRayTracer() {
+        myThread = Thread.currentThread();
+        propertyChangeSupport = new PropertyChangeSupport(this);
+    }
+    
     // Observable pattern
-    private List<Observer> observers = new ArrayList<Observer>();
-    public void addObserver(Observer observer) {
-        observers.add(observer);
+
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(listener);
     }
-    public void removeObserver(Observer observer) {
-        observers.remove(observer);
+    
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        this.propertyChangeSupport.removePropertyChangeListener(listener);
     }
-    public void removeAllObservers() {
-        observers.clear();
-    }
-    private void updateObservers(PropertyChangeEvent e) {
-        Iterator<Observer> i = observers.iterator();
-        while(i.hasNext()) {
-            Observer o = i.next();
-            o.update(null, e);
+    
+    public void removePropertyChangeListeners() {
+        PropertyChangeListener listeners[] = this.propertyChangeSupport.getPropertyChangeListeners();
+        for (int i=0; i<listeners.length; i++) {
+            removePropertyChangeListener(listeners[i]);
         }
+    }
+
+    private void updateObservers(PropertyChangeEvent e) {
+        propertyChangeSupport.firePropertyChange(e);
     }
             
     public void setFrequency(float f_kHz) {
@@ -199,14 +223,20 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             ImageVolumeUtil.releaseTextures(envelopeImage);
             envelopeImage = null;
         }
+        
+        needsCalc = true;
+        needsSDRCalc = true;
     }
     
-    public void setTextureRotatation(Vector3f rotationOffset, Trackball tb) {
+    public void setTextureRotation(Vector3f rotationOffset, Trackball tb) {
         if (trackball == null || !centerOfRotation.equals(rotationOffset) || trackball.getCurrent() != tb.getCurrent()) {
             setIsDirty(true);
         }
-        centerOfRotation = rotationOffset;
+        centerOfRotation = new Vector3f(rotationOffset);
         trackball = tb;
+        
+        needsCalc = true;
+        needsSDRCalc = true;
     }
     
     public float getSDR() { return sdr; }
@@ -231,6 +261,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             setIsDirty(true);
         }
         transducerTiltX = tilt;
+        
+        needsCalc = true;
+        needsSDRCalc = true;
     }
     
     public void setTransducerTiltY(float tilt) {
@@ -238,6 +271,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             setIsDirty(true);
         }
         transducerTiltY = tilt;
+        
+        needsCalc = true;
+        needsSDRCalc = true;
     }
     
     private float boneSpeed = 2652f;//3500f;
@@ -248,6 +284,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             setIsDirty(true);
         }
         steering.set(x, y, z);
+        
+        needsPressureCalc = true;
     }
     
     public Vector3f getTargetSteering() {
@@ -259,12 +297,16 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             setIsDirty(true);
         }
         boneSpeed = Math.min(3500, Math.max(1482, speed));
+        
+        needsCalc = true;
     }
     public void setBoneRefractionSpeed(float speed) {
         if (boneRefractionSpeed != speed) {
             setIsDirty(true);
         }
-        boneRefractionSpeed = Math.min(3500, Math.max(1482, speed));        
+        boneRefractionSpeed = Math.min(3500, Math.max(1482, speed));
+
+        needsCalc = true;      
     }
     
     public float getBoneSpeed() { return boneSpeed; }
@@ -334,6 +376,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         FloatBuffer floatPosBuffer = ByteBuffer.allocateDirect(elementCount*4*8).order(ByteOrder.nativeOrder()).asFloatBuffer();
         
+        double radiusSum = 0;
+        
         for (int i=0; i<elementCount; i++) {
             Vector4f pos;
             pos = new Vector4f(trans.getElement(i));
@@ -356,9 +400,12 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             floatPosBuffer.put(norm.x);
             floatPosBuffer.put(norm.y);
             floatPosBuffer.put(norm.z);
-            floatPosBuffer.put(0f);            
+            floatPosBuffer.put(0f);
+
+            radiusSum += Math.sqrt(trans.getElementArea(i) / Math.PI / 2.0);
         }
         
+        this.normDiscDiam = (float)(radiusSum / elementCount / 2); // using half of average element radius for normal disc representation size. TODO: per element radius?
         floatPosBuffer.flip();
         
         
@@ -621,6 +668,30 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     private void doCalc() {
+        
+        needsCalc = false;
+        
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    TransducerRayTracer.this.doCalc();
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+        
+        if (CTimage == null) return;
+        
+        setupImageTexture(CTimage, 0, centerOfRotation);
+
+//        System.out.println("TransducerRayTracer::doCalc() " + Thread.currentThread().getId() + " - " + myThread.getId());
+    
         refractShader.start();
         
         int shaderProgID = refractShader.getShaderProgramID();
@@ -646,13 +717,17 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         //glUniform3f(targetLoc, steering.x, steering.y, steering.z);
         glUniform3f(targetLoc, 0, 0, 0); // just natural focus
         
-        System.out.println("doCalc: steering = " + steering);
+//        System.out.println("doCalc: steering = " + steering);
         
         texLoc = glGetUniformLocation(shaderProgID, "selectedElement");
         glUniform1i(texLoc, this.selectedElement);
         
         texLoc = glGetUniformLocation(shaderProgID, "elementCount");
         glUniform1i(texLoc, this.elementCount);
+        
+        texLoc = glGetUniformLocation(shaderProgID, "normDiscDiam");
+        glUniform1f(texLoc, normDiscDiam);
+       
         
 //        int targetLoc = glGetUniformLocation(shaderprogram, "target");
 //        glUniform3f(targetLoc, 0f, 0f, 300f);
@@ -685,7 +760,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         refractShader.stop();
         
-        this.updateObservers(new PropertyChangeEvent(this, "rayCalc", null, null));        
+        this.updateObservers(new PropertyChangeEvent(this, "rayCalc", null, true));        
     }
     
     private void doPickCalc() {
@@ -715,6 +790,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         texLoc = glGetUniformLocation(shaderProgID, "elementCount");
         glUniform1i(texLoc, this.elementCount);
+        
+        texLoc = glGetUniformLocation(shaderProgID, "normDiscDiam");
+        glUniform1f(texLoc, normDiscDiam);
        
 //        int targetLoc = glGetUniformLocation(shaderprogram, "target");
 //        glUniform3f(targetLoc, 0f, 0f, 300f);
@@ -750,12 +828,35 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 //        this.updateObservers(new PropertyChangeEvent(this, "rayCalc", null, null));        
     }
     
-    public void doSDRCalc() {
-         // Calculate per element SDR data
-         //
-         // doCalc() must be called first to compute the per element ray segments
-         //
-         
+   public void doSDRCalc() {
+        // Calculate per element SDR data
+        //
+        // doCalc() must be called first to compute the per element ray segments
+        //
+
+        needsSDRCalc = false;
+        
+        if (needsCalc) {
+            doCalc();
+        }
+        
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    TransducerRayTracer.this.doSDRCalc();
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+        
+//        System.out.println("TransducerRayTracer::doSDRCalc() " + Thread.currentThread().getId() + " - " + myThread.getId());
+        
         sdrShader.start();
         int shaderProgID = sdrShader.getShaderProgramID();
         
@@ -792,7 +893,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         sdrShader.stop();
         
-        this.updateObservers(new PropertyChangeEvent(this, "sdrCalc", null, null));        
+        this.updateObservers(new PropertyChangeEvent(this, "sdrCalc", null, true));        
     }
     
     public void doPressureCalc(Vector4f samplePointOffset) {
@@ -800,6 +901,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
          //
          //doCalc(); // must be called first to compute the per element ray segments
          //
+         
+         if (needsCalc) {
+             doCalc();
+         }
          
         pressureShader.start();
         
@@ -1000,9 +1105,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     public float[] getChannelSkullSamples(int channel) {
-            glBindBuffer(GL_ARRAY_BUFFER, this.sdrSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatSamples = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.sdrSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatSamples = dists.asFloatBuffer();
+            FloatBuffer floatSamples = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, sdrSSBo, GL_READ_WRITE);
             int count = 0;
             
             float[] huOut = new float[63];
@@ -1011,8 +1117,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 huOut[i] = floatSamples.get(channel * 63 + i);
             }
         
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);
             
             return huOut;
     } 
@@ -1022,9 +1128,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         if (outFile != null) {
             List<Double> speeds = getSpeeds();
             
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
             int count = 0;
 
             BufferedWriter writer = null;
@@ -1063,36 +1170,47 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 e.printStackTrace();
             }
 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);
         }
+    }
+    
+    private FloatBuffer getFloatBufferThreadSafe(int bufferType, int bufferName, int access) {
+        if (Thread.currentThread() == myThread) {
+            glBindBuffer(bufferType, bufferName);
+            ByteBuffer byteBuffer = glMapBuffer(bufferType, access, null);
+            FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+            glUnmapBuffer(bufferType);
+            glBindBuffer(bufferType, 0);
+            
+            return floatBuffer;
+        }
+        else {
+            
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                  public FloatBuffer call() {
+                    return  TransducerRayTracer.this.getFloatBufferThreadSafe(bufferType, bufferName, access);
+                  }
+            };
+            
+            return (FloatBuffer)Main.callCrossThreadCallable(c);
+
+        }        
     }
     
     public FloatBuffer getChannelPhases() {
             // force pressure calc so we have phase information
             doPressureCalc(new Vector4f(steering.x, steering.y, steering.z, 1));
-            
-            glBindBuffer(GL_ARRAY_BUFFER, phaseSSBo);
-            ByteBuffer phases = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = phases.asFloatBuffer();
-            int count = 0, zeroCount = 0;
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            
-            return floatPhases;
+                        
+            return getFloatBufferThreadSafe(GL_ARRAY_BUFFER, phaseSSBo, GL_READ_WRITE);
     }
     
     public FloatBuffer getChannelActive() {
             // force raytracer calc so we have valid data
             doCalc();
-            
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatDist = dists.asFloatBuffer();
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            
-            return floatDist; // -1 values mean inactive
+                        
+            return getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE); // -1 values mean inactive
     }
     
     public void writeACTFile(File outFile) {
@@ -1101,19 +1219,23 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             doPressureCalc(new Vector4f());
 //            doPressureCalc(new Vector4f(steering.x, steering.y, steering.z, 1));
             
-            glBindBuffer(GL_ARRAY_BUFFER, phaseSSBo);
-            ByteBuffer phases = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = phases.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, phaseSSBo);
+//            ByteBuffer phases = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = phases.asFloatBuffer();
             int count = 0, zeroCount = 0;
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatDist = dists.asFloatBuffer();
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);
             
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, phaseSSBo, GL_READ_WRITE);
+
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatDist = dists.asFloatBuffer();
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            
+            FloatBuffer floatDist = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+           
             
             BufferedWriter writer = null;
             try {
@@ -1156,7 +1278,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     writer.write(String.format("%1.4f", phase));
                     writer.newLine();
                 }
-                System.out.println("zero phase channels = " + zeroCount);
+//                System.out.println("zero phase channels = " + zeroCount);
                 writer.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -1170,19 +1292,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             doPressureCalc(new Vector4f());
 //            doPressureCalc(new Vector4f(steering.x, steering.y, steering.z, 1));
             
-            glBindBuffer(GL_ARRAY_BUFFER, phaseSSBo);
-            ByteBuffer phases = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = phases.asFloatBuffer();
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
-            int count = 1, zeroCount = 0;
-
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatDist = dists.asFloatBuffer();
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, phaseSSBo, GL_READ_WRITE);
             
+            FloatBuffer floatDist = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+
+            int count = 0, zeroCount = 0;
             
             BufferedWriter writer = null;
             try {
@@ -1236,7 +1350,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     writer.write(String.format("%1.6f", phase));
                     writer.newLine();
                 }
-                System.out.println("zero phase channels = " + zeroCount);
+//                System.out.println("zero phase channels = " + zeroCount);
                 writer.close();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -1251,19 +1365,27 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     public RayData[] getRayData() {
+        doCalc();
+        
         RayData result[] = new RayData[this.elementCount];
         
-        glBindBuffer(GL_ARRAY_BUFFER, this.outSSBo);
-        ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-        FloatBuffer floatValues = dists.asFloatBuffer();
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);        
-       
-        glBindBuffer(GL_ARRAY_BUFFER, this.outDiscSSBo);
-        ByteBuffer buf = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-        FloatBuffer floatDiscValues = buf.asFloatBuffer();
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+//        glBindBuffer(GL_ARRAY_BUFFER, this.outSSBo);
+//        ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//        FloatBuffer floatValues = dists.asFloatBuffer();
+//        glUnmapBuffer(GL_ARRAY_BUFFER);
+//        glBindBuffer(GL_ARRAY_BUFFER, 0);        
+          FloatBuffer floatValues = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, outSSBo, GL_READ_ONLY);
+
+//        glBindBuffer(GL_ARRAY_BUFFER, this.outDiscSSBo);
+//        ByteBuffer buf = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//        FloatBuffer floatDiscValues = buf.asFloatBuffer();
+//        glUnmapBuffer(GL_ARRAY_BUFFER);
+//        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        FloatBuffer floatDiscValues = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, outDiscSSBo, GL_READ_ONLY);  
+        
+//        System.out.println("TransducerRayTracer::getRayData()");
+//        System.out.println(floatValues.capacity());
+//        System.out.println(floatDiscValues.capacity());
         
         for (int i=0; i<this.elementCount; i++) {
             
@@ -1276,7 +1398,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             Vector3f normal = Vector3f.cross(Vector3f.sub(second, center, null), Vector3f.sub(first, center, null), null);
             if (normal.lengthSquared() > 0f) {
                 normal.normalise();
-            }
+            }                    
             
             result[i] = new RayData();
             result[i].outerNormal = normal;
@@ -1319,9 +1441,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);       
+
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1338,8 +1462,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     }                    
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1348,9 +1472,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);  
+            
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1365,8 +1491,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     result.add((double)incidentAngle);
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1376,9 +1502,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+            
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1395,8 +1523,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     }
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1406,9 +1534,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+            
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1428,8 +1558,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     }
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1438,9 +1568,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+            
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1457,9 +1589,16 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     }
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
+        return result;
+    }
+
+    @Override
+    public boolean getIsDirty() {
+        boolean result = super.getIsDirty(); //To change body of generated methods, choose Tools | Templates.
+       
         return result;
     }
     
@@ -1467,9 +1606,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+            
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1489,8 +1630,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     }
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1498,9 +1639,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+            
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1520,8 +1663,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     }
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1531,9 +1674,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+            
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1553,8 +1698,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     }
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1563,9 +1708,11 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
-            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-            FloatBuffer floatPhases = dists.asFloatBuffer();
+//            glBindBuffer(GL_ARRAY_BUFFER, this.distSSBo);
+//            ByteBuffer dists = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//            FloatBuffer floatPhases = dists.asFloatBuffer();
+            FloatBuffer floatPhases = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+            
             int count = 0;
 
                 while (floatPhases.hasRemaining()) {
@@ -1585,8 +1732,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                     }
                 }
                 
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            glBindBuffer(GL_ARRAY_BUFFER, 0);        
+//            glUnmapBuffer(GL_ARRAY_BUFFER);
+//            glBindBuffer(GL_ARRAY_BUFFER, 0);        
         
         return result;
     }
@@ -1595,9 +1742,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         List<Double> result = new ArrayList<>();
         
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER,sdrSSBo);
-        ByteBuffer sdrOutput = glMapBuffer(GL_SHADER_STORAGE_BUFFER,GL_READ_ONLY,null);
-        FloatBuffer huValues = sdrOutput.asFloatBuffer();
+//        glBindBuffer(GL_SHADER_STORAGE_BUFFER,sdrSSBo);
+//        ByteBuffer sdrOutput = glMapBuffer(GL_SHADER_STORAGE_BUFFER,GL_READ_ONLY,null);
+//        FloatBuffer huValues = sdrOutput.asFloatBuffer();
+        FloatBuffer huValues = this.getFloatBufferThreadSafe(GL_SHADER_STORAGE_BUFFER, sdrSSBo, GL_READ_WRITE);
         
         float[] huOut = new float[60];
         float[] huIndices = new float[3];
@@ -1638,8 +1786,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             }
         }
         
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+//        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+//        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
         
         return result;
     }
@@ -1900,7 +2048,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         // normalize the pressure field
         float colormap_range = (colormap_max - colormap_min);// / 500000f;
 System.out.println("pressure maximum = " + colormap_range);
-colormap_range = 45f;
+//colormap_range = 45f;
         for (int index=0; index<voxels.length; index++) {
 
                     float value = voxels[index];
@@ -1936,7 +2084,7 @@ colormap_range = 45f;
                     
                     int elemCount = calcElementsOn(centerOfRotation, offset);
                     
-                    System.out.print("" + elemCount + " ");
+//                    System.out.print("" + elemCount + " ");
 //                    envFloats.put(-centerOfRotation.x + imageTranslation.x + offset.x);
 //                    envFloats.put(-centerOfRotation.x + imageTranslation.y + offset.y);
 //                    envFloats.put(-centerOfRotation.x + imageTranslation.z + offset.z + 150f);
@@ -1965,7 +2113,7 @@ colormap_range = 45f;
                         envFloats.put(0.6f);
                 }
             }
-            System.out.println("");
+//            System.out.println("");
         }
         envFloats.flip();
         
@@ -1974,11 +2122,28 @@ colormap_range = 45f;
         glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
     
+    private int calcElementsOn() {
+        return calcElementsOn(centerOfRotation, new Vector4f());
+    }
+    
     private int calcElementsOn(Vector4f offset) {
         return calcElementsOn(centerOfRotation, offset);
     }
     
     private int calcElementsOn(Vector3f center, Vector4f offset) {
+        
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Integer call() {
+                    return (Integer)TransducerRayTracer.this.calcElementsOn(center, offset);
+                }
+            };
+
+            return (int)Main.callCrossThreadCallable(c);
+        }
+
         if (CTimage == null) {
             return 0;
         }
@@ -1991,10 +2156,12 @@ colormap_range = 45f;
         glDisable(GL_TEXTURE_3D);
 
         ///glMapBuffer
-        glBindBuffer(GL_ARRAY_BUFFER, distSSBo);
-        ByteBuffer distances = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-        FloatBuffer floatDistances = distances.asFloatBuffer();
-        int numberOn = 0;
+//        glBindBuffer(GL_ARRAY_BUFFER, distSSBo);
+//        ByteBuffer distances = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//        FloatBuffer floatDistances = distances.asFloatBuffer();
+        FloatBuffer floatDistances = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, distSSBo, GL_READ_WRITE);
+
+            int numberOn = 0;
 //        float sdrSum = 0f;
         while (floatDistances.hasRemaining()) {
             float value = floatDistances.get();
@@ -2012,8 +2179,8 @@ colormap_range = 45f;
         
 //        System.out.println("SDR = " + sdrSum/numberOn);
         
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+//        glUnmapBuffer(GL_ARRAY_BUFFER);
+//        glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         return numberOn;
     }
@@ -2030,16 +2197,17 @@ colormap_range = 45f;
 
         doPressureCalc(offset);
 
-        glBindBuffer(GL_ARRAY_BUFFER, pressureSSBo);
-        ByteBuffer pressures = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
-        FloatBuffer floatPressures = pressures.asFloatBuffer();
+//        glBindBuffer(GL_ARRAY_BUFFER, pressureSSBo);
+//        ByteBuffer pressures = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
+//        FloatBuffer floatPressures = pressures.asFloatBuffer();
+        FloatBuffer floatPressures = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, pressureSSBo, GL_READ_WRITE);
 
         while (floatPressures.hasRemaining()) {
             totalPressure += floatPressures.get();
         }
         
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+//        glUnmapBuffer(GL_ARRAY_BUFFER);
+//        glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         return totalPressure;
     }
@@ -2053,7 +2221,7 @@ colormap_range = 45f;
                 
         if (CTimage == null) return;
         
-        setupImageTexture(CTimage, 0, centerOfRotation);
+//        setupImageTexture(CTimage, 0, centerOfRotation);
 
         doCalc();
         doSDRCalc();
@@ -2469,7 +2637,7 @@ colormap_range = 45f;
             ImageVolumeUtil.buildTexture(image);
             tn = (Integer) image.getAttribute("textureName");
             if (tn == null) {
-                System.out.println("TransducerRayTracer.setupImageTexture: textureName not found.");
+                Logger.getGlobal().log(Level.WARNING, "TransducerRayTracer.setupImageTexture: textureName not found.");
                 return;
             }
         } // TODO: this should be handled when the 3D texture doesn't exist for some reason (i.e. after some image filter)

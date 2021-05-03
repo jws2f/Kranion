@@ -962,7 +962,7 @@ public class FibImageLoader extends GUIControl {
     
     public void trackWithImage(ImageVolume4D image) {
         trackedImage = image;
-        image.addObserver(this);
+        image.addPropertyChangeListener(this);
     }
     
     @Override
@@ -1161,12 +1161,14 @@ public class FibImageLoader extends GUIControl {
     }
 
     @Override
-    public void update(Observable o, Object arg) {
-        super.update(o, arg);
+    public void propertyChange(PropertyChangeEvent arg) {
+        super.propertyChange(arg);
         
         // all of the following machinery is to keep the transformation of the tracked fibers
         // synchronized with a given image volume, which currently is fa0. That way we can use
         // registration tools on fa0 and the fibers will move with it.
+        Object o = arg.getSource();
+        
         if (o instanceof ImageVolume4D && o == trackedImage) {
 //            System.out.println("FibImageLoader.update - " + arg);
             if (arg != null && arg instanceof PropertyChangeEvent) {
@@ -1174,7 +1176,7 @@ public class FibImageLoader extends GUIControl {
                 // If the update is coming from other than the main (OpenGL) thread
                 // then queue it for later when it can be handled on main thread
                 if (myThread != Thread.currentThread()) {
-                    this.updateEventQueue.push(o, arg);
+                    this.updateEventQueue.push(arg);
                     return;
                 }
 

@@ -80,7 +80,7 @@ public class MessageBoxDialog extends FlyoutDialog {
     
    @Override
     public void actionPerformed(ActionEvent e) {
-        System.out.println(this + ": " + e.getActionCommand());
+//        System.out.println(this + ": " + e.getActionCommand());
         switch (e.getActionCommand()) {
             case "OK":
                 choice = true;

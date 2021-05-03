@@ -42,13 +42,17 @@ public class ModelXStreamConverter  implements Converter{
     public void marshal(Object o, HierarchicalStreamWriter writer, MarshallingContext mc) {
         Model model = (Model)o;
         
-        writer.startNode("Attributes");
-            mc.convertAnother(model.getAttributeList());
-        writer.endNode();
+        if (model.getAttributeList() != null) {
+            writer.startNode("Attributes");
+                mc.convertAnother(model.getAttributeList());
+            writer.endNode();
+        }
         
-        writer.startNode("CT_Image");
-            mc.convertAnother(model.getCtImage());
-        writer.endNode();
+        if (model.getCtImage() != null) {
+            writer.startNode("CT_Image");
+                mc.convertAnother(model.getCtImage());
+            writer.endNode();
+        }
         
         writer.startNode("MR_Images");
             writer.addAttribute("count", Integer.toString(model.getMrImageCount()));
@@ -123,7 +127,7 @@ public class ModelXStreamConverter  implements Converter{
                         if (reader.getNodeName().equalsIgnoreCase("Sonication")) {
                             Sonication s = (Sonication)uc.convertAnother(model, Sonication.class);
                             model.addSonication(s);
-                            System.out.println("Model unmarshalling sonication " + sonicationindex++);
+//                            System.out.println("Model unmarshalling sonication " + sonicationindex++);
                         }
                         reader.moveUp();
                     }

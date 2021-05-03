@@ -24,6 +24,8 @@
 package org.fusfoundation.kranion;
 
 import java.nio.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.LWJGLException;
 import org.lwjgl.opengl.Display;
@@ -117,10 +119,10 @@ public class Framebuffer extends Renderable implements Resizeable {
         
         glDrawBuffer(GL_NONE);
         if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE){
-            System.out.println("Frame buffer created sucessfully.");
+            Logger.getGlobal().log(Level.INFO, "Frame buffer created sucessfully.");
         }
         else {
-            System.out.println("An error occured creating the frame buffer.");
+            Logger.getGlobal().log(Level.SEVERE, "An error occured creating the frame buffer.");
             throw new LWJGLException("An error occured creating the frame buffer.");
         }
     
@@ -228,10 +230,10 @@ public class Framebuffer extends Renderable implements Resizeable {
         
         glDrawBuffer(GL_NONE);
         if(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE){
-            System.out.println("Frame buffer created sucessfully.");
+            Logger.getGlobal().log(Level.INFO, "Frame buffer created sucessfully.");
         }
         else {
-            System.out.println("An error occured creating the frame buffer.");
+            Logger.getGlobal().log(Level.SEVERE, "An error occured creating the frame buffer.");
             throw new LWJGLException("An error occured creating the frame buffer.");
         }
     

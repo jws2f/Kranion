@@ -20,6 +20,7 @@ build.xml
 .ear
 
 .exe
+*.bin
 
 #general swap/backup files
 *.so
@@ -34,10 +35,19 @@ build.xml
 
 /transducers/
 /plugins/
-/ACPCPlanPlugin/nbproject/private/
+/KranionGroovyConsolePlugin/nbproject/private/
+/KranionGroovyConsolePlugin/build/
+/KranionGroovyConsolePlugin/dist/
+/KranionGroovyConsolePlugin/lib/
+/KranionGroovyConsolePlugin/gradle/
+/KranionGroovyConsolePlugin/.gradle/
+/ACPCPlanPlugin/nbproject/
 /ACPCPlanPlugin/build/
 /ACPCPlanPlugin/dist/
-/TractographyPlugin/nbproject/private/
+/ACPCPlanPlugin/lib/
+/ACPCPlanPlugin/gradle/
+/ACPCPlanPlugin/.gradle/
+/TractographyPlugin/nbproject/
 /TractographyPlugin/build/
 /TractographyPlugin/dist/
 /.gradle/

@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.lwjgl.BufferUtils;
 import static org.lwjgl.opengl.GL20.*;
 
@@ -78,11 +80,13 @@ public class Shader {
             shaderSrc = readResourceFile(resourceName);
 //            System.out.println(shaderSrc);
         } catch (IOException e) {
-            System.out.println(e);
+//            System.out.println(e);
+            Logger.getGlobal().log(Level.WARNING, "Shader", e);
+
             System.exit(-1);
         }
 
-        System.out.println("Compiling shader: " + resourceName);
+//        System.out.println("Compiling shader: " + resourceName);
 
         glShaderSource(shaderID, shaderSrc);
         glCompileShader(shaderID);                 
@@ -96,7 +100,7 @@ public class Shader {
         
         shaderID = glCreateShader(shaderType);
 
-        System.out.println("Compiling shader from string:");
+//        System.out.println("Compiling shader from string:");
 
         glShaderSource(shaderID, source);
         glCompileShader(shaderID);                 
@@ -104,7 +108,7 @@ public class Shader {
     }
         
     private void printShaderInfoLog() {
-             System.out.println(GetShaderInfoLog());
+        Logger.getGlobal().log(Level.INFO, GetShaderInfoLog());
     }
     
     public String GetShaderInfoLog() {

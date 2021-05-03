@@ -30,6 +30,8 @@ import java.net.*;
 import java.net.URL;
 import java.lang.reflect.*;
 import java.nio.file.Paths;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -54,13 +56,19 @@ public class PluginFinder {
             for (String className : classNames) {
 // Remove the ".class" at the back
                 String name = className.substring(0, className.length() - 6);
-                Class clazz = getClass(f, name);
-                Class[] interfaces = clazz.getInterfaces();
-                for (Class c : interfaces) {
-// Implements the IPlugin interface?
-                    if (c.getName().equals("org.fusfoundation.kranion.plugin.Plugin")) {
-                        pluginCollection.add((Plugin) clazz.newInstance());
+//                System.out.println("*** Loading class: " + className);
+                try {
+                    Class clazz = getClass(f, name);
+                    Class[] interfaces = clazz.getInterfaces();
+                    for (Class c : interfaces) {
+                        // Implements the Plugin interface?
+                        if (c.getName().equals("org.fusfoundation.kranion.plugin.Plugin")) {
+                            pluginCollection.add((Plugin) clazz.newInstance());
+                        }
                     }
+                } catch (Exception e) {
+                    System.out.println("Exception thrown for " + className);
+                    Logger.getGlobal().log(Level.WARNING, "Failed to load class: " + className);
                 }
             }
         }
@@ -75,7 +83,7 @@ public class PluginFinder {
             if (jarEntry == null) {
                 break;
             }
-            if (jarEntry.getName().endsWith(".class")) {
+            if (jarEntry.getName().endsWith(".class") && !jarEntry.getName().startsWith("META-INF")) {
                 classes.add(jarEntry.getName().replaceAll("/", "\\."));
             }
         }

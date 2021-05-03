@@ -23,6 +23,8 @@
  */
 package org.fusfoundation.kranion;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.lwjgl.util.vector.Vector3f;
 
 /**
@@ -63,10 +65,10 @@ public class Landmark extends GUIControl {
         try {
             Vector3f target = new Vector3f((Vector3f)newValue);
             setLocation(target);
-            System.out.println("Landmark.update");
+//            System.out.println("Landmark.update");
         }
         catch(Exception e) {
-            System.out.println(this + ": Wrong or NULL new value.");
+            Logger.getGlobal().log(Level.WARNING, "Landmark.update: " + this + ": Wrong or NULL new value.");
         }
     }
     

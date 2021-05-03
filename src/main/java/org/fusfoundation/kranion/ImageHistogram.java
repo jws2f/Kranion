@@ -30,6 +30,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.fusfoundation.kranion.model.image.ImageVolumeUtil;
 import org.lwjgl.BufferUtils;
@@ -213,7 +215,7 @@ public class ImageHistogram {
         Integer tn = (Integer) image.getAttribute("textureName");
         
         if (tn == null) {
-            System.out.println("ImageHistogram.setupImageTexture: textureName not found.");
+            Logger.getGlobal().log(Level.WARNING, "ImageHistogram.setupImageTexture: textureName not found.");
             return;
         }
         

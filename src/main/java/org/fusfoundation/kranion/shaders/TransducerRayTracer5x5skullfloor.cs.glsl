@@ -107,6 +107,7 @@ uniform float       ct_rescale_intercept;
 uniform float       ct_rescale_slope;
 uniform int         selectedElement;
 uniform int         elementCount;
+uniform float       normDiscDiam;
 
 
 const float sqr3 = sqrt(3.0)/3;
@@ -711,14 +712,14 @@ else {
             outDiscTris[startIndex].col.xyz = outColor.xyz * 0.8;
             outDiscTris[startIndex].col.a = 1.0;
 
-            outDiscTris[startIndex+1].pos.xyz = firstCollision.xyz - normal + 2.0 *(cos(angle1)*xvec + sin(angle1)*yvec);
+            outDiscTris[startIndex+1].pos.xyz = firstCollision.xyz - normal + normDiscDiam *(cos(angle1)*xvec + sin(angle1)*yvec);
             outDiscTris[startIndex+1].pos.w = 1.0;
             outDiscTris[startIndex+1].norm.xyz = normal;
             outDiscTris[startIndex+1].norm.w = 0.0;
             outDiscTris[startIndex+1].col.xyz = outColor.xyz * 0.8;
             outDiscTris[startIndex+1].col.a = 1.0;
 
-            outDiscTris[startIndex+2].pos.xyz = firstCollision.xyz - normal + 2.0 *(cos(angle2)*xvec + sin(angle2)*yvec);
+            outDiscTris[startIndex+2].pos.xyz = firstCollision.xyz - normal + normDiscDiam *(cos(angle2)*xvec + sin(angle2)*yvec);
             outDiscTris[startIndex+2].pos.w = 1.0;
             outDiscTris[startIndex+2].norm.xyz = normal;
             outDiscTris[startIndex+2].norm.w = 0.0;

@@ -188,7 +188,7 @@ public class TransducerXStreamConverter implements Converter{
     
     private void encodeMeshStream(PlyFileReader plyObj, int channel, OutputStream ostream) throws IOException {
         
-        System.out.println("Encoding mesh " + channel);
+//        System.out.println("Encoding mesh " + channel);
                 
         ByteBuffer vertexCount = BufferUtils.createByteBuffer(4).order(ByteOrder.LITTLE_ENDIAN);
         vertexCount.asIntBuffer().put(plyObj.getVertexCount());
@@ -273,7 +273,7 @@ public class TransducerXStreamConverter implements Converter{
                                 channelNorm.y = Float.parseFloat(reader.getAttribute("ny"));
                                 channelNorm.z = Float.parseFloat(reader.getAttribute("nz"));
 
-                                System.out.println("num=" + num + " " + channelLoc);
+//                                System.out.println("num=" + num + " " + channelLoc);
                                 transducer.setElement(num, channelLoc);
                                 transducer.setElementNormal(num, channelNorm.x, channelNorm.y, channelNorm.z);
                                 transducer.setElementActive(num, true);
@@ -292,11 +292,11 @@ public class TransducerXStreamConverter implements Converter{
                             case "Transform":
                                 Matrix4f transform = (Matrix4f) uc.convertAnother(transducer, Matrix4f.class);
                                 transducer.setTransducerBodyModelTransform(transform);
-                                System.out.println(transform);
+//                                System.out.println(transform);
                                 break;
                             case "Meshes":
                                 int meshCount = Integer.parseInt(reader.getAttribute("count"));
-                                System.out.println("mesh count = " + meshCount);
+//                                System.out.println("mesh count = " + meshCount);
                                 while (reader.hasMoreChildren()) {
                                     reader.moveDown();
                                     if (reader.getNodeName().equalsIgnoreCase("Mesh")) {
@@ -330,7 +330,7 @@ public class TransducerXStreamConverter implements Converter{
                                             reader.moveUp();
                                         }
                                         
-                                        System.out.println("mesh " + dataStreamName + " color=" + color);
+//                                        System.out.println("mesh " + dataStreamName + " color=" + color);
                                         PlyFileReader mesh = new PlyFileReader(vertexCount, faceCount);
                                         mesh.setColor(color.x, color.y, color.z, color.w);
                                         mesh.setClipColor(clipColor.x, clipColor.y, clipColor.z, clipColor.w);

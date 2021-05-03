@@ -26,6 +26,8 @@ package org.fusfoundation.kranion;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.fusfoundation.kranion.model.image.ImageVolume4D;
 import static org.lwjgl.opengl.GL11.GL_CLAMP;
@@ -185,7 +187,7 @@ public class LookupTable {
         }
         
         if (lutTextureName == 0) {
-            System.out.println("!!! ImageCanvas3D: lutTextureName == 0 !!!");
+            Logger.getGlobal().log(Level.WARNING, "ImageCanvas3D: lutTextureName == 0");
             return;
         }
         

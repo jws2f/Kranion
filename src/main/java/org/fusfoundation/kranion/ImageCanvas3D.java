@@ -36,6 +36,8 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.util.*;
 import java.math.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.*;
@@ -236,11 +238,11 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
         trackball = tb;
     }
     
-    public void setTextureRotatation(Vector3f rotationOffset, Trackball tb) {
+    public void setTextureRotation(Vector3f rotationOffset, Trackball tb) {
         if (trackball == null || !centerOfRotation.equals(rotationOffset) || trackball.getCurrent() != tb.getCurrent()) {
             setIsDirty(true);
         }
-        centerOfRotation = rotationOffset;
+        centerOfRotation = new Vector3f(rotationOffset);
         trackball = tb;
     }
 
@@ -361,16 +363,18 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
             setIsDirty(true);
         }
         
-        System.out.println("ImageCanvasGL::setOverlayImage()");
+//        System.out.println("ImageCanvasGL::setOverlayImage()");
         OverlayImage = image;
         
         if (OverlayImage == null) return;
         
 //        theImage.setAttribute("textureName", null); ///////HACK
         Integer tn = (Integer) OverlayImage.getAttribute("textureName");
-        System.out.println("texname = " + tn);
+//        System.out.println("texname = " + tn);
         
         ImageVolumeUtil.setupImageOrientationInfo(image);
+        
+        setIsDirty(true);
 //        OverlayImage.setAttribute("ImageOrientationQ", new Quaternion().setIdentity());
 
 //        OverlayImage.setAttribute("ImageTranslation", new Vector3f(0f,0f,0f));
@@ -384,7 +388,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
         } else {
 //            needsTexture = false;
 //            mr_textureName = tn.intValue();
-            System.out.println("setImage: found existing texture = " + tn);
+//            System.out.println("setImage: found existing texture = " + tn);
         }
 //        needsRendering = true;
 //        needsLUT = true;
@@ -398,7 +402,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     }
     
     public void setMRImage(ImageVolume image) {
-        System.out.println("ImageCanvasGL::setMRImage()");
+//        System.out.println("ImageCanvasGL::setMRImage()");
         if (MRimage != image) {
             setIsDirty(true);
         }
@@ -407,7 +411,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
 //        theImage.setAttribute("textureName", null); ///////HACK
         if (MRimage != null) {
             Integer tn = (Integer) MRimage.getAttribute("textureName");
-            System.out.println("texname = " + tn);
+//            System.out.println("texname = " + tn);
         }
                 
         ImageVolumeUtil.setupImageOrientationInfo(image);
@@ -663,7 +667,7 @@ public class ImageCanvas3D extends GUIControl implements Pickable {
     private void setupLutTexture(int textureUnit) {
 
         if (lutTextureName == 0) {
-            System.out.println("!!! ImageCanvas3D: lutTextureName == 0 !!!");
+            Logger.getGlobal().log(Level.SEVERE, "!!! ImageCanvas3D: lutTextureName == 0 !!!");
             return;
         }
 
@@ -1080,8 +1084,8 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         Integer tn = (Integer) CTimage.getAttribute("textureName");
         if (tn == null) {
             Main.glPopAttrib();
-            System.out.println("ImageCanvas3D.display: textureName not found.");
-            return;
+            Logger.getGlobal().log(Level.WARNING, "ImageCanvas3D.display: textureName not found.");
+             return;
         }
         
         int textureName = tn.intValue();
@@ -1628,7 +1632,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
         if (zoom != value) {
             setIsDirty(true);
         }
-        System.out.println("zoom = " + value);
+//        System.out.println("zoom = " + value);
         zoom = value;
     }
 
@@ -1810,7 +1814,7 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             centerOfRotation.set(target);
         }
         catch(Exception e) {
-            System.out.println(this + ": Wrong or NULL new value.");
+            Logger.getGlobal().log(Level.WARNING, "ImageCanvas3D.update: " + this + ": Wrong or NULL new value.");
         }
     }
 

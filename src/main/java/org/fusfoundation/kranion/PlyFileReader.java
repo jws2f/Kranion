@@ -30,6 +30,8 @@ package org.fusfoundation.kranion;
 import java.io.*;
 import java.nio.*;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -211,9 +213,9 @@ public class PlyFileReader extends Clippable {
 
         readPlyHeader(stream);
         
-System.out.println("read ply header");
-System.out.println("ply is bin? " + isBinaryFormat);
-System.out.println("ply vert count = " + vertcount);
+        Logger.getGlobal().log(Level.INFO, "read ply header");
+        Logger.getGlobal().log(Level.INFO, "ply is bin? " + isBinaryFormat);
+        Logger.getGlobal().log(Level.INFO, "ply vert count = " + vertcount);
 
         vertsBuffer = BufferUtils.createFloatBuffer(vertcount * 3);
         normsBuffer = BufferUtils.createFloatBuffer(vertcount * 3);
@@ -223,27 +225,27 @@ System.out.println("ply vert count = " + vertcount);
             for (int i = 0; i < vertcount; i++) {
                 readVertex(stream);
             }
-            System.out.println("read vertices");
+            Logger.getGlobal().log(Level.INFO, "read vertices");
             for (int i = 0; i < facecount; i++) {
                 readFace(stream);
             }
-            System.out.println("read faces");
+            Logger.getGlobal().log(Level.INFO, "read faces");
         } else {
             for (int i = 0; i < vertcount; i++) {
                 readVertexBin(stream);
             }
-            System.out.println("read vertices");
+            Logger.getGlobal().log(Level.INFO, "read vertices");
             for (int i = 0; i < facecount; i++) {
                 readFaceBin(stream);
             }
-            System.out.println("read faces");
+            Logger.getGlobal().log(Level.INFO, "read faces");
         }
         
         objCenter.x /= (float)vertcount;
         objCenter.y /= (float)vertcount;
         objCenter.z /= (float)vertcount;
         
-        System.out.println("Center = " + objCenter.x + ", " + objCenter.y + ", " + objCenter.z);
+        Logger.getGlobal().log(Level.INFO, "Center = " + objCenter.x + ", " + objCenter.y + ", " + objCenter.z);
         
 	vertsBuffer.flip();
         normsBuffer.flip();
@@ -311,16 +313,16 @@ System.out.println("ply vert count = " + vertcount);
         
         do {
             line = readLine(stream);
-            System.out.println(line);
+            Logger.getGlobal().log(Level.INFO, line);
             
             if (line.startsWith("element vertex")) {
                 vertcount = Integer.parseInt(line.substring("element vertex".length()).trim());
-                System.out.println(vertcount + " vertices");
+                Logger.getGlobal().log(Level.INFO, vertcount + " vertices");
                 
             }
             if (line.startsWith("element face")) {
                 facecount = Integer.parseInt(line.substring("element face".length()).trim());
-                System.out.println(facecount + " faces");
+                Logger.getGlobal().log(Level.INFO, facecount + " faces");
             }
             
             if (line.startsWith("format binary_little_endian")) {
@@ -430,7 +432,7 @@ System.out.println("ply vert count = " + vertcount);
          
         int count = Integer.parseInt(tok.nextToken());
         if (count != 3) {
-            System.out.println("Only can deal with triangles!");
+            Logger.getGlobal().log(Level.WARNING, "Only can deal with triangles!");
             return;
         }
         
@@ -443,7 +445,7 @@ System.out.println("ply vert count = " + vertcount);
         int count = stream.read();
         
         if (count != 3) {
-            System.out.println("Only can deal with triangles!");
+            Logger.getGlobal().log(Level.WARNING, "Only can deal with triangles!");
             return;
         }
         

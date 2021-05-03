@@ -28,9 +28,14 @@ import org.lwjgl.util.vector.Vector3f;
 
 //import com.sun.scenario.effect.impl.BufferUtil;
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.*;
 import java.util.*;
 import java.nio.FloatBuffer;
+import org.fusfoundation.kranion.CrossThreadCallable;
+import org.fusfoundation.kranion.Main;
+import org.fusfoundation.kranion.TransducerRayTracer;
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.fusfoundation.kranion.model.image.ImageVolume4D;
 import org.fusfoundation.kranion.model.image.ImageVolumeUtil;
@@ -40,7 +45,7 @@ import org.fusfoundation.kranion.model.image.ImageVolumeUtil;
  *
  * @author John Snell
  */
-public class Sonication extends Observable implements Serializable{
+public class Sonication implements Serializable{
 
     private static final long serialVersionUID = 7114004181140529979L;
     
@@ -54,7 +59,7 @@ public class Sonication extends Observable implements Serializable{
         private SubSonication(Vector3f steering, float power, float duration) {
             focus_steering.set(steering);
             power_w = power;
-            duration_s = duration;            
+            duration_s = duration;
         }
         
         public int getChannelCount() { return phases.size(); }
@@ -122,10 +127,14 @@ public class Sonication extends Observable implements Serializable{
     private AttributeList attributes = new AttributeList();
 //    private List<Float> phases = new ArrayList<>(1024);
 //    private List<Float> amplitudes = new ArrayList<>(1024);
+    protected Thread myThread;    
+    private PropertyChangeSupport propertyChangeSupport;
 
     public Sonication() {
         this.subsonications = new ArrayList<>();
         addSubSonication(new Vector3f(0,0,0), 0, 0);
+        myThread = Thread.currentThread();
+        propertyChangeSupport = new PropertyChangeSupport(this);
     }
     
     public Sonication(Vector3f location, float power, float duration) {
@@ -134,6 +143,24 @@ public class Sonication extends Observable implements Serializable{
 //        duration_s = duration;
         addSubSonication(new Vector3f(0,0,0), power, duration);
         natural_focus_location.set(location);
+        myThread = Thread.currentThread();
+        propertyChangeSupport = new PropertyChangeSupport(this);
+    }
+    
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(listener);
+    }
+    
+    public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(propertyName, listener);
+    }
+
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        this.propertyChangeSupport.removePropertyChangeListener(listener);
+    }
+    
+    public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        this.propertyChangeSupport.removePropertyChangeListener(propertyName, listener);
     }
     
     public SubSonication addSubSonication(Vector3f steering, float power, float duration) {
@@ -164,10 +191,10 @@ public class Sonication extends Observable implements Serializable{
     public int getChannelCount() { return getSubSonication(0).getChannelCount(); }
     
     public void setNaturalFocusLocation(Vector3f pos) {
-        natural_focus_location = pos;
+        Vector3f oldVal = new Vector3f(natural_focus_location);
+        natural_focus_location.set(pos);
         // notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "naturalFocusLocation", null, natural_focus_location));
+        propertyChangeSupport.firePropertyChange("naturalFocusLocation", oldVal, natural_focus_location);
     }
     
     public Vector3f getNaturalFocusLocation() {
@@ -179,10 +206,10 @@ public class Sonication extends Observable implements Serializable{
     }
     
     public void setFocusSteering(int subSonicationIndex, Vector3f pos) {
+        Vector3f oldVal = new Vector3f(subsonications.get(subSonicationIndex).focus_steering);
         subsonications.get(subSonicationIndex).focus_steering.set(pos);
         // notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "focusSteering", null, subsonications.get(subSonicationIndex).focus_steering));
+        propertyChangeSupport.firePropertyChange("focusSteering", oldVal, subsonications.get(subSonicationIndex).focus_steering);
     }
     
     public Vector3f getFocusSteering() {
@@ -194,10 +221,10 @@ public class Sonication extends Observable implements Serializable{
     }
     
     public void setFrequency(float freq) {
+        float oldVal = frequency;
         frequency = freq;
         //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "frequency", null, frequency));
+        propertyChangeSupport.firePropertyChange("frequency", oldVal, frequency);
     }
     
     public float getFrequency() { return frequency; }
@@ -213,10 +240,10 @@ public class Sonication extends Observable implements Serializable{
     }
     
     public void setPower(int subSonicationIndex, float power) {
+        float oldVal = subsonications.get(subSonicationIndex).power_w;
         subsonications.get(subSonicationIndex).power_w = power;
         //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "power", null, power));
+        propertyChangeSupport.firePropertyChange("power", oldVal, power);
     }
     
     public float getDuration() {
@@ -232,10 +259,10 @@ public class Sonication extends Observable implements Serializable{
     }
     
     public void setDuration(int subSonicationIndex, float duration) {
+        float oldVal = subsonications.get(subSonicationIndex).duration_s;
         subsonications.get(subSonicationIndex).duration_s = duration;
         //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "duration", null, duration));
+        propertyChangeSupport.firePropertyChange("duration", oldVal, duration);
     }
     
     public ImageVolume getThermometryMagnitude() {
@@ -243,10 +270,10 @@ public class Sonication extends Observable implements Serializable{
     }
     
     public void setThermometryMagnitude(ImageVolume4D image) {
+        ImageVolume4D oldVal = thermometryMagnitude;
         thermometryMagnitude = image;
         //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "thermometryMagnitude", null, image));
+        propertyChangeSupport.firePropertyChange("thermometryMagnitude", oldVal, image);
     }
     
     public ImageVolume getThermometryPhase() {
@@ -254,10 +281,10 @@ public class Sonication extends Observable implements Serializable{
     }
     
     public void setThermometryPhase(ImageVolume4D image) {
+        ImageVolume4D oldVal = thermometryPhase;
         thermometryPhase = image;
         //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "thermometryPhase", null, image));
+        propertyChangeSupport.firePropertyChange("thermometryPhase", oldVal, image);
     }
     
     public Object getAttribute(String name) {
@@ -275,10 +302,30 @@ public class Sonication extends Observable implements Serializable{
     }
     
     public void setAttribute(String name, Object value) {
-        attributes.put(name, value);
+        setAttribute(name, value, false);
+    }
+    
+    public void setAttribute(String name, Object value, boolean isTransient) {
+        
+        if (Thread.currentThread() != myThread) {
+            
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    Sonication.this.setAttribute(name, value, isTransient);
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+            
+            return;
+        }
+
+        Object oldVal = attributes.get(name);
+        attributes.put(name, value, isTransient);
             //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Attribute["+name+"]", null, value));
+        propertyChangeSupport.firePropertyChange("Attribute["+name+"]", oldVal, value);
     }
         
     public float getPhase(int channel) {

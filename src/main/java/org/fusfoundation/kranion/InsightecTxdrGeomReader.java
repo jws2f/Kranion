@@ -25,6 +25,7 @@ package org.fusfoundation.kranion;
 
 import java.io.*;
 import java.util.*;
+import java.util.logging.Level;
 import org.lwjgl.util.vector.*;
 
 public class InsightecTxdrGeomReader {
@@ -136,7 +137,7 @@ public class InsightecTxdrGeomReader {
 //                System.out.println(channelNumber + " - " + tmp);
 //                System.out.println(tmp.length());
                 channelActive[channelNumber] = false; // Set to true to see rays for hidden elements
-                System.out.println("*** Inactive Channel found: " + channelNumber);
+//                System.out.println("*** Inactive Channel found: " + channelNumber);
             }
             else {
                 channelActive[channelNumber] = true;

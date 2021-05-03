@@ -27,6 +27,7 @@ import org.fusfoundation.kranion.controller.Controller;
 import java.beans.PropertyChangeEvent;
 import java.util.Observer;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.GUIControl;
@@ -42,7 +43,7 @@ import org.lwjgl.input.Keyboard;
  *
  * @author John Snell
  */
-public abstract class View extends Renderable implements Observer, ActionListener, ProgressListener, Resizeable{
+public abstract class View extends Renderable implements PropertyChangeListener, ActionListener, ProgressListener, Resizeable{
     protected Model model;
     protected Controller controller;    
     private String propertyPrefix;
@@ -62,11 +63,11 @@ public abstract class View extends Renderable implements Observer, ActionListene
     public void setModel(Model model) {
         
         if (this.model != null) {
-            this.model.deleteObserver(this);
+            this.model.removePropertyChangeListener(this);
         }
         this.model = model;
         if (this.model != null) {
-            this.model.addObserver(this);
+            this.model.addPropertyChangeListener(this);
         }
     }
     

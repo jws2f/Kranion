@@ -46,7 +46,7 @@ public class OrthoSlicer {
         inputImageVolume = img;
         
         if (inputImageVolume == null || inputImageVolume.getVoxelType() != ImageVolume.USHORT_VOXEL) {
-            System.out.println("OrhtoSlicer: nulling input and outputs");
+//            System.out.println("OrhtoSlicer: nulling input and outputs");
             inputImageVolume = null;
             xySlice = null;
             zySlice = null;
@@ -66,9 +66,9 @@ public class OrthoSlicer {
         float yres = inputImageVolume.getDimension(1).getSamplePosition(1) - inputImageVolume.getDimension(1).getSamplePosition(0);
         float zres = inputImageVolume.getDimension(2).getSamplePosition(1) - inputImageVolume.getDimension(2).getSamplePosition(0);
         
-        System.out.println(inputImageVolume.getDimension(2).getSamplePosition(0));
-        System.out.println(inputImageVolume.getDimension(2).getSamplePosition(1));
-        System.out.println("voxel size = " + xres + " x " + yres + " x " + zres);
+//        System.out.println(inputImageVolume.getDimension(2).getSamplePosition(0));
+//        System.out.println(inputImageVolume.getDimension(2).getSamplePosition(1));
+//        System.out.println("voxel size = " + xres + " x " + yres + " x " + zres);
         
         xySlice.getDimension(0).setSampleSpacing(xres);
         xySlice.getDimension(1).setSampleSpacing(yres);

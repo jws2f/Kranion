@@ -26,9 +26,6 @@ buildscript {
 }
 apply plugin: 'com.github.johnrengelman.shadow'
 
-shadowJar {
-    destinationDir = ["dist"];
-}
 
 run {
     systemProperty "java.library.path", 'lib'
@@ -38,6 +35,7 @@ applicationDefaultJvmArgs = ["-D64", "-Xms1800m", "-javaagent:./lib/jar-loader.j
 
 dependencies {
     compile fileTree(dir: 'lib', include: '*.jar')
+    compile 'org.codehaus.groovy:groovy-all:3.0.7'
     testImplementation     'junit:junit:4.13'
 }
 
@@ -84,12 +82,17 @@ build.finalizedBy(buildVersionUpdate)
 jar {
   manifest {
     attributes(
-      'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
-      'Main-Class': 'org.fusfoundation.kranion.Main'
+     'Class-Path': configurations.compile.collect { it.getName() }.join(' '),
     )
   }
 }
 
-//application {
-//    mainClass = 'org.fusfoundation.kranion.Main' 
-//}
+shadowJar {
+    destinationDir = ["dist"];
+    archiveBaseName.set('Kranion')
+    archiveClassifier.set('')
+    archiveVersion.set('')
+    configurations = [project.configurations.runtime]
+    minimize();
+}
+

@@ -107,7 +107,6 @@ public class Main implements ProgressListener {
 
     public static final int DISPLAY_HEIGHT = 1024;
     public static final int DISPLAY_WIDTH = 1680;
-    public static final Logger LOGGER = Logger.getLogger(Main.class.getName());
 
     public static float OpenGLVersion = -1f;
 
@@ -119,6 +118,13 @@ public class Main implements ProgressListener {
     private float viewportAspect = 1f;
     private static List<Plugin> plugins = new ArrayList<>();           
     private static List<BackgroundWorker> workers = new ArrayList<>();
+        
+    private static CrossThreadCallableManager callQ = new CrossThreadCallableManager();
+    
+    public static Object callCrossThreadCallable(CrossThreadCallable c) {
+        return callQ.call(c);
+    }
+    
     public static void addBackgroundWorker(BackgroundWorker w) {
         workers.add(w);
     }
@@ -165,16 +171,24 @@ public class Main implements ProgressListener {
             plugins.get(i).release();
         }
         
-        //disconnect old model if exists
-        if (Main.main.model != null) {
-            Main.main.model.deleteObservers();
-            Main.main.model.clear();
-        }
+
+        Main.main.model.clearImages();
         
+        Model oldModel = Main.main.model;
         
         Main.main.model = model;
         Main.main.controller.setModel(model);
         Main.main.view.setModel(model);
+        
+        
+        //disconnect old model if exists
+        if (oldModel != null) {
+            // transfer model listeners to new model
+            Main.main.model.copyPropertyChangeListeners(oldModel);
+           
+            // remove listeners from the old model and clear
+            oldModel.clear();
+        }
         
         // reconnect plugins to new model
         for (int i = 0; i < plugins.size(); i++) {
@@ -182,13 +196,19 @@ public class Main implements ProgressListener {
         }
             
         // reconnect observer controls to new model
-        Iterator<Renderable> controls = Renderable.iterator();
-        while (controls.hasNext()) {
-            Renderable control = controls.next();
-            if (control instanceof GUIControl) {
-                model.addObserver((GUIControl)control);
-            }
-        }
+//        Iterator<Renderable> controls = Renderable.iterator();
+//        while (controls.hasNext()) {
+//            Renderable control = controls.next();
+//            if (control instanceof GUIControl) {
+//                String propName = ((GUIControl) control).getCommand();
+//                if (propName != null && propName.length() > 0) {
+//                    model.addPropertyChangeListener(propName, (GUIControl)control);
+//                }
+//                else {
+//                    model.addPropertyChangeListener((GUIControl)control);
+//                }
+//            }
+//        }
         
         // update workers
         Iterator<BackgroundWorker> i = workers.iterator();
@@ -223,11 +243,13 @@ public class Main implements ProgressListener {
         Main.main.view = view;
     }
 
+    // Hard wired logging level for now. TODO: make this runtime configurable
     static {
         try {
-            LOGGER.addHandler(new FileHandler("errors.log", true));
+            Logger.getGlobal().setLevel(Level.WARNING);
+            Logger.getGlobal().addHandler(new FileHandler("errors.log", true));
         } catch (IOException ex) {
-            LOGGER.log(Level.WARNING, ex.toString(), ex);
+            Logger.getGlobal().log(Level.WARNING, ex.toString(), ex);
         }
     }
 
@@ -238,8 +260,8 @@ public class Main implements ProgressListener {
         try {
             main = new Main();
             
-            System.out.println("This is build " + getRbTok("app.version") + ":" + getRbTok("app.build"));
-            System.out.println("JVM version: " + System.getProperty("java.vm.name") + " " + System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
+            Logger.getGlobal().log(Level.INFO, "This is build " + getRbTok("app.version") + ":" + getRbTok("app.build"));
+            Logger.getGlobal().log(Level.INFO, "JVM version: " + System.getProperty("java.vm.name") + " " + System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
 
             main.create();
             
@@ -252,7 +274,7 @@ public class Main implements ProgressListener {
   
             main.run();
         } catch (Exception ex) {
-            LOGGER.log(Level.SEVERE, ex.toString(), ex);
+            Logger.getGlobal().log(Level.SEVERE, ex.toString(), ex);
         } finally {
             if (main != null) {
                 main.destroy();
@@ -310,7 +332,7 @@ public class Main implements ProgressListener {
         int maxDisplayWidth = 0;
         for (int i = 0; i < modes.length; i++) {
             DisplayMode current = modes[i];
-            System.out.println(current.getWidth() + "x" + current.getHeight() + "x"
+            Logger.getGlobal().log(Level.INFO, current.getWidth() + "x" + current.getHeight() + "x"
                     + current.getBitsPerPixel() + " " + current.getFrequency() + "Hz");
             if (current.getBitsPerPixel() == 32 && current.getWidth() == 2560 && current.getHeight() == 1440 && current.getFrequency() == 60) {
                 chosenMode = current;
@@ -328,7 +350,7 @@ public class Main implements ProgressListener {
         DisplayMode mode = null;
         
         if (chosenMode == null) {
-            System.out.println("Didn't find a display mode we like. Trying default...");
+            Logger.getGlobal().log(Level.INFO, "Didn't find a display mode we like. Trying default...");
             mode = new DisplayMode(DISPLAY_WIDTH, DISPLAY_HEIGHT);
         }
         else {
@@ -337,14 +359,14 @@ public class Main implements ProgressListener {
         
      
 //        mode = chosenMode;
-        System.out.println("Display: " + mode.getBitsPerPixel() + " bpp");
+        Logger.getGlobal().log(Level.INFO, "Display: " + mode.getBitsPerPixel() + " bpp");
         Display.setDisplayMode(mode);
 //        Display.setFullscreen(true);
-        System.out.println("Display: mode set");
+        Logger.getGlobal().log(Level.INFO, "Display: mode set");
         Display.setResizable(true);
         Display.setTitle("Kranion");
 
-        System.out.println("Setting pixel format...");
+//        System.out.println("Setting pixel format...");
         PixelFormat pixelFormat = new PixelFormat(24, 8, 24, 8, 1);
         org.lwjgl.opengl.ContextAttribs contextAtribs = new ContextAttribs(2, 1);
         contextAtribs.withForwardCompatible(true);
@@ -362,17 +384,17 @@ public class Main implements ProgressListener {
             list[2] = this.convertToByteBuffer(img);
             Display.setIcon(list);
         } catch (Exception e) {
-            System.out.println("Failed to set window icon.");
+            Logger.getGlobal().log(Level.WARNING, "Failed to set window icon.");
         }
 
-        System.out.println("Creating display...");
+//        System.out.println("Creating display...");
         Display.create(pixelFormat, contextAtribs);
         //Display.create();
 
-        System.out.println("GL Vendor: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VENDOR));
-        System.out.println("GL Version: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VERSION));
-        System.out.println("GLSL Language Version: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL20.GL_SHADING_LANGUAGE_VERSION));
-        System.out.println("GL Renderer: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_RENDERER));
+        Logger.getGlobal().log(Level.INFO, "GL Vendor: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VENDOR));
+        Logger.getGlobal().log(Level.INFO, "GL Version: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_VERSION));
+        Logger.getGlobal().log(Level.INFO, "GLSL Language Version: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL20.GL_SHADING_LANGUAGE_VERSION));
+        Logger.getGlobal().log(Level.INFO, "GL Renderer: " + org.lwjgl.opengl.GL11.glGetString(org.lwjgl.opengl.GL11.GL_RENDERER));
 
         checkGLSupport();
 
@@ -402,9 +424,12 @@ public class Main implements ProgressListener {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        
         resizeGL();
 //        resizeGL();
+
+    
+
 
     }
 
@@ -428,10 +453,10 @@ public class Main implements ProgressListener {
         try {
             // Initialize OpenCL and create a context and command queue
             CL.create();
-            System.out.println("\n****************");
-            System.out.println("CL created");
+//            System.out.println("\n****************");
+            Logger.getGlobal().log(Level.INFO, "CL created");
 
-            System.out.println(CLPlatform.getPlatforms().size() + " platforms found.");
+            Logger.getGlobal().log(Level.INFO, CLPlatform.getPlatforms().size() + " platforms found.");
             CLPlatform platform = null;
             List<CLDevice> devices = null;
             CLDevice selectedDevice = null;
@@ -440,7 +465,7 @@ public class Main implements ProgressListener {
             boolean success = false;
             for (int p = 0; p < CLPlatform.getPlatforms().size(); p++) {
                 platform = CLPlatform.getPlatforms().get(p);
-                System.out.println("Platform : " + platform.getInfoString(CL_PLATFORM_NAME) + " version: " + platform.getInfoString(CL_PLATFORM_VERSION));
+                Logger.getGlobal().log(Level.INFO, "Platform : " + platform.getInfoString(CL_PLATFORM_NAME) + " version: " + platform.getInfoString(CL_PLATFORM_VERSION));
 
 //                PointerBuffer ctxProps = BufferUtils.createPointerBuffer(3);
 //                ctxProps.put(CL_CONTEXT_PLATFORM).put(platform).put(0).flip();
@@ -449,7 +474,7 @@ public class Main implements ProgressListener {
                 
                 for (int d = 0; d < devices.size(); d++) {
 
-                    System.out.println(devices.size() + " GPU devices found.");
+                    Logger.getGlobal().log(Level.INFO, devices.size() + " GPU devices found.");
 
                     // long context = clCreateContext(platform, devices, null, null, null);
                     //CLContext context = org.lwjgl.opencl.CLContext.createFromType(platform, Thread.currentThread().getId(), null, Display.getDrawable(), errcode_ret);
@@ -460,22 +485,22 @@ public class Main implements ProgressListener {
                         CLcontext = org.lwjgl.opencl.CLContext.create(platform, deviceCandidate, null, Display.getDrawable(), errcode_ret);
                         org.lwjgl.opencl.Util.checkCLError(errcode_ret.get(0));
                     } catch (Exception e) {
-                        System.out.println("Couldn't create shareable OpenCL context.");
+                        Logger.getGlobal().log(Level.WARNING, "Couldn't create shareable OpenCL context.");
                     }
                     if (errcode_ret.get(0) == CL_SUCCESS) {
-                        System.out.println("CL context created");
+                        Logger.getGlobal().log(Level.INFO, "CL context created");
                         selectedDevice = devices.get(d);
                         success = true;
                     }
                     
                     if (success && selectedDevice != null) {
-                        System.out.println("Device : " + selectedDevice.getInfoString(CL_DEVICE_NAME));
-                        System.out.println("Device CL extensions: " + selectedDevice.getInfoString(CL_DEVICE_EXTENSIONS));
+                        Logger.getGlobal().log(Level.INFO, "Device : " + selectedDevice.getInfoString(CL_DEVICE_NAME));
+                        Logger.getGlobal().log(Level.INFO, "Device CL extensions: " + selectedDevice.getInfoString(CL_DEVICE_EXTENSIONS));
 
                         try {
                             CLDeviceCapabilities abilities = CLCapabilities.getDeviceCapabilities(selectedDevice);
-                            System.out.println("3d_image_writes: " + abilities.CL_KHR_3d_image_writes);
-                            System.out.println("gl_sharing: " + abilities.CL_KHR_gl_sharing);
+                            Logger.getGlobal().log(Level.INFO, "3d_image_writes: " + abilities.CL_KHR_3d_image_writes);
+                            Logger.getGlobal().log(Level.INFO, "gl_sharing: " + abilities.CL_KHR_gl_sharing);
 
                             errcode_ret.clear();
 
@@ -485,7 +510,7 @@ public class Main implements ProgressListener {
                             CLqueue = queue;
 
                         } catch (Exception e) {
-                            System.out.println("Failed to create a sharable CL ccommand queue with this device.");
+                            Logger.getGlobal().log(Level.WARNING, "Failed to create a sharable CL ccommand queue with this device.");
                             success = false;
                         }
                     }
@@ -504,11 +529,11 @@ public class Main implements ProgressListener {
 //            org.lwjgl.opencl.CL.destroy();
 //            System.out.println("CL context released, CL shutdown");
 
-            System.out.println("****************\n");
+//            System.out.println("****************\n");
 
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("*** Problem initializing OpenCL");
+            Logger.getGlobal().log(Level.WARNING, "*** Problem initializing OpenCL", e);
         }
 
     }
@@ -521,7 +546,7 @@ public class Main implements ProgressListener {
 
         try {
             float versionVal = 0f;
-            System.out.println("  Texture unit count = " + nMaxTexUnits + ", Max combined textures = " + nMaxCombinedTexUnits);
+            Logger.getGlobal().log(Level.INFO, "  Texture unit count = " + nMaxTexUnits + ", Max combined textures = " + nMaxCombinedTexUnits);
             StringTokenizer tok = new StringTokenizer(version, ". ");
             if (tok.hasMoreElements()) {
                 versionVal = Float.parseFloat(tok.nextToken());
@@ -604,7 +629,7 @@ public class Main implements ProgressListener {
 
     public void resizeGL() throws org.lwjgl.LWJGLException {
         //2D Scene
-        System.out.println("Viewport: " + Display.getWidth() + ", " + Display.getHeight());
+        Logger.getGlobal().log(Level.INFO, "Viewport: " + Display.getWidth() + ", " + Display.getHeight());
 
         if (Display.getWidth() <= 0 || Display.getHeight() <= 0) {
             return;
@@ -672,7 +697,7 @@ public class Main implements ProgressListener {
             try {
                 resizeGL();
             } catch (org.lwjgl.LWJGLException e) {
-                System.out.println(e);
+                Logger.getGlobal().log(Level.INFO, "Main.handlResize error.", e);
                 System.exit(0);
             }
         }
@@ -688,6 +713,14 @@ public class Main implements ProgressListener {
     
     protected void messageLoop() {
             handleResize();
+            
+            // If another thread has called a method requiring access to GL context data,
+            // process method calls on the main thread (which has a GL context);
+            // messageLoop() gets called per frame so should provide adaquate latency to cross thread calls
+            // which block until the requested method runs on this thread and passes back the result, if any.
+            //
+            // The intention is to support an interpreter running in another thread making method calls into this class.
+            callQ.processWaitingCalls();
 
             view.processInput();
 
@@ -759,33 +792,33 @@ public class Main implements ProgressListener {
     public static int checkForGLError() {
         int error = glGetError();
         if (error != GL_NO_ERROR) {
-            System.out.println("GL ERROR DETECTED.");
+            Logger.getGlobal().log(Level.WARNING, "GL ERROR DETECTED.");
             switch (error) {
                 case GL_INVALID_ENUM:
-                    System.out.println("GL_INVALID_ENUM");
+                    Logger.getGlobal().log(Level.WARNING, "GL_INVALID_ENUM");
                     break;
                 case GL_INVALID_VALUE:
-                    System.out.println("GL_INVALID_VALUE");
+                    Logger.getGlobal().log(Level.WARNING, "GL_INVALID_VALUE");
                     break;
                 case GL_INVALID_OPERATION:
-                    System.out.println("GL_INVALID_OPERATION");
+                    Logger.getGlobal().log(Level.WARNING, "GL_INVALID_OPERATION");
                     break;
                 case org.lwjgl.opengl.GL30.GL_INVALID_FRAMEBUFFER_OPERATION:
-                    System.out.println("GL_INVALID_FRAMEBUFFER_OPERATION");
+                    Logger.getGlobal().log(Level.WARNING, "GL_INVALID_FRAMEBUFFER_OPERATION");
                     break;
                 case GL_OUT_OF_MEMORY:
-                    System.out.println("GL_OUT_OF_MEMORY");
+                    Logger.getGlobal().log(Level.WARNING, "GL_OUT_OF_MEMORY");
                     break;
                 case GL_STACK_OVERFLOW:
-                    System.out.println("GL_STACK_OVERFLOW");
+                    Logger.getGlobal().log(Level.WARNING, "GL_STACK_OVERFLOW");
                     break;
                 case GL_STACK_UNDERFLOW:
-                    System.out.println("GL_STACK_UNDERFLOW");
+                    Logger.getGlobal().log(Level.WARNING, "GL_STACK_UNDERFLOW");
                     break;
                 default:
-                    System.out.println("UNKNOWN GL ERROR: " + error);
+                    Logger.getGlobal().log(Level.WARNING, "UNKNOWN GL ERROR: " + error);
             }
-            printStackTrace();
+//            printStackTrace();
         }
         return error;
     }
@@ -799,10 +832,10 @@ public class Main implements ProgressListener {
         org.lwjgl.opengl.GL11.glPushMatrix();
 
         if (GL_DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
-            System.out.println("MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
-            System.out.println("MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
-            System.out.println("PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
-            System.out.println("PROJECTIONVIEW max stack depth: " + glGetInteger(GL_MAX_PROJECTION_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "PROJECTIONVIEW max stack depth: " + glGetInteger(GL_MAX_PROJECTION_STACK_DEPTH));
         }
     }
 
@@ -810,10 +843,10 @@ public class Main implements ProgressListener {
         org.lwjgl.opengl.GL11.glPopMatrix();
 
         if (GL_DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
-            System.out.println("MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
-            System.out.println("MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
-            System.out.println("PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
-            System.out.println("PROJECTIONVIEW max stack depth: " + glGetInteger(GL_MAX_PROJECTION_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "MODELVIEW stack depth: " + glGetInteger(GL_MODELVIEW_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "MODELVIEW max stack depth: " + glGetInteger(GL_MAX_MODELVIEW_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "PROJECTIONVIEW stack depth: " + glGetInteger(GL_PROJECTION_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "PROJECTIONVIEW max stack depth: " + glGetInteger(GL_MAX_PROJECTION_STACK_DEPTH));
         }
     }
 
@@ -821,8 +854,8 @@ public class Main implements ProgressListener {
         org.lwjgl.opengl.GL11.glPushAttrib(bitmask);
 
         if (GL_DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
-            System.out.println("ATTRIB stack depth: " + glGetInteger(GL_ATTRIB_STACK_DEPTH));
-            System.out.println("ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "ATTRIB stack depth: " + glGetInteger(GL_ATTRIB_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
         }
     }
 
@@ -830,8 +863,8 @@ public class Main implements ProgressListener {
         org.lwjgl.opengl.GL11.glPopAttrib();
 
         if (GL_DEBUG && Main.checkForGLError() != GL_NO_ERROR) {
-            System.out.println("ATTRIB stack depth: " + glGetInteger(GL_ATTRIB_STACK_DEPTH));
-            System.out.println("ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "ATTRIB stack depth: " + glGetInteger(GL_ATTRIB_STACK_DEPTH));
+            Logger.getGlobal().log(Level.WARNING, "ATTRIB max stack depth: " + glGetInteger(GL_MAX_ATTRIB_STACK_DEPTH));
         }
     }
     

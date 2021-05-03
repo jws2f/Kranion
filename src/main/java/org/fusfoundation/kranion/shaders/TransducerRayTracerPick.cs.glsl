@@ -98,6 +98,7 @@ uniform float       ct_bone_threshold;
 uniform float       ct_rescale_intercept;
 uniform float       ct_rescale_slope;
 uniform int         elementCount;
+uniform float       normDiscDiam;
 
 const float sqr3 = sqrt(3.0)/3;
 const float sqr2 = sqrt(2.0)/2;
@@ -537,9 +538,12 @@ void main()
         uint id = gid + 5; // offset for now to make room for CT=1, MR=2, Frame=3; TODO: add better management of id's
 
         uint red = id & 0xff;
-        uint green = (id >> 8) & 0xf;
-        ivec2 code = ivec2(red, green);
-        outColor = vec4(code.x * 1.0/255.0, code.y * 1.0/255.0, 0, 1);
+        uint green = (id >> 8) & 0xff;
+        uint blue = (id >> 16) & 0xff;
+
+        ivec3 code = ivec3(red, green, blue);
+
+        outColor = vec4(code.x * 1.0/255.0, code.y * 1.0/255.0, code.z * 1.0/255.0, 1);
 
         for (int i=0; i<6; i++) {
             c[gid].color[i].xyz = outColor.xyz;
@@ -585,14 +589,14 @@ void main()
             outDiscTris[startIndex].col.xyz = outColor.xyz;
             outDiscTris[startIndex].col.a = outColor.w;
 
-            outDiscTris[startIndex+1].pos.xyz = firstCollision.xyz - normal + 2.0 *(cos(angle1)*xvec + sin(angle1)*yvec);
+            outDiscTris[startIndex+1].pos.xyz = firstCollision.xyz - normal + normDiscDiam *(cos(angle1)*xvec + sin(angle1)*yvec);
             outDiscTris[startIndex+1].pos.w = 1.0;
             outDiscTris[startIndex+1].norm.xyz = normal;
             outDiscTris[startIndex+1].norm.w = 0.0;
             outDiscTris[startIndex+1].col.xyz = outColor.xyz;
             outDiscTris[startIndex+1].col.a = outColor.w;
 
-            outDiscTris[startIndex+2].pos.xyz = firstCollision.xyz - normal + 2.0 *(cos(angle2)*xvec + sin(angle2)*yvec);
+            outDiscTris[startIndex+2].pos.xyz = firstCollision.xyz - normal + normDiscDiam *(cos(angle2)*xvec + sin(angle2)*yvec);
             outDiscTris[startIndex+2].pos.w = 1.0;
             outDiscTris[startIndex+2].norm.xyz = normal;
             outDiscTris[startIndex+2].norm.w = 0.0;

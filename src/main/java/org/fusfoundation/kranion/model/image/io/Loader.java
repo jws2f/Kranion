@@ -80,9 +80,12 @@ public class Loader implements Runnable {
         if (pl != null && (pl instanceof ActionListener))
             actionListener = (ActionListener)pl;
         
-        Thread thread = new Thread(this);
-        thread.setPriority(Thread.MIN_PRIORITY);
-        thread.start();
+        // We don't need to load in another thread anymore
+        //
+            //        Thread thread = new Thread(this);
+            //        thread.setPriority(Thread.MIN_PRIORITY);
+            //        thread.start();
+        run();
     }
     
     public ImageVolume getLoadedImage() { return image; }
@@ -95,7 +98,7 @@ public class Loader implements Runnable {
                 for (int i=0; i<loaders.size(); i++) {
                     if (loaders.get(i).probe(theFile) == 100) {
                         stuntImage = loaders.get(i).load(theFile, progressListener);
-                        System.out.println("Loaded DICOM series");
+//                        System.out.println("Loaded DICOM series");
                         break;
                     }
                 }
@@ -104,7 +107,7 @@ public class Loader implements Runnable {
                 for (int i=0; i<loaders.size(); i++) {
                     if (loaders.get(i).probe(theFileList.get(0)) == 100) {
                         stuntImage = loaders.get(i).load(theFileList, progressListener);
-                        System.out.println("Loaded DICOM series");
+//                        System.out.println("Loaded DICOM series");
                         break;
                     }
                 }

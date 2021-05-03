@@ -26,11 +26,10 @@ package org.fusfoundation.kranion.plugins.stxtools;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import org.fusfoundation.kranion.plugin.Plugin;
 
 import java.util.Iterator;
-import java.util.Observable;
-import java.util.Observer;
 import org.fusfoundation.kranion.Button;
 import org.fusfoundation.kranion.FlyoutPanel;
 import org.fusfoundation.kranion.GUIControlModelBinding;
@@ -54,7 +53,7 @@ import org.lwjgl.util.vector.Quaternion;
 import org.lwjgl.util.vector.Matrix3f;
 import org.lwjgl.util.vector.Vector3f;
 
-public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseListener  {
+public class ACPCPlanPlugin implements Plugin, PropertyChangeListener, ActionListener, MouseListener  {
 
     private Model model;
     private View view;
@@ -80,7 +79,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
         controller.addActionListener(this);
         
         // listen to model updates
-        model.addObserver(this);
+        model.addPropertyChangeListener(this);
         
         setupGUI();
         
@@ -102,7 +101,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
                 ((RenderLayer) parent).addChild(acpcDisplay);
             }
             // listen to model changes
-            model.addObserver(acpcDisplay);
+            model.addPropertyChangeListener(acpcDisplay);
         }
         
         if (goacButton != null && gopcButton != null && goacpcSupButton != null) {
@@ -160,7 +159,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             TextBox acpcLength = (TextBox) new TextBox(150, 100, 125, 25, "", this).setTitle("AC-PC Length").setCommand("acpcLength");
             acpcLength.setUnitText("mm");
             acpcLength.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-            model.addObserver(acpcLength);
+            model.addBoundControlListener(acpcLength);
             flyout.addChild("Planning", acpcLength);
 
             goacpcSupButton = new Button(Button.ButtonType.BUTTON, 150, 145, 125, 25, this);
@@ -201,7 +200,6 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             flyout.addChild("Planning", acpcOffsetButtonGrp);
 
             Slider slider1 = new Slider(650, 220, 380, 25, this);
-            model.addObserver(slider1);
             slider1.setTitle("Lateral Offset");
             slider1.setCommand("acpcOffsetValue"); // controller will set command name as propery on model
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -210,6 +208,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             slider1.setFormatString("%3.1f");
             slider1.setUnitsString(" mm");
             slider1.setCurrentValue(0);
+            model.addBoundControlListener(slider1);
             flyout.addChild("Planning", slider1);
 
             Button zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 220, 45, 25, this);
@@ -218,7 +217,6 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             flyout.addChild("Planning", zeroButton);
 
             slider1 = new Slider(1085, 220, 380, 25, this);
-            model.addObserver(slider1);
             slider1.setTitle("3rd Vent Offset");
             slider1.setCommand("acpc3rdVentricleOffsetValue"); // controller will set command name as propery on model
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -227,6 +225,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             slider1.setFormatString("%3.1f");
             slider1.setUnitsString(" mm");
             slider1.setCurrentValue(0);
+            model.addBoundControlListener(slider1);
             flyout.addChild("Planning", slider1);
 
             zeroButton = new Button(Button.ButtonType.BUTTON, 1465, 220, 45, 25, this);
@@ -235,7 +234,6 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             flyout.addChild("Planning", zeroButton);
 
             slider1 = new Slider(650, 75, 380, 25, this);
-            model.addObserver(slider1);
             slider1.setTitle("AC/PC ratio");
             slider1.setCommand("acpcRatioValue"); // controller will set command name as propery on model
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -244,6 +242,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             slider1.setFormatString("%3.1f");
             slider1.setUnitsString("%");
             slider1.setCurrentValue(50);
+            model.addBoundControlListener(slider1);
             flyout.addChild("Planning", slider1);
 
             zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 75, 45, 25, this);
@@ -252,7 +251,6 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             flyout.addChild("Planning", zeroButton);
 
             slider1 = new Slider(650, 175, 380, 25, this);
-            model.addObserver(slider1);
             slider1.setTitle("Superior Offset");
             slider1.setCommand("acpcSuperiorOffsetValue"); // controller will set command name as propery on model
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -261,6 +259,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             slider1.setFormatString("%3.1f");
             slider1.setUnitsString(" mm");
             slider1.setCurrentValue(0);
+            model.addBoundControlListener(slider1);
             flyout.addChild("Planning", slider1);
 
             zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 175, 45, 25, this);
@@ -269,7 +268,6 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             flyout.addChild("Planning", zeroButton);
 
             slider1 = new Slider(650, 130, 380, 25, this);
-            model.addObserver(slider1);
             slider1.setTitle("Anterior Offset");
             slider1.setCommand("acpcAnteriorOffsetValue"); // controller will set command name as propery on model
             slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
@@ -278,6 +276,7 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             slider1.setFormatString("%3.1f");
             slider1.setUnitsString(" mm");
             slider1.setCurrentValue(0);
+            model.addBoundControlListener(slider1);
             flyout.addChild("Planning", slider1);
 
             zeroButton = new Button(Button.ButtonType.BUTTON, 1030, 130, 45, 25, this);
@@ -287,17 +286,17 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
 
             TextBox textbox = (TextBox) new TextBox(60, 55, 60, 25, "", this).setTitle("R").setCommand("sonicationRLoc");
             textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-            model.addObserver(textbox);
+            model.addBoundControlListener(textbox);
             flyout.addChild("Planning", textbox);
 
             textbox = (TextBox) new TextBox(160, 55, 60, 25, "", this).setTitle("A").setCommand("sonicationALoc");
             textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-            model.addObserver(textbox);
+            model.addBoundControlListener(textbox);
             flyout.addChild("Planning", textbox);
 
             textbox = (TextBox) new TextBox(260, 55, 60, 25, "", this).setTitle("S").setCommand("sonicationSLoc");
             textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-            model.addObserver(textbox);
+            model.addBoundControlListener(textbox);
             flyout.addChild("Planning", textbox);
 
             showACPCbut = new Button(Button.ButtonType.TOGGLE_BUTTON, 400, 55, 150, 25, this);
@@ -318,8 +317,8 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             ((RenderLayer)parent).removeChild(this.acpcDisplay);
         }
         if (model != null) {
-            model.deleteObserver(this);
-            model.deleteObserver(this.acpcDisplay);
+            model.removePropertyChangeListener(this);
+            model.removePropertyChangeListener(this.acpcDisplay);
         }
         
         view.getController().removeActionListener(this);
@@ -353,14 +352,14 @@ public class ACPCPlanPlugin implements Plugin, Observer, ActionListener, MouseLi
             steering = new Vector3f();
         }
         
-        Vector3f.sub(currentTarget, steering, currentTarget);
+        Vector3f target = Vector3f.sub(currentTarget, steering, null);
         
-System.out.println("ACPCPlanPlugin got command: " + command);        
+//System.out.println("ACPCPlanPlugin got command: " + command);        
         switch (command) {
             // ACPC Planning commands
             case "setAC":
             {
-                Vector3f p = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), currentTarget);
+                Vector3f p = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target);
                 model.setAttribute("AC", p);
                 goacButton.setIsEnabled(true);
                 calcACPCLength();
@@ -380,7 +379,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 break;
             case "setPC":
             {
-                Vector3f p = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), currentTarget);
+                Vector3f p = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target);
                 model.setAttribute("PC", p);
                 gopcButton.setIsEnabled(true);
                 calcACPCLength();
@@ -400,7 +399,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 break;
             case "setSuperior":
             {
-                Vector3f p = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), currentTarget);
+                Vector3f p = ImageVolumeUtil.pointFromWorldToImage(model.getCtImage(), target);
                 model.setAttribute("ACPCSup", p);
                 goacpcSupButton.setIsEnabled(true);
                 updateTargetGeometry();
@@ -680,7 +679,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
     }
 
     @Override
-    public void update(Observable o, Object arg) {
+    public void propertyChange(PropertyChangeEvent arg) {
         if (arg != null && arg instanceof PropertyChangeEvent) {
             PropertyChangeEvent event = (PropertyChangeEvent)arg;
 //            System.out.print(" Property Change: " + ((PropertyChangeEvent)arg).getPropertyName());
@@ -740,7 +739,7 @@ System.out.println("ACPCPlanPlugin got command: " + command);
                 DefaultView view  = (DefaultView)Main.getView();
                 Vector3f pickRay = new Vector3f();
                 Vector3f pt = view.doRayPick((int)x, (int)y, pickRay);
-                System.out.println(pt);
+//                System.out.println(pt);
                 
                 Vector3f startSteering = (Vector3f)model.getAttribute("currentTargetSteering");
                 if (startSteering == null) {

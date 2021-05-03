@@ -208,7 +208,7 @@ Vector4f rotnoise2 = new Vector4f(rotnoise);
 
 
                       if (failedSteps > 24 && stepPhase==0) {
-                          System.out.println("********* Registration phase 1 begins at step " + miStep);
+//                          System.out.println("********* Registration phase 1 begins at step " + miStep);
                             failedSteps = 0;
                             stepPhase++;
                             tranX = new Vector3f(0.5f, 0, 0);
@@ -223,7 +223,7 @@ Vector4f rotnoise2 = new Vector4f(rotnoise);
                             doBlur = false;
                       }
                       else if (failedSteps > 48 && stepPhase==1) {
-                          System.out.println("********* Registration phase 2 begins at step " + miStep);
+//                          System.out.println("********* Registration phase 2 begins at step " + miStep);
                             failedSteps = 0;
                             stepPhase++;
                             tranX = new Vector3f(0.25f, 0, 0);
@@ -239,7 +239,7 @@ Vector4f rotnoise2 = new Vector4f(rotnoise);
                            doBlur = false;
                       }
                       else if (failedSteps > 96 && stepPhase==2) {
-                          System.out.println("********* Registration phase 3 begins at step " + miStep);
+//                          System.out.println("********* Registration phase 3 begins at step " + miStep);
                             failedSteps = 0;
                             stepPhase++;
                             tranX = new Vector3f(0.125f, 0, 0);
@@ -289,7 +289,7 @@ Vector4f rotnoise2 = new Vector4f(rotnoise);
                               break;
                       }
                       
-                      System.out.println("Phase " + stepPhase);
+//                      System.out.println("Phase " + stepPhase);
                       
                       if (n % 6 < 3) {
                           Quaternion.mul(origRot, rot, testRot1);

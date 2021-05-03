@@ -23,6 +23,8 @@
  */
 package org.fusfoundation.kranion;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import static org.fusfoundation.kranion.Main.glPopMatrix;
 import static org.fusfoundation.kranion.Main.glPushMatrix;
 import org.fusfoundation.kranion.model.Model;
@@ -186,7 +188,7 @@ public class ImageLandmark extends Landmark {
 //            System.out.println("ImageLandmark.update");
         }
         catch(Exception e) {
-            System.out.println(this + ": Wrong or NULL new value.");
+            Logger.getGlobal().log(Level.WARNING, "ImageLandmark.update: " + this + ": Wrong or NULL new value.");
         }
     }
 
@@ -300,14 +302,14 @@ public class ImageLandmark extends Landmark {
         
         switch (propertyName) {
             case "currentTargetPoint":
-                System.out.println("ACPCdisplay: currentTarget update");
+//                System.out.println("ACPCdisplay: currentTarget update");
                 if (newValue instanceof Vector3f) {                    
                     currentTarget.set((Vector3f)newValue);
                     setIsDirty(true);
                 }
                 break;
             case "currentTargetSteering":
-                System.out.println("ACPCdisplay: currentSteering update");
+//                System.out.println("ACPCdisplay: currentSteering update");
                 if (newValue instanceof Vector3f) {                    
                     currentSteering.set((Vector3f)newValue);
                     setIsDirty(true);

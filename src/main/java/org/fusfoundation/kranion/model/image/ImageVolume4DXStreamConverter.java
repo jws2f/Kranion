@@ -143,7 +143,7 @@ public class ImageVolume4DXStreamConverter implements Converter {
     
     private void encodeVoxelStream(ImageVolume4D image, int channel, OutputStream ostream) throws IOException {
         
-        System.out.println("Encoding image channel " + channel);
+//        System.out.println("Encoding image channel " + channel);
         
         int frameSize = image.getFrameSize();
         int voxelCount = image.getVoxelCount();
@@ -288,7 +288,7 @@ public class ImageVolume4DXStreamConverter implements Converter {
     }
     
     private Object decodeVoxelStream(ImageVolume4D image, int channel, InputStream istream) throws IOException {
-        System.out.println("Decoding image channel " + channel);
+//        System.out.println("Decoding image channel " + channel);
         
         Object result = null;
         

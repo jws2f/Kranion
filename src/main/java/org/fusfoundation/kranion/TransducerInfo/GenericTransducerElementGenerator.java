@@ -30,10 +30,10 @@ package org.fusfoundation.kranion.TransducerInfo;
 public class GenericTransducerElementGenerator {
     public static void main(String[] args) {
         
-        int channelCount = 1024;
-        double focalLength = 150;
-        double elementArea = 113.54;
-        double fractionOfHemisphereHeight = 1;
+        int channelCount = 128; //1024;
+        double focalLength = 50; //150;
+        double elementArea = 5;// 113.54;
+        double fractionOfHemisphereHeight = 0.1; //1;
         
         System.out.println("NUM_OF_X_CHANNELS	=	" + channelCount);
         

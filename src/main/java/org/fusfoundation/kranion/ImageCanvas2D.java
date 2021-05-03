@@ -35,6 +35,8 @@ import java.awt.event.*;
 import java.awt.image.*;
 import java.util.*;
 import java.math.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.*;
@@ -246,7 +248,7 @@ public class ImageCanvas2D extends GUIControl {
 //            releaseTexture(OverlayImage);
 //        }
         
-        System.out.println("ImageCanvasGL::setOverlayImage()");
+//        System.out.println("ImageCanvasGL::setOverlayImage()");
         
         if (OverlayImage != image) {
             setIsDirty(true);
@@ -263,7 +265,7 @@ public class ImageCanvas2D extends GUIControl {
         
 //        theImage.setAttribute("textureName", null); ///////HACK
         Integer tn = (Integer) OverlayImage.getAttribute("textureName");
-        System.out.println("texname = " + tn);
+//        System.out.println("texname = " + tn);
         
         OverlayImage.setAttribute("ImageOrientationQ", new Quaternion().setIdentity());
 //        OverlayImage.setAttribute("ImageTranslation", new Vector3f(0f,0f,0f));
@@ -276,7 +278,7 @@ public class ImageCanvas2D extends GUIControl {
         } else {
 //            needsTexture = false;
 //            mr_textureName = tn.intValue();
-            System.out.println("setImage: found existing texture = " + tn);
+            Logger.getGlobal().log(Level.INFO, "ImageCanvas2D.setImage: found existing texture = " + tn);
         }
 //        needsRendering = true;
 //        needsLUT = true;
@@ -290,7 +292,7 @@ public class ImageCanvas2D extends GUIControl {
     }
         
     public void setCTImage(ImageVolume image) {
-        System.out.println("ImageCanvasGL::setImage()");
+//        System.out.println("ImageCanvasGL::setImage()");
         
         if (image != CTimage) {
             setIsDirty(true);
@@ -328,7 +330,7 @@ public class ImageCanvas2D extends GUIControl {
     }
     
     public void setMRImage(ImageVolume image) {
-        System.out.println("ImageCanvasGL::setImage()");
+//        System.out.println("ImageCanvasGL::setImage()");
 
         if (image != MRimage) setIsDirty(true);
 
@@ -1799,7 +1801,7 @@ public class ImageCanvas2D extends GUIControl {
             centerOfRotation.set(target);
         }
         catch(Exception e) {
-            System.out.println(this + ": Wrong or NULL new value.");
+            Logger.getGlobal().log(Level.WARNING, "ImageCanvas2D.update: " + this + ": Wrong or NULL new value.");
         }
     }
 

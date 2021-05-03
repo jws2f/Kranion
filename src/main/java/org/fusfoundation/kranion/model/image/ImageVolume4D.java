@@ -28,10 +28,14 @@ import java.awt.*;
 import java.awt.image.*;
 import java.awt.color.*;
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.io.Serializable;
 import java.nio.*;
 import java.util.*;
 import java.util.Observable;
+import org.fusfoundation.kranion.CrossThreadCallable;
+import org.fusfoundation.kranion.Main;
 import org.fusfoundation.kranion.model.AttributeList;
 
 
@@ -39,8 +43,10 @@ import org.fusfoundation.kranion.model.AttributeList;
  *
  * @author  jsnell
  */
-public class ImageVolume4D extends Observable implements ImageVolume, Serializable {
+public class ImageVolume4D implements ImageVolume, Serializable {
     private static final long  serialVersionUID = 371489430528683979L;
+    
+    private PropertyChangeSupport propertyChangeSupport;
     
     private ImageDimension[] dims = new ImageDimension[4];
     private int voxelCount;
@@ -48,13 +54,19 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     private Vector<Integer> voxelType = new Vector<>();
     private AttributeList attributes = new AttributeList();
     
+    protected Thread myThread;
+    
     /** Creates a new instance of ImageVolume4D */
     
     public ImageVolume4D() {
-        
+        myThread = Thread.currentThread();
+        propertyChangeSupport = new PropertyChangeSupport(this);
     }
     
     public ImageVolume4D(int voxelType, int x, int y, int z, int t) {
+        myThread = Thread.currentThread();
+        propertyChangeSupport = new PropertyChangeSupport(this);
+        
         dims[0] = new ImageDimension(x);
         dims[1] = new ImageDimension(y);
         dims[2] = new ImageDimension(z);
@@ -64,7 +76,23 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         
         alloc(0, voxelType);
     }
-        
+    
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(listener);
+    }
+    
+    public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(propertyName, listener);
+    }
+
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        this.propertyChangeSupport.removePropertyChangeListener(listener);
+    }
+    
+    public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        this.propertyChangeSupport.removePropertyChangeListener(propertyName, listener);
+    }
+    
     public void setDimension(int dim, ImageDimension imageDimension) {
         if (dim>=0 && dim<dims.length) {
             dims[dim] = imageDimension;
@@ -96,7 +124,7 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         int channelNum = voxelData.size();
         voxelData.setSize(channelNum+1);
         alloc(channelNum, voxtype);
-        System.out.println("added channel " + channelNum);
+//        System.out.println("added channel " + channelNum);
         return channelNum;
     }
     
@@ -110,7 +138,7 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
         }
         
         alloc(channel, voxtype);
-        System.out.println("added channel " + channel);
+//        System.out.println("added channel " + channel);
         return channel;
     }
     
@@ -158,7 +186,7 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
             voxelType.add(channel, type);
         }
         
-        System.out.println("alloc: channel " + channel);
+//        System.out.println("alloc: channel " + channel);
     }
     
     @Override
@@ -426,10 +454,26 @@ public class ImageVolume4D extends Observable implements ImageVolume, Serializab
     }
     
     public void setAttribute(String name, Object value, boolean isTransient) {
+        if (Thread.currentThread() != myThread) {
+            
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    ImageVolume4D.this.setAttribute(name, value, isTransient);
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+            
+            return;
+        }
+
+        Object oldVal = attributes.get(name);
+        
         attributes.put(name, value, isTransient);
-            //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Attribute["+name+"]", null, value));
+        //notify
+        propertyChangeSupport.firePropertyChange("Attribute["+name+"]", oldVal, value);
     }
     
     public int getVoxelType() { return voxelType.get(0); }

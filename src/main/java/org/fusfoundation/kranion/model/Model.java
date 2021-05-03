@@ -27,25 +27,35 @@ import com.thoughtworks.xstream.XStream;
 import java.io.*;
 import java.util.*;
 import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.zip.ZipOutputStream;
+import org.fusfoundation.kranion.CrossThreadCallable;
+import org.fusfoundation.kranion.GUIControl;
 import org.fusfoundation.kranion.Main;
 import org.fusfoundation.kranion.ProgressListener;
 import org.fusfoundation.kranion.Transducer;
+import org.fusfoundation.kranion.TransducerRayTracer;
 import org.fusfoundation.kranion.TransducerXStreamConverter;
 import org.fusfoundation.kranion.model.image.*;
+
 
 /**
  *
  * @author John Snell
  */
-public class Model extends Observable implements Serializable, Observer {
+public class Model implements Serializable, PropertyChangeListener {
     //private HashMap<String, Object> attributes = new HashMap<String, Object>();
     
     private AttributeList attributes = new AttributeList();
     
     private static final long serialVersionUID = -729845232606031972L;
+    
+    private PropertyChangeSupport propertyChangeSupport;
     
     // CT image (only one)
     private ImageVolume4D ct_image;
@@ -71,55 +81,104 @@ public class Model extends Observable implements Serializable, Observer {
     
     // Notifications
     
+    protected Thread myThread;    
     
     public Model() {
         selectedMR = -1;
         selectedSonication = -1;
         mr_images = new ArrayList<>(10); // initial array size
         sonications = new ArrayList<>(25);
+        myThread = Thread.currentThread();
+        propertyChangeSupport = new PropertyChangeSupport(this);
     }
     
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(listener);
+    }
+    
+    public void addBoundControlListener(GUIControl listener) {
+        String command = listener.getCommand();
+        if (command != null && !command.isBlank()) {
+            listener.setPropertyPrefix("Model.Attribute");
+            propertyChangeSupport.addPropertyChangeListener("Model.Attribute[" + listener.getCommand() + "]", listener);
+        } else {
+            Logger.getGlobal().log(Level.WARNING, "GUIControl has no command to bind to model");
+        }
+    }
+    
+    public void addBoundControlListener(GUIControl listener, String altProperty) {
+        if (altProperty != null && !altProperty.isBlank()) {
+            listener.setPropertyPrefix("Model.Attribute");
+            propertyChangeSupport.addPropertyChangeListener("Model.Attribute[" + altProperty + "]", listener);
+        } else {
+            Logger.getGlobal().log(Level.WARNING, "GUIControl has no command to bind to model");
+        }
+    }
+    
+    public void addPropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        this.propertyChangeSupport.addPropertyChangeListener(propertyName, listener);
+    }
 
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        this.propertyChangeSupport.removePropertyChangeListener(listener);
+    }
+    
+    public void removePropertyChangeListener(String propertyName, PropertyChangeListener listener) {
+        this.propertyChangeSupport.removePropertyChangeListener(propertyName, listener);
+    }
+    
+    public void removePropertyChangeListeners() {
+        PropertyChangeListener listeners[] = this.propertyChangeSupport.getPropertyChangeListeners();
+        for (int i=0; i<listeners.length; i++) {
+            removePropertyChangeListener(listeners[i]);
+        }
+    }
+    
+    // When loading a new model we need to copy the PropertyChangeListeners from the old model to the new one11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
+    public void copyPropertyChangeListeners(Model sourceModel) {
+        PropertyChangeListener listeners[] = sourceModel.propertyChangeSupport.getPropertyChangeListeners();
+        for (int i=0; i<listeners.length; i++) {
+            this.propertyChangeSupport.addPropertyChangeListener(listeners[i]);
+        }        
+    }
+     
     public void clear() {
-//        this.deleteObservers();
         
         attributes.clear(); // TODO: we might want to sometimes do this?
         
         ImageVolumeUtil.releaseTextures(ct_image);
         this.setCtImage(null);
                 
-        mr_images.clear();
+        clearCtImage();
+        clearMrImages();
         
         selectedMR = -1;
         
-        Iterator<Sonication> s = sonications.iterator();
-        while(s.hasNext()) {
-            s.next().clear();
-        }
-        
-        sonications.clear();
-        
+        for (int i=0; i<sonications.size(); i++) {
+            this.deleteSonication(i);
+        }        
+        sonications.clear();        
         selectedSonication = -1;
-        
+                
         updateAllAttributes();
+        
+        this.removePropertyChangeListeners();
     }
     
     // When loading a model from disk we need to alert all observers of all new attribute values
     // This should update GUI observers
     public void updateAllAttributes() {
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.CtImage", null, getCtImage()));
+        propertyChangeSupport.firePropertyChange("Model.CtImage", null, getCtImage());
+        
         for (int n=0; n<this.getMrImageCount(); n++) {
-            setChanged();
-            notifyObservers(new PropertyChangeEvent(this, "Model.MrImage["+n+"]", null, getMrImage(n)));            
+            propertyChangeSupport.firePropertyChange("Model.MrImage["+n+"]", null, getMrImage(n));            
         }
 
         Iterator<String> i = getAttributeKeys();
         while(i.hasNext()) {
             String key = i.next();
-            setChanged();
             Object value = getAttribute(key);
-            notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+key+"]", null, value));
+            propertyChangeSupport.firePropertyChange("Model.Attribute["+key+"]", null, value);
         }
     }
     
@@ -131,11 +190,12 @@ public class Model extends Observable implements Serializable, Observer {
         if (index >= mr_images.size() || index < -1) {
             throw new IndexOutOfBoundsException();
         }
+        
+        int oldVal = selectedMR;
         selectedMR = index;
         
         // notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.SelectedMR", null, this));        
+        propertyChangeSupport.firePropertyChange("Model.SelectedMR", oldVal, selectedMR);
     }
     
     public int getSelectedSonication() {
@@ -147,11 +207,12 @@ public class Model extends Observable implements Serializable, Observer {
             //throw new IndexOutOfBoundsException();
             index = 0; // TODO: fix this properly
         }
+        
+        int oldVal = selectedSonication;
         selectedSonication = index;
 
         // notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.SelectedSonication", null, this));
+        propertyChangeSupport.firePropertyChange("Model.SelectedSonication", oldVal, selectedSonication);
     }
         
     public ImageVolume getCtImage() {
@@ -159,25 +220,39 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public void setCtImage(ImageVolume4D image) {
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    Model.this.setCtImage(image);
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
         
         if (ct_image != null) {
-            ct_image.deleteObserver(this);
+            ct_image.removePropertyChangeListener(this);
         }
+        
+        ImageVolume4D oldVal = ct_image;
         
         ct_image = image;
         if (image != null) {
-            ct_image.addObserver(this);
+            ct_image.addPropertyChangeListener(this);
         }
         
         // notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.CtImage", null, image));
+        propertyChangeSupport.firePropertyChange("Model.CtImage", oldVal, ct_image);
     }
     
     public void setTransducer(Transducer t) {
         transducer = t;
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.Transducer", null, transducer));        
+        propertyChangeSupport.firePropertyChange("Model.Transducer", null, transducer);        
     }
     
     public Transducer getTransducer() {
@@ -198,24 +273,58 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public void setMrImage(int index, ImageVolume4D image) {
-        if (index < mr_images.size() && mr_images.get(index) != null) {
-            mr_images.get(index).deleteObserver(this);
+        if (index < 0) {
+            return;
         }
         
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    Model.this.setMrImage(index, image);
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+        
+        ImageVolume4D oldVal = null;
+                
         if (index >= mr_images.size()) {
             mr_images.add(index, image);
         }
         else {
+            oldVal = mr_images.get(index);
+            if (oldVal != null) {
+                oldVal.removePropertyChangeListener(this);
+            }
             mr_images.set(index, image);
         }
         
+        
         if (image != null) {
-            image.addObserver(this);
+            image.addPropertyChangeListener(this);
         }
         
         //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.MrImage["+index+"]", null, image));
+        propertyChangeSupport.firePropertyChange("Model.MrImage["+index+"]", oldVal, image);
+    }
+    
+    public void clearImages() {
+        clearCtImage();
+        clearMrImages();
+    }
+    
+    public void clearCtImage() {
+        if (ct_image != null) {
+            this.ct_image.removePropertyChangeListener(this);
+            ImageVolumeUtil.releaseTextures(ct_image);
+            this.setCtImage(null);
+        }
     }
     
     public void clearMrImages() {
@@ -223,6 +332,7 @@ public class Model extends Observable implements Serializable, Observer {
         Iterator<ImageVolume4D> i = mr_images.iterator();
         while(i.hasNext()) {
             ImageVolume4D img = i.next();
+            img.removePropertyChangeListener(this);
             ImageVolumeUtil.releaseTextures(img);
             this.setMrImage(count++, null);
         }
@@ -230,13 +340,14 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public void addMrImage(ImageVolume4D image) {
-        mr_images.add(image);
-        
-        image.addObserver(this);
-        
-        //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.MrImage["+mr_images.lastIndexOf(image)+"]", null, image));
+        if (image != null) {
+            mr_images.add(image);
+
+            image.addPropertyChangeListener(this);
+
+            //notify
+            propertyChangeSupport.firePropertyChange("Model.MrImage["+mr_images.lastIndexOf(image)+"]", null, image);
+        }
     }
     
     public Sonication getSonication(int index) {
@@ -249,32 +360,38 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public void setSonication(int index, Sonication sonication) {
-        if (index < sonications.size() && sonications.get(index) != null) {
-            sonications.get(index).deleteObserver(this);
+        if (index < 0) {
+            return;
         }
+        
+        Sonication oldVal = null;
         
         if (index >= sonications.size()) {
             sonications.add(index, sonication);
         }
         else {
+            oldVal = sonications.get(index);
+            if (oldVal != null) {
+                oldVal.removePropertyChangeListener(this);
+            }
             sonications.set(index, sonication);
         }
         
-        sonication.addObserver(this);
+        if (sonication != null) {
+            sonication.addPropertyChangeListener(this);
+        }
 
         //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.Sonication["+index+"]", null, sonication));
+        propertyChangeSupport.firePropertyChange("Model.Sonication["+index+"]", oldVal, sonication);
     }
     
     public void addSonication(Sonication sonication) {
         sonications.add(sonication);
         
-        sonication.addObserver(this);
+        sonication.addPropertyChangeListener(this);
 
         //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.Sonication["+sonications.lastIndexOf(sonication)+"]", null, sonication));
+        propertyChangeSupport.firePropertyChange("Model.Sonication["+sonications.lastIndexOf(sonication)+"]", null, sonication);
     }
     
     public void deleteSonication(int index) {
@@ -282,13 +399,16 @@ public class Model extends Observable implements Serializable, Observer {
         
         Sonication s = sonications.get(index);
         
-        // notify observers
-        setChanged();
-        // meant to signal sonication deletion
-        notifyObservers(new PropertyChangeEvent(this, "Model.Sonication["+index+"]", s, null));
-        
-        s.clear();
-        
+        if (s != null) {
+            s.removePropertyChangeListener(this);
+
+            // notify observers
+            // meant to signal sonication deletion
+            propertyChangeSupport.firePropertyChange("Model.Sonication["+index+"]", s, null);
+            
+            s.clear();
+        }
+               
         sonications.remove(index);
         
     }
@@ -304,23 +424,38 @@ public class Model extends Observable implements Serializable, Observer {
     }
     
     public void removeAttribute(String name) {
+        Object oldVal = attributes.get(name);
         if (attributes.remove(name) != null) {
-            setChanged();
-            notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+name+"]", null, null));
+            propertyChangeSupport.firePropertyChange("Model.Attribute["+name+"]", oldVal, null);
         }
     }
     
     public void setAttribute(String name, Object value) {
-        setAttribute(name, value, false); // attributes are not transient by default
+
+        setAttribute(name, value, false); // attributes are not transient by default        
     }
     
     public void setAttribute(String name, Object value, boolean isTransient) {
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    Model.this.setAttribute(name, value, false);
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+
         Object oldValue = attributes.get(name);
         attributes.put(name, value, isTransient);
         
-            //notify
-        setChanged();
-        notifyObservers(new PropertyChangeEvent(this, "Model.Attribute["+name+"]", oldValue, value));
+        //notify
+        propertyChangeSupport.firePropertyChange("Model.Attribute["+name+"]", null, value);
     }
     
     public boolean getIsAttributeTransient(String name) {
@@ -333,12 +468,13 @@ public class Model extends Observable implements Serializable, Observer {
 
     // Recieve updates from child observables and forward to model observers
     @Override
-    public void update(Observable o, Object arg) {
-        System.out.println("----Model update: " + o.toString());
-        if (arg != null && arg instanceof PropertyChangeEvent) {
-            PropertyChangeEvent propEvt = (PropertyChangeEvent)arg;
+    public void propertyChange(PropertyChangeEvent arg) {
+        
+//        System.out.println("----Model update: " + o.toString());
+        if (arg != null) {
+            Object o = arg.getSource();
             
-            String childName = "";
+            String childName = null;
             if (o == this.ct_image) {
                 childName = "CtImage.";
             }
@@ -351,8 +487,9 @@ public class Model extends Observable implements Serializable, Observer {
                 childName = "Sonication[" + index + "].";
             }
             
-            setChanged();
-            notifyObservers(new PropertyChangeEvent(this, "Model." + childName + propEvt.getPropertyName(), null, propEvt.getNewValue()));
+            if (childName != null) {
+                this.propertyChangeSupport.firePropertyChange("Model." + childName + arg.getPropertyName(), arg.getOldValue(), arg.getNewValue());
+            }
        }
         
     }
@@ -484,5 +621,4 @@ public class Model extends Observable implements Serializable, Observer {
             
             return newModel;
     }
-    
 }
