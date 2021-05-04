@@ -52,3 +52,4 @@ build.xml
 /TractographyPlugin/dist/
 /.gradle/
 /.settings/
+/ACPCPlanPlugin/.nb-gradle/

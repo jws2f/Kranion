@@ -99,8 +99,7 @@ public class ConsolePlugin implements Plugin, ActionListener {
                     @Override
                     public void run() {
                         console.getFrame().getRootPane().setVisible(true);
-                        JWindow frame = (JWindow)console.getFrame().getRootPane().getParent().getParent();
-                        frame.getParent();
+                        JFrame frame = (JFrame)console.getFrame().getRootPane().getParent();
                         frame.setVisible(true);
                         frame.toFront();
                     }
