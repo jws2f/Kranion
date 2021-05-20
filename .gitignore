@@ -9,7 +9,7 @@ core
 /lib/CopyLibs/
 manifest.mf
 build.xml
-kanionLaunch4j.xml
+kranionLaunch4j.xml
 
 
 #java specific
