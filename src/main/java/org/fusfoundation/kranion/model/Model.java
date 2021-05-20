@@ -98,7 +98,7 @@ public class Model implements Serializable, PropertyChangeListener {
     
     public void addBoundControlListener(GUIControl listener) {
         String command = listener.getCommand();
-        if (command != null && !command.isBlank()) {
+        if (command != null && !command.isEmpty()) {
             listener.setPropertyPrefix("Model.Attribute");
             propertyChangeSupport.addPropertyChangeListener("Model.Attribute[" + listener.getCommand() + "]", listener);
         } else {
@@ -107,7 +107,7 @@ public class Model implements Serializable, PropertyChangeListener {
     }
     
     public void addBoundControlListener(GUIControl listener, String altProperty) {
-        if (altProperty != null && !altProperty.isBlank()) {
+        if (altProperty != null && !altProperty.isEmpty()) {
             listener.setPropertyPrefix("Model.Attribute");
             propertyChangeSupport.addPropertyChangeListener("Model.Attribute[" + altProperty + "]", listener);
         } else {

@@ -331,7 +331,7 @@ public class Button extends GUIControl implements GUIControlModelBinding  {
     
     @Override
     public void doBinding(Model model) {
-        if (model != null && (type == ButtonType.TOGGLE_BUTTON || type == ButtonType.RADIO_BUTTON) && !getCommand().isBlank()) {
+        if (model != null && (type == ButtonType.TOGGLE_BUTTON || type == ButtonType.RADIO_BUTTON) && !isCommandBlank()) {
             model.setAttribute(this.getCommand(), this.getIndicator());
         }
     }

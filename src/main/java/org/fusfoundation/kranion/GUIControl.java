@@ -286,6 +286,10 @@ public abstract class GUIControl extends Renderable implements org.fusfoundation
     
     public String getCommand() { return command; }
     
+    public boolean isCommandBlank() {
+        return command != null && command.trim().isEmpty();
+    }
+    
     public GUIControl setTitle(String cmd) {
         this.title = new String(cmd);
         setIsDirty(true);

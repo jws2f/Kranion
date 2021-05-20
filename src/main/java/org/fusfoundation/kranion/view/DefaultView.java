@@ -3253,7 +3253,7 @@ public class DefaultView extends View {
         
         if (arg != null && arg instanceof PropertyChangeEvent) {
             PropertyChangeEvent event = (PropertyChangeEvent)arg;
-            if (event.getPropertyName().equalsIgnoreCase("Model.Attribute[]") || event.getPropertyName().isBlank()) {
+            if (event.getPropertyName().equalsIgnoreCase("Model.Attribute[]") || event.getPropertyName().isEmpty()) {
                 System.out.println(" Blank property name?");
             }
             

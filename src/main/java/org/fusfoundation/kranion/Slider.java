@@ -550,7 +550,7 @@ glDisable(GL_CULL_FACE);
     
     @Override
     public void doBinding(Model model) {
-        if (model != null && !getCommand().isBlank()) {
+        if (model != null && !isCommandBlank()) {
             if (persistAsString) {
                 model.setAttribute(this.getCommand(), String.format(format, this.getCurrentValue()));
             }
