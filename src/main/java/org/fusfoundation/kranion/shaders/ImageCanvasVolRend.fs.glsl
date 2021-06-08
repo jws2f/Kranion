@@ -114,7 +114,7 @@ void main(void)
 */
         if (slice==last_slice) {
             if (showMR==1) {
-                mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 65535.0  * mr_rescale_slope + mr_rescale_intercept;
+                mrsample = texture3D(mr_tex, gl_TexCoord[1].stp).r * 65535.0 * mr_rescale_slope + mr_rescale_intercept;
                 if (mrsample < mr_threshold && color.a < 0.05 && ovlyTexVal == 0) {
                     discard;
                 }

@@ -93,6 +93,6 @@ shadowJar {
     archiveClassifier.set('')
     archiveVersion.set('')
     configurations = [project.configurations.runtime]
-    minimize();
+    //minimize();
 }
 
