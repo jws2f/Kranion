@@ -62,7 +62,7 @@ public class ACPCPlanPlugin implements Plugin, PropertyChangeListener, ActionLis
     private Button goacButton, gopcButton, goacpcSupButton;
     private Button acpcOffsetLeftButton, acpcOffsetRightButton;
     private boolean doRightOffset = false;
-    private Button showACPCbut;
+    private Button showACPCbut, showACPCBoxbut;
     
     private final String propertyPrefix = "Model.Attribute";
     
@@ -304,7 +304,13 @@ public class ACPCPlanPlugin implements Plugin, PropertyChangeListener, ActionLis
             showACPCbut.setTag("showACPCgraphic");
             showACPCbut.setIndicator(false);
             
+            showACPCBoxbut = new Button(Button.ButtonType.TOGGLE_BUTTON, 400, 25, 150, 25, this);
+            showACPCBoxbut.setTitle("Show Scale Box").setCommand("showACPCBoxgraphic");
+            showACPCBoxbut.setTag("showACPCBoxgraphic");
+            showACPCBoxbut.setIndicator(false);
+            
             flyout.addChild("Planning", showACPCbut);
+            flyout.addChild("Planning", showACPCBoxbut);
             
             // End AC PC planning controls
         }      
@@ -473,6 +479,11 @@ public class ACPCPlanPlugin implements Plugin, PropertyChangeListener, ActionLis
             case "showACPCgraphic":
                 boolean showGraphic = showACPCbut.getIndicator();
                 this.acpcDisplay.setVisible(showGraphic);
+                this.view.doTransition(500);
+                break;
+            case "showACPCBoxgraphic":
+                boolean showScaleBox = showACPCBoxbut.getIndicator();
+                this.acpcDisplay.setScaleBoxVisible(showScaleBox);
                 this.view.doTransition(500);
                 break;
         }

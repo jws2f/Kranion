@@ -84,6 +84,8 @@ public class ACPCdisplay extends GUIControl {
     private ImageLandmark[] tb_landmarks = new ImageLandmark[6];
     private ImageLandmarkConstraint[] tb_landmark_constr = new ImageLandmarkConstraint[6];
     
+    private boolean showScaleBox = false;
+    
     public ACPCdisplay() {
         ac = pc = sup = null;
         this.setVisible(true);
@@ -95,6 +97,13 @@ public class ACPCdisplay extends GUIControl {
             tb_landmark_constr[i].setOffset(20.0f);
             tb_landmarks[i].setContraint(tb_landmark_constr[i]);
         }        
+    }
+    
+    public void setScaleBoxVisible(boolean show) {
+        if (show != showScaleBox) {
+            showScaleBox = show;
+            setIsDirty(true);
+        }
     }
     
     public void setModel(Model m, View v) {
@@ -240,9 +249,11 @@ public class ACPCdisplay extends GUIControl {
                     pc_lm.render();
                 }
                 
-                for (int i=0; i<6; i++) {
-                    tb_landmarks[i].setImage(ctimage);
-                    tb_landmarks[i].render();
+                if (this.showScaleBox) {                
+                    for (int i=0; i<6; i++) {
+                        tb_landmarks[i].setImage(ctimage);
+                        tb_landmarks[i].render();
+                    }
                 }
                                
                 // Gets a little confusing with perspective if no depth test
@@ -353,7 +364,9 @@ public class ACPCdisplay extends GUIControl {
                     }
                 }
                 
-                drawAtlasBox();
+                if (this.showScaleBox) {
+                    drawAtlasBox();
+                }
                 
                 glPopMatrix();
                 
