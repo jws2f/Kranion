@@ -5,6 +5,7 @@
  */
 package org.fusfoundation.KranionGroovyConsolePlugin;
 
+import groovy.ui.Console;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.EventObject;
@@ -86,7 +87,7 @@ public class ConsolePlugin implements Plugin, ActionListener {
             System.out.println("*** KranionGroovyConsole failed to initialize.");
             return;
         }
-        
+                
         if (consoleButton == null) {
             consoleButton = (Button)new Button(Button.ButtonType.BUTTON, 445, 150, 220, 25, this).setTitle("Scripting Console").setCommand("launchGroovyConsole");
             flyout.addChild("File", consoleButton);
@@ -95,15 +96,15 @@ public class ConsolePlugin implements Plugin, ActionListener {
             if (console != null) {
                 consoleButton.setIsEnabled(false);
                                 
-                java.awt.EventQueue.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        console.getFrame().getRootPane().setVisible(true);
-                        JFrame frame = (JFrame)console.getFrame().getRootPane().getParent();
-                        frame.setVisible(true);
-                        frame.toFront();
-                    }
-                });
+//                java.awt.EventQueue.invokeLater(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        console.getFrame().getRootPane().setVisible(true);
+//                        JFrame frame = (JFrame)console.getFrame().getRootPane().getParent();
+//                        frame.setVisible(true);
+//                        frame.toFront();
+//                    }
+//                });
             }
         }
         
@@ -176,7 +177,7 @@ public class ConsolePlugin implements Plugin, ActionListener {
                 bindScriptingVariables();
 
                 console.run();
-            }
+             }
             break;
         }
     }
