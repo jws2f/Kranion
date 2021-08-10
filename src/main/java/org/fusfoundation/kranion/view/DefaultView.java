@@ -272,7 +272,7 @@ public class DefaultView extends View {
     private Colorbar colorbar;
     
     private ImageLandmark testLoc;
-    
+        
 //  Temp for Fred's exp setup figure    
 //    private RenderList tophat;
 
@@ -574,7 +574,8 @@ public class DefaultView extends View {
 
 // DEBUGGING TOOLS FOR NOW. TODO: Remove        
 //        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 750, 240, 180, 25, this).setTitle("Add Subsonications").setCommand("addSubsonications"));
-//        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 950, 240, 180, 25, this).setTitle("Export Raw MR").setCommand("exportMRRaw"));
+//        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 950, 240, 180, 25, this).setTitle("Export Raw MR").setCommand("exportMRRaw"));        
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 950, 195, 225, 25, this).setTitle("Export Images as NRRD...").setCommand("exportCTnrrd"));
 //
         Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 80, 205, 150, 25, this);
         regButton.setTitle("Register").setCommand("registerMRCT").setTag("registerMRCT");
@@ -685,7 +686,7 @@ public class DefaultView extends View {
         slider1.setTitle("Transducer X tilt");
         slider1.setCommand("transducerXTilt"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-        slider1.setMinMax(-45, 90); // TODO: set back to +45 limit?
+        slider1.setMinMax(-90, 90); // TODO: set back to +45 limit?
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.1f");
         slider1.setUnitsString(" degrees");
@@ -697,7 +698,7 @@ public class DefaultView extends View {
         slider1.setTitle("Transducer Y tilt");
         slider1.setCommand("transducerYTilt"); // controller will set command name as propery on model
         slider1.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
-        slider1.setMinMax(-45, 45);
+        slider1.setMinMax(-90, 90);
         slider1.setLabelWidth(180);
         slider1.setFormatString("%4.1f");
         slider1.setUnitsString(" degrees");
@@ -1272,6 +1273,7 @@ public class DefaultView extends View {
         model.setTransducer(transducerModel);
         
         colorbar.sendToBottom();
+        
     }
     
     @Override
@@ -2113,7 +2115,7 @@ public class DefaultView extends View {
             this.updateTransducerPulldownList(txdrIndex);
             
             setDoTransition(true);
-            
+                        
             return;
 
 //            String sCurrentLine;
@@ -4526,8 +4528,16 @@ public class DefaultView extends View {
     }
  
     private float processAxisInput(net.java.games.input.Controller c, net.java.games.input.Component.Identifier id) {
-        float data = c.getComponent(id).getPollData();
-        if (Math.abs(data) < 0.1d) return 0f;
+        float data = 0f;
+        try {
+            data = c.getComponent(id).getPollData();
+            if (Math.abs(data) < 0.1d) {
+                data = 0f;
+            }
+        }
+        catch(NullPointerException e) {
+            data = 0f;
+        }
         return data;
     }
     
@@ -4694,131 +4704,125 @@ public class DefaultView extends View {
                     gameController = null;
                     return;
                 }
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 gameController = null;
                 return;
             }
-            
+
             float xrot = processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.Y);
             float yrot = processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.X);
             float zrot = processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.RX);
-            float zoom =  processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.RY);
+            float zoom = processAxisInput(gameController, net.java.games.input.Component.Identifier.Axis.RY);
 //            float zoom =  processTriggerInput(gameController, net.java.games.input.Component.Identifier.Axis.Z);
             if (zoom == 0f) {
-                zoom =  -processTriggerInput(gameController, net.java.games.input.Component.Identifier.Axis.RZ);   
+                zoom = -processTriggerInput(gameController, net.java.games.input.Component.Identifier.Axis.RZ);
             }
-                        
+
             if (xrot != 0f || yrot != 0f || zrot != 0f || zoom != 0f) {
                 //System.out.println(xrot);
-                
+
                 Quaternion q = this.trackball.getCurrent();
                 Matrix4f mat = Trackball.toMatrix4f(q);
                 Matrix4f.transpose(mat, mat);
-                
+
                 //mat = Matrix4f.setIdentity(mat);
-                
-                mat = Matrix4f.rotate(-xrot/20f, new Vector3f(1f, 0f, 0f), mat, null);
-                mat = Matrix4f.rotate(yrot/20f, new Vector3f(0f, 1f, 0f), mat, null);
-                mat = Matrix4f.rotate(-zrot/20f, new Vector3f(0f, 0f, 1f), mat, null);
+                mat = Matrix4f.rotate(-xrot / 20f, new Vector3f(1f, 0f, 0f), mat, null);
+                mat = Matrix4f.rotate(yrot / 20f, new Vector3f(0f, 1f, 0f), mat, null);
+                mat = Matrix4f.rotate(-zrot / 20f, new Vector3f(0f, 0f, 1f), mat, null);
                 Quaternion.setFromMatrix(mat, q);
                 q = q.normalise(null);
-                
+
                 trackball.setCurrent(q);
-                
-                dolly.incrementValue(zoom*10f);
-                
+
+                dolly.incrementValue(zoom * 10f);
+
                 mainLayer.setIsDirty(true);
 
 //                needsRendering = true;
             }
-            
-            float pov = gameController.getComponent(net.java.games.input.Component.Identifier.Axis.POV).getPollData();
-            if (pov == net.java.games.input.Component.POV.DOWN) {
-                canvas.setForegroundVolumeSlices(Math.min(600, canvas.getForegroundVolumeSlices()+10));
-                if (canvas.getForegroundVolumeSlices()<=50) {
-                    transRayTracer.setClipRays(true);
-                }
-                else {
-                   transRayTracer.setClipRays(false);
-                }
+
+            try {
+                float pov = gameController.getComponent(net.java.games.input.Component.Identifier.Axis.POV).getPollData();
+                if (pov == net.java.games.input.Component.POV.DOWN) {
+                    canvas.setForegroundVolumeSlices(Math.min(600, canvas.getForegroundVolumeSlices() + 10));
+                    if (canvas.getForegroundVolumeSlices() <= 50) {
+                        transRayTracer.setClipRays(true);
+                    } else {
+                        transRayTracer.setClipRays(false);
+                    }
 //                needsRendering = true;
-            }
-            else if (pov == net.java.games.input.Component.POV.UP) {
-                canvas.setForegroundVolumeSlices(Math.max(0, canvas.getForegroundVolumeSlices()-10));
-                if (canvas.getForegroundVolumeSlices()<=50) {
-                    transRayTracer.setClipRays(true);
-                }
-                else {
-                   transRayTracer.setClipRays(false);
-                }
+                } else if (pov == net.java.games.input.Component.POV.UP) {
+                    canvas.setForegroundVolumeSlices(Math.max(0, canvas.getForegroundVolumeSlices() - 10));
+                    if (canvas.getForegroundVolumeSlices() <= 50) {
+                        transRayTracer.setClipRays(true);
+                    } else {
+                        transRayTracer.setClipRays(false);
+                    }
 //                needsRendering = true;
-            }
-            else if (pov == net.java.games.input.Component.POV.LEFT) {
-                int ot = transFuncDisplay.getOpacityThreshold() - 1;
-                transFuncDisplay.setOpacityThreshold(ot);
-                transFuncDisplay.setMaterialThreshold(ot-20);
+                } else if (pov == net.java.games.input.Component.POV.LEFT) {
+                    int ot = transFuncDisplay.getOpacityThreshold() - 1;
+                    transFuncDisplay.setOpacityThreshold(ot);
+                    transFuncDisplay.setMaterialThreshold(ot - 20);
 //                needsRendering = true;
-            }
-            else if (pov == net.java.games.input.Component.POV.RIGHT) {
-                int ot = transFuncDisplay.getOpacityThreshold() + 1;
-                transFuncDisplay.setOpacityThreshold(ot);
-                transFuncDisplay.setMaterialThreshold(ot-20);
+                } else if (pov == net.java.games.input.Component.POV.RIGHT) {
+                    int ot = transFuncDisplay.getOpacityThreshold() + 1;
+                    transFuncDisplay.setOpacityThreshold(ot);
+                    transFuncDisplay.setMaterialThreshold(ot - 20);
 //                needsRendering = true;                
 //                needsRendering = true;
-            }
-            
-            net.java.games.input.EventQueue queue = gameController.getEventQueue();
-            net.java.games.input.Event event = new net.java.games.input.Event();
-            while (queue.getNextEvent(event)) {
-                if (event.getComponent().getIdentifier() == net.java.games.input.Component.Identifier.Button._0) {
-                    if (event.getValue() == 1f) {
-                        try {
-                            doClip = (Boolean)model.getAttribute("doClip");
-                        }
-                        catch(NullPointerException e) {
-                            doClip = false;
-                        }
-                        doClip = !doClip;
-                        model.setAttribute("doClip", doClip);
-
-
-                        transducerModel.setClipRays(doClip);
-                    }
                 }
-                if (event.getComponent().getIdentifier() == net.java.games.input.Component.Identifier.Button._1) {
-                    if (event.getValue() == 1f) {
-                        try {
-                            showRayTracer = (Boolean)model.getAttribute("showRayTracer");
-                        }
-                        catch(NullPointerException e) {
-                            showRayTracer = false;
-                        }
-                        showRayTracer = !showRayTracer;
-                        model.setAttribute("showRayTracer", showRayTracer);
-                    }
-                }
-                if (event.getComponent().getIdentifier() == net.java.games.input.Component.Identifier.Button._2) {
-                    if (event.getValue() == 1f) {
-                        try {
-                            doFrame = (Boolean)model.getAttribute("doFrame");
-                        }
-                        catch(NullPointerException e) {
-                            doFrame = false;
-                        }
-                        doFrame = !doFrame;
-                        model.setAttribute("doFrame", doFrame);
 
+                net.java.games.input.EventQueue queue = gameController.getEventQueue();
+                net.java.games.input.Event event = new net.java.games.input.Event();
+                while (queue.getNextEvent(event)) {
+                    if (event.getComponent().getIdentifier() == net.java.games.input.Component.Identifier.Button._0) {
+                        if (event.getValue() == 1f) {
+                            try {
+                                doClip = (Boolean) model.getAttribute("doClip");
+                            } catch (NullPointerException e) {
+                                doClip = false;
+                            }
+                            doClip = !doClip;
+                            model.setAttribute("doClip", doClip);
+
+                            transducerModel.setClipRays(doClip);
+                        }
                     }
-                }
-                if (event.getComponent().getIdentifier() == net.java.games.input.Component.Identifier.Button._3) {
-                    if (event.getValue() == 1f) {
+                    if (event.getComponent().getIdentifier() == net.java.games.input.Component.Identifier.Button._1) {
+                        if (event.getValue() == 1f) {
+                            try {
+                                showRayTracer = (Boolean) model.getAttribute("showRayTracer");
+                            } catch (NullPointerException e) {
+                                showRayTracer = false;
+                            }
+                            showRayTracer = !showRayTracer;
+                            model.setAttribute("showRayTracer", showRayTracer);
+                        }
+                    }
+                    if (event.getComponent().getIdentifier() == net.java.games.input.Component.Identifier.Button._2) {
+                        if (event.getValue() == 1f) {
+                            try {
+                                doFrame = (Boolean) model.getAttribute("doFrame");
+                            } catch (NullPointerException e) {
+                                doFrame = false;
+                            }
+                            doFrame = !doFrame;
+                            model.setAttribute("doFrame", doFrame);
+
+                        }
+                    }
+                    if (event.getComponent().getIdentifier() == net.java.games.input.Component.Identifier.Button._3) {
+                        if (event.getValue() == 1f) {
 //                        needsRendering = true;
-                        canvas.setShowMR(!canvas.getShowMR());
+                            canvas.setShowMR(!canvas.getShowMR());
+                        }
                     }
                 }
+            } catch (NullPointerException e) {
+                gameController = null;
             }
         }
+
     }
     
     private static net.java.games.input.ControllerEnvironment createDefaultEnvironment() throws ReflectiveOperationException {
@@ -4910,6 +4914,25 @@ public class DefaultView extends View {
                 }
                 catch (Exception em) {
                     em.printStackTrace();
+                }
+                break;
+            case "exportCTnrrd":
+                {
+                    File exportDir = null;
+                    fileDialog.setDialogTitle("Choose a directory for export of image volumes (.NRRD)");
+                    fileDialog.setFileChooseMode(FileDialog.fileChooseMode.EXISTING_DIRECTORIES);
+                    exportDir = fileDialog.open();
+                    if (exportDir != null) {
+                        
+                        File exportFile = new File(exportDir.getPath() + File.separator + "ctvol.nrrd");
+                        exportNRRDImage(model.getCtImage(), exportFile);
+                        for (int s=0; s<model.getMrImageCount(); s++) {
+                            exportFile = new File(exportDir.getPath() + File.separator + "mrvol" + s + ".nrrd");                            
+                            exportNRRDImage(model.getMrImage(s), exportFile);
+                        }
+                        exportFile = new File(exportDir.getPath() + File.separator + "transducer.fcsv");
+                        this.exportTransducerElements(this.transducerModel, exportFile);
+                    }
                 }
                 break;
             case "addSubsonications":
@@ -5438,5 +5461,163 @@ public class DefaultView extends View {
         super.setModel(model); //To change body of generated methods, choose Tools | Templates.
         
         this.updateSonicationList();
+    }
+    
+    void exportTransducerElements(Transducer trans, File exportFile) {
+        try {
+            FileOutputStream fos = new FileOutputStream(exportFile);
+    
+            PrintWriter p = new PrintWriter(fos);
+            
+            p.print("# Markups fiducial file version = 4.11\n");
+            p.print("# CoordinateSystem = LPS\n");
+            p.print("# columns = id,x,y,z,ow,ox,oy,oz,vis,sel,lock,label,desc,associatedNodeID\n");
+            
+            Vector3f naturalFocusPosition = new Vector3f(currentTarget.getXpos(),
+                                                        -currentTarget.getYpos(),
+                                                        -currentTarget.getZpos());
+            
+            float anglex = this.transducerTiltX/180f*(float)Math.PI;
+            float angley = this.transducerTiltY/180f*(float)Math.PI;
+            
+            System.out.println("transducer elements");
+            System.out.println(naturalFocusPosition);
+            
+            Matrix4f txfm = new Matrix4f();
+            
+            txfm.translate(naturalFocusPosition);
+            
+            txfm.rotate(-anglex, new Vector3f(1, 0, 0));
+            txfm.rotate(-angley, new Vector3f(0, 1, 0));
+            
+            System.out.println(txfm);
+            
+            
+            for (int i=0; i<trans.getElementCount(); i++) {
+                Vector4f element = new Vector4f(trans.getElement(i));
+                element.w = 1;
+                
+                Matrix4f.transform(txfm, element, element);
+                
+                p.print(i + "," + element.x + "," + -element.y + "," + -element.z + ",");
+                p.print("0,0,0,1,1,1,0,");
+                p.print("E-" + i + ",");
+                p.print(",,\n");
+            }
+            
+            Vector4f focuspt = new Vector4f(0, 0, 0, 1);
+            Matrix4f.transform(txfm, focuspt, focuspt);
+            p.print(trans.getElementCount() + "," + focuspt.x + "," + -focuspt.y + "," + -focuspt.z + ",");
+            p.print("0,0,0,1,1,1,0,");
+            p.print("Focus" + ",");
+            p.print(",,\n");
+        
+            p.flush();
+            
+            fos.close();
+        }
+        catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    void exportNRRDImage(ImageVolume image, File exportFile) {
+        try {
+            // get the image voxel data in a buffer to write
+            short data[] = (short[]) image.getData();
+            ByteBuffer bb = BufferUtils.createByteBuffer(data.length * 2);
+            bb.order(ByteOrder.LITTLE_ENDIAN);
+            ShortBuffer sb = bb.asShortBuffer();
+            sb.put(data);
+            sb.flip();
+            
+            // Make sure ImageOrientationQ quaternion is set if it hasn't already
+            ImageVolumeUtil.setupImageOrientationInfo(image);
+            
+            // get the image translation
+            Vector3f origin = new Vector3f((Vector3f) image.getAttribute("ImageTranslation"));
+            
+            // negate the translation (not sure why at the moment)
+            origin.negate();
+                        
+            // get the image orientation quaternion and compute a 4x4 rotation matrix
+            Quaternion orientq = (Quaternion) image.getAttribute("ImageOrientationQ");
+            Matrix4f rot = (Matrix4f)Trackball.toMatrix4f(orientq).transpose();
+            
+            // negate the Z direction
+            rot.m20 = -rot.m20;
+            rot.m21 = -rot.m21;
+            rot.m22 = -rot.m22;
+
+System.out.println("Image transformation matrix:\n" + rot.toString());
+
+            // create basis vectors and rotate them
+            Vector4f dir[] = new Vector4f[3];
+            
+            dir[0] = new Vector4f(1, 0, 0, 0);
+            dir[1] = new Vector4f(0, 1, 0, 0);
+            dir[2] = new Vector4f(0, 0, 1, 0);
+            
+            dir[0] = (Vector4f)Matrix4f.transform(rot, dir[0], null).scale(image.getDimension(0).getSampleWidth(0));
+            dir[1] = (Vector4f)Matrix4f.transform(rot, dir[1], null).scale(image.getDimension(1).getSampleWidth(0));
+            dir[2] = (Vector4f)Matrix4f.transform(rot, dir[2], null).scale(image.getDimension(2).getSampleWidth(0));
+                                    
+            // get offset from center of image volume to upper left corner of first slice 
+            Vector4f originOffset = new Vector4f(
+                    image.getDimension(0).getSize() * image.getDimension(0).getSampleWidth(0) * 0.5f,
+                    image.getDimension(1).getSize() * image.getDimension(1).getSampleWidth(0) * 0.5f,
+                    image.getDimension(2).getSize() * image.getDimension(2).getSampleWidth(0) * 0.5f,
+                    0f);
+            
+            // rotate offset vector
+            Matrix4f.transform(rot, originOffset, originOffset);
+            
+            // subtract offset from the image origin                        
+            origin = (Vector3f) Vector3f.sub(origin, new Vector3f(originOffset.x, originOffset.y, originOffset.z), null);
+            
+System.out.println("Image transslation:\n" + origin);
+
+            // write the NRRD header
+            FileOutputStream fos = new FileOutputStream(exportFile);
+    
+            PrintWriter p = new PrintWriter(fos);
+            p.write("NRRD0005\n");
+            p.write("type: ushort\n");
+            p.write("dimension: " + 3 + "\n");
+
+            p.write("sizes:");
+            for (int i = 0; i < 3; i++) {
+                p.write(" " + image.getDimension(i).getSize());
+            }
+            p.write("\n");
+
+            //p.write("space dimension: 3\n");
+            p.write("space: LPS\n");
+            
+            p.write("space origin: (" + origin.x + "," + origin.y + "," + origin.z + ")\n");
+
+            p.write("space directions: ");
+            for (int i = 0; i < 3; i++) {
+                p.write(" (" + dir[i].x + "," + dir[i].y + "," + dir[i].z + ")");
+            }
+            p.write("\n");
+
+            p.write("space units: \"mm\" \"mm\" \"mm\"\n");
+            p.write("centerings: cell cell cell\n");
+            p.write("kinds: space space space\n");
+            
+            p.write("endian: little\n");
+            p.write("encoding: raw\n");
+            p.write("\n");
+            p.flush();
+
+            // write voxel data
+            WritableByteChannel channel = Channels.newChannel(fos);
+            channel.write(bb);
+            channel.close();
+            fos.close();
+        } catch (Exception em) {
+            em.printStackTrace();
+        }
     }
 }

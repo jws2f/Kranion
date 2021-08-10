@@ -35,7 +35,6 @@ applicationDefaultJvmArgs = ["-D64", "-Xms1800m", "-javaagent:./lib/jar-loader.j
 
 dependencies {
     compile fileTree(dir: 'lib', include: '*.jar')
-    compile 'org.codehaus.groovy:groovy-all:3.0.7'
     testImplementation     'junit:junit:4.13'
 }
 

@@ -59,11 +59,9 @@ import org.lwjgl.opencl.CLContext;
 import static org.lwjgl.opencl.CL10.*;
 import static org.lwjgl.opencl.CL10GL.*;
 
-import java.lang.reflect.Constructor;
 
 import java.io.File;
-import java.awt.event.*;
-import javax.swing.*;
+
 import java.util.StringTokenizer;
 import java.util.List;
 
@@ -94,6 +92,8 @@ import org.lwjgl.opencl.CLCapabilities;
 import org.lwjgl.opencl.CLCommandQueue;
 import org.lwjgl.opencl.CLDeviceCapabilities;
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
+
+import javax.swing.*;
 
 public class Main implements ProgressListener {
 
@@ -259,7 +259,7 @@ public class Main implements ProgressListener {
     public static void main(String[] args) {
         try {
             main = new Main();
-            
+                        
             Logger.getGlobal().log(Level.INFO, "This is build " + getRbTok("app.version") + ":" + getRbTok("app.build"));
             Logger.getGlobal().log(Level.INFO, "JVM version: " + System.getProperty("java.vm.name") + " " + System.getProperty("java.vendor") + " " + System.getProperty("java.version"));
 

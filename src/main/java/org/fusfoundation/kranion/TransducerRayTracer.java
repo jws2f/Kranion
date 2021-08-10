@@ -1375,6 +1375,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 //        glUnmapBuffer(GL_ARRAY_BUFFER);
 //        glBindBuffer(GL_ARRAY_BUFFER, 0);        
           FloatBuffer floatValues = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, outSSBo, GL_READ_ONLY);
+          
+          FloatBuffer rayValues = this.getFloatBufferThreadSafe(GL_ARRAY_BUFFER, outRaysSSBo, GL_READ_ONLY);
 
 //        glBindBuffer(GL_ARRAY_BUFFER, this.outDiscSSBo);
 //        ByteBuffer buf = glMapBuffer(GL_ARRAY_BUFFER, GL_READ_WRITE, null);
@@ -1404,9 +1406,31 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             result[i].outerNormal = normal;
             result[i].rayVerts = new Vector3f[4];
             
-            // element center
-            result[i].rayVerts[0] = new Vector3f(floatValues.get(), floatValues.get(), floatValues.get());
+            // Skip the first value which is the normal flag offset from the skull
             floatValues.get();
+            floatValues.get();
+            floatValues.get();
+            floatValues.get();
+            
+            // element center
+            result[i].rayVerts[0] = new Vector3f(rayValues.get(), rayValues.get(), rayValues.get()); rayValues.get();
+            // skip the color
+            rayValues.get();
+            rayValues.get();
+            rayValues.get();
+            rayValues.get();
+            
+            //skip the second point of the rayValues which is the outer skull intecept
+            rayValues.get();
+            rayValues.get();
+            rayValues.get();
+            rayValues.get();
+            
+            // skip the color
+            rayValues.get();
+            rayValues.get();
+            rayValues.get();
+            rayValues.get();
             
             // outer skull surface intercept
             result[i].rayVerts[1] = new Vector3f(floatValues.get(), floatValues.get(), floatValues.get());

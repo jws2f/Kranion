@@ -2,7 +2,7 @@
 <launch4jConfig>
   <dontWrapJar>true</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>.\Kranion.jar</jar>
+  <jar></jar>
   <outfile>C:\Users\John.FUSF\Desktop\Kranion\Kranion.exe</outfile>
   <errTitle>Kranion</errTitle>
   <cmdLine></cmdLine>
@@ -14,16 +14,21 @@
   <restartOnCrash>false</restartOnCrash>
   <manifest></manifest>
   <icon>D:\Documents\NetBeansProjects\Kranion\src\main\java\org\fusfoundation\kranion\images\Kranion.ico</icon>
+  <classPath>
+    <mainClass>org.fusfoundation.kranion.Main</mainClass>
+    <cp>./Kranion.jar</cp>
+    <cp>./lib/*.jar</cp>
+  </classPath>
   <jre>
     <path></path>
     <bundledJre64Bit>false</bundledJre64Bit>
     <bundledJreAsFallback>false</bundledJreAsFallback>
     <minVersion>8</minVersion>
-    <maxVersion></maxVersion>
+    <maxVersion>16</maxVersion>
     <jdkPreference>preferJre</jdkPreference>
     <runtimeBits>64</runtimeBits>
     <initialHeapSize>1800</initialHeapSize>
     <maxHeapSize>6000</maxHeapSize>
-    <opt>--illegal-access=permit -cp ./lib -Djava.library.path=./lib -javaagent:./lib/jar-loader.jar</opt>
+    <opt>  -cp ./lib -Djava.library.path=./lib -javaagent:./lib/jar-loader.jar</opt>
   </jre>
 </launch4jConfig>

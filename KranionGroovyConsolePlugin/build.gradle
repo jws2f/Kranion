@@ -27,7 +27,6 @@ apply plugin: 'com.github.johnrengelman.shadow'
 
 dependencies {
     compile fileTree(dir: 'lib', include: '*.jar')
-    compile 'org.codehaus.groovy:groovy-all:3.0.7'
     testImplementation     'junit:junit:4.13'
 }
 
@@ -42,4 +41,6 @@ jar {
 shadowJar {
     destinationDir = ["dist"];
     archiveBaseName.set('KranionGroovyConsolePlugin')
+    exclude 'Kranion.jar'
+    minimize();
 }

@@ -1678,6 +1678,9 @@ public class ImageCanvas2D extends GUIControl {
     
     @Override
     public boolean OnMouse(float mouseX, float mouseY, boolean button1down, boolean button2down, int dwheel) {
+        
+        if (!isEnabled) return false;
+    
             if (super.OnMouse(mouseX, mouseY, button1down, button2down, dwheel)) {
                 return true;
             }
