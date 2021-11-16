@@ -129,6 +129,7 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import org.fusfoundation.kranion.Colorbar;
 import org.fusfoundation.kranion.CompositeRenderable;
+import org.fusfoundation.kranion.CrossThreadCallable;
 import org.fusfoundation.kranion.DicomSeriesDialog;
 import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.FlyoutDialog;
@@ -1718,8 +1719,21 @@ public class DefaultView extends View {
             windowCenter = 1000f;
         }
 
-        float rescaleSlope = (Float) image.getAttribute("RescaleSlope");
-        float rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
+        float rescaleSlope = 1f;
+        try {
+            rescaleSlope = (Float) image.getAttribute("RescaleSlope");
+        }
+        catch(Exception e) {
+            rescaleSlope = 1f;
+        }
+        
+        float rescaleIntercept = -1000f;
+        try {
+            rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
+        }
+        catch(Exception e) {
+            rescaleIntercept = -1000f;
+        }
 
         this.center = (int)windowCenter;
         this.window = (int)windowWidth;
@@ -1963,20 +1977,23 @@ public class DefaultView extends View {
         loadScene(null);
     }
     
-    private boolean deferredLoadScene = false;
-    private String deferredFilename;
     private void loadScene(String filename) { // TODO: FIX THIS AFTER TESTING
-        synchronized(this) {
-            if (myThread != Thread.currentThread()) {
-                deferredFilename = filename;
-                deferredLoadScene = true;
-                try {
-                    wait();
+
+        // If this is called from another thread (scripting engine) queue
+        // and wait for execution on this thread.
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    DefaultView.this.loadScene(filename);
+                    return null;
                 }
-                catch(InterruptedException e) {                    
-                }
-                return;
-            }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
         }
         
         try {
@@ -2004,8 +2021,22 @@ public class DefaultView extends View {
             
             
             newModel = Model.loadModel(selectedFile, this);
-                        
-            Main.setModel(newModel); // should update M,V,C
+            
+            initModel(selectedFile.getName(), newModel);
+                      
+            return;
+        }
+        catch (Exception e) {
+            Logger.getGlobal().log(Level.WARNING, "Error reading scene file.", e);
+        }
+        finally {
+            percentDone("Ready", -1);
+        }
+        
+    }
+    
+    private void initModel(String title, Model newModel) {
+                    Main.setModel(newModel); // should update M,V,C
                         
             // set some defaults if absent
             if (newModel.getAttribute("sonicationFrequency") == null) {
@@ -2020,17 +2051,17 @@ public class DefaultView extends View {
             
             enumSavedClasses(newModel);
             
-            Main.setTitle(selectedFile.getName());
+            Main.setTitle(title);
 
             // defensive release of texture resources and names
             // means texutres have to be built, but doesn't take long
             // and prevents weird texture problems that intermittently
             // happen upon model load
                         
+            transRayTracer.setImage(null);
             transRayTracer.release();
             transRayTracer.removePropertyChangeListeners();
-            transRayTracer.addPropertyChangeListener(this);
-
+            transRayTracer.addPropertyChangeListener(this);            
             
 //            canvas.setOverlayImage(null);
 //            canvas1.setOverlayImage(null);
@@ -2115,78 +2146,6 @@ public class DefaultView extends View {
             this.updateTransducerPulldownList(txdrIndex);
             
             setDoTransition(true);
-                        
-            return;
-
-//            String sCurrentLine;
-//            BufferedReader bufferedReader = new BufferedReader(new FileReader(selectedFile));
-//            
-//            Quaternion orient = new Quaternion();
-//            Vector3f trans = new Vector3f();
-//            
-//            orient.x = Float.parseFloat(bufferedReader.readLine());
-//            orient.y = Float.parseFloat(bufferedReader.readLine());
-//            orient.z = Float.parseFloat(bufferedReader.readLine());
-//            orient.w = Float.parseFloat(bufferedReader.readLine());
-//            
-//            trans.x = Float.parseFloat(bufferedReader.readLine());
-//            trans.y = Float.parseFloat(bufferedReader.readLine());
-//            trans.z = Float.parseFloat(bufferedReader.readLine());
-//            
-//            model.getCtImage().setAttribute("ImageOrientationQ", orient);
-//            model.getCtImage().setAttribute("ImageTranslation", trans);
-//            
-//            orient = new Quaternion();
-//            trans = new Vector3f();
-//            
-//            orient.x = Float.parseFloat(bufferedReader.readLine());
-//            orient.y = Float.parseFloat(bufferedReader.readLine());
-//            orient.z = Float.parseFloat(bufferedReader.readLine());
-//            orient.w = Float.parseFloat(bufferedReader.readLine());
-//            
-//            trans.x = Float.parseFloat(bufferedReader.readLine());
-//            trans.y = Float.parseFloat(bufferedReader.readLine());
-//            trans.z = Float.parseFloat(bufferedReader.readLine());
-//            
-//            try {
-//                model.getMrImage(0).setAttribute("ImageOrientationQ", orient);
-//                model.getMrImage(0).setAttribute("ImageTranslation", trans);
-//            }
-//            catch(NullPointerException e) {
-//                
-//            }
-//            
-//            this.center = Integer.parseInt(bufferedReader.readLine());
-//            this.window = Integer.parseInt(bufferedReader.readLine());
-//            this.mr_center = Integer.parseInt(bufferedReader.readLine());
-//            this.mr_window = Integer.parseInt(bufferedReader.readLine());
-//            
-//            if (model != null) {
-//                model.setAttribute("MRcenter", (float)mr_center);
-//                model.setAttribute("MRwindow", (float)mr_window);
-//                model.setAttribute("CTcenter", (float)center);
-//                model.setAttribute("CTwindow", (float)window);
-//            }
-//            
-//            canvas.setCenterWindow(center, window);
-//            canvas.setMRCenterWindow(mr_center, mr_window);
-//            canvas1.setCenterWindow(center, window);
-//            canvas1.setMRCenterWindow(mr_center, mr_window);
-//            canvas2.setCenterWindow(center, window);
-//            canvas2.setMRCenterWindow(mr_center, mr_window);
-//            canvas3.setCenterWindow(center, window);
-//            canvas3.setMRCenterWindow(mr_center, mr_window);
-//
-//            //Close reader
-//            bufferedReader.close();
-        }
-        catch (Exception e) {
-            Logger.getGlobal().log(Level.WARNING, "Error reading scene file.", e);
-        }
-        finally {
-            percentDone("Ready", -1);
-        }
-        
     }
 
     private void setShowTargets(boolean bShow) {
@@ -3206,15 +3165,7 @@ public class DefaultView extends View {
     
     @Override
     public boolean getIsDirty() {
-        
-        synchronized(this) {
-            if (deferredLoadScene) {
-                deferredLoadScene = false;
-                loadScene(deferredFilename);
-                notifyAll();
-            }
-        }
-        
+                
         // empty updateEventQueue
         ////////////////////////////
         updateEventQueue.handleEvents(this);
@@ -5072,35 +5023,7 @@ public class DefaultView extends View {
                 messageDialog.setMessageText("Close Plan");
 //                if (result == JOptionPane.YES_OPTION) {
                 if (messageDialog.open()) {
-                    if (this.model != null) {
-                        this.model.clear();
-                        this.transRayTracer.clearEnvelopeImage();
-                        this.setDisplayCTimage(null);
-                        this.setDisplayMRimage(null);
-                        model.setSelectedSonication(-1); // TODO: SelectedSonication and currentSonication need to be unified
-                        model.setAttribute("currentTargetPoint", new Vector3f());
-                        model.setAttribute("currentTargetSteering", new Vector3f());
-                        model.setAttribute("currentSonication", -1);
-                        
-                        // clear thermometry graph
-                        this.thermometryChart.newChart();
-                        this.thermometryChart.generateChart();
-                        
-                        this.pcdSpectrumChart.newChart();
-                        this.pcdSpectrumChart.generateChart();
-                        
-                        try {
-                            ((TextBox)(Renderable.lookupByTag("tbSonicationMaxTemp"))).setText("");
-                            ((TextBox)(Renderable.lookupByTag("tbSonicationMaxDose"))).setText("");
-                        }
-                        catch(Exception npe){}
-
-                        
-                        updateSonicationList();
-                        updateMRlist();
-                        
-                        Main.setTitle(null);
-                    }
+                      initModel("Untitled", new Model());
                 }
                 break;
             case "prefDoTransitionEffects": // This is a preference, update preference key

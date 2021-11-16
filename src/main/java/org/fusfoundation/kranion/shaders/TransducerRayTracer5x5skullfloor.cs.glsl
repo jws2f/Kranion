@@ -61,6 +61,11 @@ struct elemDistance {
                 float skullTransmissionCoeff;
 };
 
+struct skullParams {
+    float corticalBoneSpeed;
+    float averageBoneSpeed;
+};
+
 layout(std430, binding=0) buffer elements{
           elemStart e[];
 };
@@ -95,6 +100,10 @@ layout(std430, binding=7) buffer skullFloorRays{
 
 layout(std430, binding=8) buffer skullFloorDiscs{
 		vertex sfDiscTris[];
+};
+
+layout(std430, binding=9) buffer skullParamsPerElement{
+		skullParams boneSpeeds[];
 };
 
 uniform vec3        target; // no steering = vec3(0,0,0);
@@ -464,7 +473,7 @@ void main()
  //        float critAngle = max(asin(waterSpeed/boneSpeed), M_PI/8);//*0.625;
 //         float critAngle = min(asin(waterSpeed/boneSpeed), M_PI/4.0);
 //         float critAngle = 0.436; // 25 degrees
-         float critAngle = asin(waterSpeed/boneSpeed);
+         float critAngle = asin(waterSpeed/boneSpeeds[gid].corticalBoneSpeed);
 
          if (firstCollision != pos)
 		{
@@ -487,9 +496,9 @@ void main()
 
                 if (firstIncidenceAngle < critAngle) {
                 
-                refractedVector = normalize(refract(v, -normal, boneSpeed/waterSpeed));
+                refractedVector = normalize(refract(v, -normal, boneSpeeds[gid].corticalBoneSpeed/waterSpeed));
 
-                thetat = asin(boneSpeed/waterSpeed * sin(thetai));
+                thetat = asin(boneSpeeds[gid].corticalBoneSpeed/waterSpeed * sin(thetai));
 
      		secondCollision = findEdge(firstCollision,refractedVector,false);
      		if(secondCollision != firstCollision)
@@ -507,10 +516,10 @@ void main()
                         float secondIncidenceAngle = abs(acos(clamp(dot(secondNormal,refractedVector)/(length(secondNormal)*length(refractedVector)), -1, 1)));
                         
                         thetai2 = secondIncidenceAngle;
-                        thetat2 = asin(waterSpeed/boneSpeed * sin(thetai2));
+                        thetat2 = asin(waterSpeed/boneSpeeds[gid].corticalBoneSpeed * sin(thetai2));
 
 //                        if (secondIncidenceAngle < critAngle) {
-                            exitVector = normalize(refract(refractedVector, -secondNormal, waterSpeed/boneSpeed));
+                            exitVector = normalize(refract(refractedVector, -secondNormal, waterSpeed/boneSpeeds[gid].corticalBoneSpeed));
 
                             exitPoint = secondCollision + 15*exitVector;
                             vec3 focalPoint = target;
@@ -596,12 +605,12 @@ void main()
             }
         }
 
-        float term1 = SKULL_OUTER_TABLE_DENSITY*boneSpeed*cos(thetai);
+        float term1 = SKULL_OUTER_TABLE_DENSITY*boneSpeeds[gid].corticalBoneSpeed*cos(thetai);
         float term2 = WATER_DENSITY*waterSpeed*cos(thetat);
         float outerTransmissionCoeff = 1.0 - (term1-term2)/(term1+term2);
 
         term1 = WATER_DENSITY*waterSpeed*cos(thetai2);
-        term2 = SKULL_OUTER_TABLE_DENSITY*boneSpeed*cos(thetat2);
+        term2 = SKULL_OUTER_TABLE_DENSITY*boneSpeeds[gid].corticalBoneSpeed*cos(thetat2);
         float innerTransmissionCoeff = 1.0 - (term1-term2)/(term1+term2);
 
         float totalThick = d[gid].skullThickness;

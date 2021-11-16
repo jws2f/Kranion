@@ -98,6 +98,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private int pressureSSBo = 0; // buffer of pressure contributions per ray to a given sample point
     private int phaseSSBo =0;
     
+    // buffer to pass per element average bone speeds, rather than global constant speed for phase calc
+    private int boneSpeedSSBo = 0;
+    
     private Trackball trackball = null;
     private Vector3f centerOfRotation;
     private ImageVolume CTimage = null;
@@ -214,10 +217,13 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             setIsDirty(true);
 //        }
         CTimage = image;
-        Float value = (Float) image.getAttribute("RescaleIntercept");
-        if (value != null) rescaleIntercept = value;
-        value = (Float) image.getAttribute("RescaleSlope");
-        if (value != null) rescaleSlope = value;
+        
+        if (CTimage != null) {
+            Float value = (Float) image.getAttribute("RescaleIntercept");
+            if (value != null) rescaleIntercept = value;
+            value = (Float) image.getAttribute("RescaleSlope");
+            if (value != null) rescaleSlope = value;
+        }
         
         if (envelopeImage != null) {
             ImageVolumeUtil.releaseTextures(envelopeImage);
@@ -298,20 +304,77 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         }
         boneSpeed = Math.min(3500, Math.max(1482, speed));
         
+        if (boneSpeedSSBo != 0) {
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneSpeedSSBo);
+            ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+            for (int i=0; i<this.elementCount; i++) {
+                floatBuffer.put(i*2+1, boneSpeed);
+            }
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        }
+        
         needsCalc = true;
     }
+    
     public void setBoneRefractionSpeed(float speed) {
         if (boneRefractionSpeed != speed) {
             setIsDirty(true);
         }
         boneRefractionSpeed = Math.min(3500, Math.max(1482, speed));
-
+        
+        if (boneSpeedSSBo != 0) {
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneSpeedSSBo);
+            ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+            FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+            for (int i=0; i<this.elementCount; i++) {
+                floatBuffer.put(i*2, boneRefractionSpeed);
+            }
+            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        }
         needsCalc = true;      
     }
     
     public float getBoneSpeed() { return boneSpeed; }
+    public float getBoneSpeed(int i) {
+        float result = -1;
+        if (boneSpeedSSBo != 0) {
+            try {
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneSpeedSSBo);
+                ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+                FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+                result = floatBuffer.get(i*2+1);
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+            }
+            catch(Exception e) {
+            }
+        }
+
+        return result;
+    }
     
     public float getBoneRefractionSpeed() { return boneRefractionSpeed; }
+    public float getBoneRefractionSpeed(int i) {
+        float result = -1;
+        
+        if (boneSpeedSSBo != 0) {
+            try {
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneSpeedSSBo);
+                ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+                FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+                result = floatBuffer.get(i * 2);
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+            }
+            catch (Exception e) {
+            }
+        }
+        
+        return result;
+    }
     
     public void setBoneThreshold(float v) {
         if (boneThreshold != v) {
@@ -600,7 +663,19 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 phaseBuffer.put(0f);
         }
         phaseBuffer.flip();
-        glBufferData(GL_ARRAY_BUFFER,phaseBuffer, GL_STATIC_DRAW);        
+        glBufferData(GL_ARRAY_BUFFER,phaseBuffer, GL_STATIC_DRAW);
+
+        boneSpeedSSBo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, boneSpeedSSBo);
+        FloatBuffer boneSpeedBuffer = ByteBuffer.allocateDirect(elementCount*4 * 2).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        for (int i=0; i<elementCount*2; i++) {
+                 //ct values along transit of skull per element
+                boneSpeedBuffer.put(0f);
+        }
+        boneSpeedBuffer.flip();
+        glBufferData(GL_ARRAY_BUFFER, boneSpeedBuffer, GL_STATIC_DRAW);
+
+        
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 
@@ -668,6 +743,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     private void doCalc() {
+        doCalc(centerOfRotation, new Vector4f(0, 0, 0, 1));
+    }
+    
+    private void doCalc(Vector3f center, Vector4f offset) {
         
         needsCalc = false;
         
@@ -688,7 +767,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         if (CTimage == null) return;
         
-        setupImageTexture(CTimage, 0, centerOfRotation);
+        setupImageTexture(CTimage, 0, Vector3f.add(center, new Vector3f(offset.x, offset.y, offset.z), null));
 
 //        System.out.println("TransducerRayTracer::doCalc() " + Thread.currentThread().getId() + " - " + myThread.getId());
     
@@ -741,6 +820,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, phaseSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, skullFloorRaysSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, skullFloorDiscSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, boneSpeedSSBo);
         
         // run compute shader
         org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
@@ -756,6 +836,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, 0);
 
         
         refractShader.stop();
@@ -806,6 +887,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, phaseSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, skullFloorRaysSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, skullFloorDiscSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, boneSpeedSSBo);
         
         // run compute shader
         org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
@@ -821,6 +903,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, 0);
 
         
         pickShader.stop();
@@ -934,6 +1017,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, distSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, pressureSSBo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, phaseSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, boneSpeedSSBo);
                     
         // run compute shader
         org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
@@ -945,6 +1029,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
         
         pressureShader.stop();
         
@@ -1033,7 +1118,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         if (CTimage == null) return;
         Vector3f imageTranslation = (Vector3f)CTimage.getAttribute("ImageTranslation");
         
-        envelopeImage.setAttribute("ImageTranslation", new Vector3f());
+        envelopeImage.setAttribute("ImageTranslation", new Vector3f(0, 0, 0));
+
+        float[] orient = {1, 0, 0, 0, 1, 0};        
+        envelopeImage.setAttribute("ImageOrientation", orient);
         
         // 21x21x21 array of floats to hold sampled treatment envelope
         FloatBuffer envFloats = ByteBuffer.allocateDirect(9261*4*8).order(ByteOrder.nativeOrder()).asFloatBuffer();
@@ -1048,9 +1136,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 }
                 for (int k = -10; k <= 10; k++) {
                     
-                    offset.set(i * 4f, j * 6f, k * 4f, 1f);
+                    offset.set(i * 4f, -j * 6f, k * 4f, 1f);
                     
-                    int elemCount = calcElementsOn(new Vector3f(0f, 0f, 0f), offset);
+                    int elemCount = calcElementsOn(new Vector3f(0, 0, 0), offset);
                     
                     voxels[(i+10) + (-j+10)*21 + (-k+10)*21*21] = (short)(elemCount & 0xffff);
                     
@@ -2174,7 +2262,7 @@ System.out.println("pressure maximum = " + colormap_range);
         
         setupImageTexture(CTimage, 0, center, offset);
 
-        doCalc();
+        doCalc(center, offset);
         
         glActiveTexture(GL_TEXTURE0 + 0);
         glDisable(GL_TEXTURE_3D);
@@ -2243,10 +2331,11 @@ System.out.println("pressure maximum = " + colormap_range);
         
         setIsDirty(false);
                 
-        if (CTimage == null) return;
+        if (CTimage == null) {
+            setupImageTexture(null, 0, centerOfRotation);
+            return;
+        }
         
-//        setupImageTexture(CTimage, 0, centerOfRotation);
-
         doCalc();
         doSDRCalc();
         
@@ -2842,6 +2931,12 @@ System.out.println("pressure maximum = " + colormap_range);
             org.lwjgl.opengl.GL15.glDeleteBuffers(phaseSSBo);
             phaseSSBo = 0;
         }
+        
+        if (boneSpeedSSBo != 0) {
+            org.lwjgl.opengl.GL15.glDeleteBuffers(boneSpeedSSBo);
+            boneSpeedSSBo = 0;
+        }
+
         if (skullFloorDiscSSBo != 0) {
             org.lwjgl.opengl.GL15.glDeleteBuffers(skullFloorDiscSSBo);
             skullFloorDiscSSBo = 0;

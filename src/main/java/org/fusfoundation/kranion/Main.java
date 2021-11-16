@@ -122,7 +122,7 @@ public class Main implements ProgressListener {
     private static CrossThreadCallableManager callQ = new CrossThreadCallableManager();
     
     public static Object callCrossThreadCallable(CrossThreadCallable c) {
-        return callQ.call(c);
+                          return callQ.call(c);
     }
     
     public static void addBackgroundWorker(BackgroundWorker w) {
