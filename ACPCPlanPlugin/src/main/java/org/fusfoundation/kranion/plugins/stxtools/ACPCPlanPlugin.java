@@ -301,13 +301,17 @@ public class ACPCPlanPlugin implements Plugin, PropertyChangeListener, ActionLis
 
             showACPCbut = new Button(Button.ButtonType.TOGGLE_BUTTON, 400, 55, 150, 25, this);
             showACPCbut.setTitle("Show AC-PC").setCommand("showACPCgraphic");
+            showACPCbut.setPropertyPrefix("Model.Attribute");
             showACPCbut.setTag("showACPCgraphic");
             showACPCbut.setIndicator(false);
+            model.addBoundControlListener(showACPCbut);
             
             showACPCBoxbut = new Button(Button.ButtonType.TOGGLE_BUTTON, 400, 25, 150, 25, this);
             showACPCBoxbut.setTitle("Show Scale Box").setCommand("showACPCBoxgraphic");
+            showACPCBoxbut.setPropertyPrefix("Model.Attribute");
             showACPCBoxbut.setTag("showACPCBoxgraphic");
             showACPCBoxbut.setIndicator(false);
+            model.addBoundControlListener(showACPCBoxbut);
             
             flyout.addChild("Planning", showACPCbut);
             flyout.addChild("Planning", showACPCBoxbut);

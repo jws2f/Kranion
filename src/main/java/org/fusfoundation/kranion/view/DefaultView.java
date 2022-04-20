@@ -24,6 +24,7 @@
 package org.fusfoundation.kranion.view;
 
 //import com.sun.prism.impl.BufferUtil;
+import com.ericbarnhill.niftijio.NiftiVolume;
 import com.thoughtworks.xstream.XStream;
 import org.fusfoundation.kranion.model.image.io.Loader;
 import org.fusfoundation.kranion.Landmark;
@@ -129,6 +130,7 @@ import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 import org.fusfoundation.kranion.Colorbar;
 import org.fusfoundation.kranion.CompositeRenderable;
+import org.fusfoundation.kranion.CrossThreadCallable;
 import org.fusfoundation.kranion.DicomSeriesDialog;
 import org.fusfoundation.kranion.FileDialog;
 import org.fusfoundation.kranion.FlyoutDialog;
@@ -144,6 +146,7 @@ import org.fusfoundation.kranion.model.AttributeListXStreamConverter;
 import org.fusfoundation.kranion.model.ModelXStreamConverter;
 import org.fusfoundation.kranion.model.SonicationXStreamConverter;
 import org.fusfoundation.kranion.model.image.io.DicomImageLoader;
+import org.fusfoundation.kranion.model.image.io.niftii.NiftiHeader;
 import org.fusfoundation.kranion.plugin.Plugin;
 import org.knowm.xchart.XYSeries;
 
@@ -575,7 +578,7 @@ public class DefaultView extends View {
 // DEBUGGING TOOLS FOR NOW. TODO: Remove        
 //        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 750, 240, 180, 25, this).setTitle("Add Subsonications").setCommand("addSubsonications"));
 //        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 950, 240, 180, 25, this).setTitle("Export Raw MR").setCommand("exportMRRaw"));        
-        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 950, 195, 225, 25, this).setTitle("Export Images as NRRD...").setCommand("exportCTnrrd"));
+        flyout2.addChild("File", new Button(Button.ButtonType.BUTTON, 950, 195, 225, 25, this).setTitle("Export sonication data...").setCommand("exportSonication"));
 //
         Button regButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 80, 205, 150, 25, this);
         regButton.setTitle("Register").setCommand("registerMRCT").setTag("registerMRCT");
@@ -773,6 +776,28 @@ public class DefaultView extends View {
         model.addBoundControlListener(textbox);
         flyout2.addChild("Transducer", textbox);
         
+        textbox = (TextBox)new TextBox(300, 15, 100, 25, "", this).setTitle("O Speed").setCommand("currentTransducerChannelOuterSpeed");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addBoundControlListener(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        textbox = (TextBox)new TextBox(500, 15, 100, 25, "", this).setTitle("I Speed").setCommand("currentTransducerChannelInnerSpeed");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addBoundControlListener(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        textbox = (TextBox)new TextBox(700, 15, 100, 25, "", this).setTitle("Avg Speed").setCommand("currentTransducerChannelAvgSpeed");
+        textbox.setPropertyPrefix("Model.Attribute"); // model will report propery updates with this prefix
+        model.addBoundControlListener(textbox);
+        flyout2.addChild("Transducer", textbox);
+        
+        Button autoBoneButton = new Button(Button.ButtonType.TOGGLE_BUTTON, 900, 15, 150, 25, this);        
+        autoBoneButton.setTitle("Auto Bone").setCommand("autoBone");
+        autoBoneButton.setPropertyPrefix("Model.Attribute");
+        flyout2.addChild("Transducer", autoBoneButton);
+        model.addBoundControlListener(autoBoneButton);
+        pressureSimButton.setIndicator(false);
+        model.setAttribute(autoBoneButton.getCommand(), false);
        
         flyout3.addTab("CT"); // Make sure this is the first tab
         flyout3.setBounds(Display.getWidth() - 400, 150, 400, 275);
@@ -1642,12 +1667,15 @@ public class DefaultView extends View {
                 yData[i] = (double)samples[i];
             }
             
-            model.setAttribute("currentTransducerChannelNum", String.format("%d", index));
-            model.setAttribute("currentTransducerChannelOuterAngle", String.format("%3.1f", angle));
-            model.setAttribute("currentTransducerChannelSDRavg", String.format("%3.2f", sdrAvg));
-            model.setAttribute("currentTransducerChannelSDR", String.format("%3.2f", sdr));
-            model.setAttribute("currentTransducerChannelSkullThickness", String.format("%3.1f", skullThickness));
-            model.setAttribute("currentTransducerChannelNormSkullThickness", String.format("%3.1f", normSkullThickness));
+            model.setAttribute("currentTransducerChannelNum", String.format("%d", index), false);
+            model.setAttribute("currentTransducerChannelOuterAngle", String.format("%3.1f", angle), false);
+            model.setAttribute("currentTransducerChannelSDRavg", String.format("%3.2f", sdrAvg), false);
+            model.setAttribute("currentTransducerChannelSDR", String.format("%3.2f", sdr), false);
+            model.setAttribute("currentTransducerChannelSkullThickness", String.format("%3.1f", skullThickness), false);
+            model.setAttribute("currentTransducerChannelNormSkullThickness", String.format("%3.1f", normSkullThickness), false);
+            model.setAttribute("currentTransducerChannelOuterSpeed", String.format("%3.1f", this.transRayTracer.getCorticalBoneSpeed(index)), false);
+            model.setAttribute("currentTransducerChannelInnerSpeed", String.format("%3.1f", this.transRayTracer.getInnerBoneRefractionSpeed(index)), false);
+            model.setAttribute("currentTransducerChannelAvgSpeed", String.format("%3.1f", this.transRayTracer.getBoneSpeed(index)), false);
             
             skullProfileChart.newChart("Depth (mm)", "HU", 7);
             skullProfileChart.addSeries("HU", xData, yData, new Vector4f(0.7f, 0.7f, 0.7f, 1f), false);
@@ -1718,8 +1746,21 @@ public class DefaultView extends View {
             windowCenter = 1000f;
         }
 
-        float rescaleSlope = (Float) image.getAttribute("RescaleSlope");
-        float rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
+        float rescaleSlope = 1f;
+        try {
+            rescaleSlope = (Float) image.getAttribute("RescaleSlope");
+        }
+        catch(Exception e) {
+            rescaleSlope = 1f;
+        }
+        
+        float rescaleIntercept = -1000f;
+        try {
+            rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
+        }
+        catch(Exception e) {
+            rescaleIntercept = -1000f;
+        }
 
         this.center = (int)windowCenter;
         this.window = (int)windowWidth;
@@ -1882,6 +1923,9 @@ public class DefaultView extends View {
 //            os.writeObject(model);
 //            os.close();
             
+            // add updated transformation matrices to images for external consumers
+            updateModelImagesExtInfo();
+            
             model.saveModel(selectedFile, this);
             
             
@@ -1894,6 +1938,22 @@ public class DefaultView extends View {
             percentDone("Ready.", -1);
         }
         
+    }
+    
+    private void updateModelImagesExtInfo() {
+        ImageVolume image = (ImageVolume4D)model.getCtImage();
+        if (image != null) {
+            Matrix4f tfrm = this.externalizeImageTransform(image);
+            image.setAttribute("ImageTransformMatExt", tfrm);
+        }
+        
+        for (int i = 0; i < model.getMrImageCount(); i++) {
+            image = (ImageVolume4D) model.getMrImage(i);
+            if (image != null) {
+                Matrix4f tfrm = this.externalizeImageTransform(image);
+                image.setAttribute("ImageTransformMatExt", tfrm);
+            }
+        }
     }
     
     private void enumSavedClasses(Model model) {
@@ -1963,20 +2023,23 @@ public class DefaultView extends View {
         loadScene(null);
     }
     
-    private boolean deferredLoadScene = false;
-    private String deferredFilename;
     private void loadScene(String filename) { // TODO: FIX THIS AFTER TESTING
-        synchronized(this) {
-            if (myThread != Thread.currentThread()) {
-                deferredFilename = filename;
-                deferredLoadScene = true;
-                try {
-                    wait();
+
+        // If this is called from another thread (scripting engine) queue
+        // and wait for execution on this thread.
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    DefaultView.this.loadScene(filename);
+                    return null;
                 }
-                catch(InterruptedException e) {                    
-                }
-                return;
-            }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
         }
         
         try {
@@ -2004,8 +2067,22 @@ public class DefaultView extends View {
             
             
             newModel = Model.loadModel(selectedFile, this);
-                        
-            Main.setModel(newModel); // should update M,V,C
+            
+            initModel(selectedFile.getName(), newModel);
+                      
+            return;
+        }
+        catch (Exception e) {
+            Logger.getGlobal().log(Level.WARNING, "Error reading scene file.", e);
+        }
+        finally {
+            percentDone("Ready", -1);
+        }
+        
+    }
+    
+    private void initModel(String title, Model newModel) {
+                    Main.setModel(newModel); // should update M,V,C
                         
             // set some defaults if absent
             if (newModel.getAttribute("sonicationFrequency") == null) {
@@ -2020,17 +2097,17 @@ public class DefaultView extends View {
             
             enumSavedClasses(newModel);
             
-            Main.setTitle(selectedFile.getName());
+            Main.setTitle(title);
 
             // defensive release of texture resources and names
             // means texutres have to be built, but doesn't take long
             // and prevents weird texture problems that intermittently
             // happen upon model load
                         
+            transRayTracer.setImage(null);
             transRayTracer.release();
             transRayTracer.removePropertyChangeListeners();
-            transRayTracer.addPropertyChangeListener(this);
-
+            transRayTracer.addPropertyChangeListener(this);            
             
 //            canvas.setOverlayImage(null);
 //            canvas1.setOverlayImage(null);
@@ -2115,78 +2192,6 @@ public class DefaultView extends View {
             this.updateTransducerPulldownList(txdrIndex);
             
             setDoTransition(true);
-                        
-            return;
-
-//            String sCurrentLine;
-//            BufferedReader bufferedReader = new BufferedReader(new FileReader(selectedFile));
-//            
-//            Quaternion orient = new Quaternion();
-//            Vector3f trans = new Vector3f();
-//            
-//            orient.x = Float.parseFloat(bufferedReader.readLine());
-//            orient.y = Float.parseFloat(bufferedReader.readLine());
-//            orient.z = Float.parseFloat(bufferedReader.readLine());
-//            orient.w = Float.parseFloat(bufferedReader.readLine());
-//            
-//            trans.x = Float.parseFloat(bufferedReader.readLine());
-//            trans.y = Float.parseFloat(bufferedReader.readLine());
-//            trans.z = Float.parseFloat(bufferedReader.readLine());
-//            
-//            model.getCtImage().setAttribute("ImageOrientationQ", orient);
-//            model.getCtImage().setAttribute("ImageTranslation", trans);
-//            
-//            orient = new Quaternion();
-//            trans = new Vector3f();
-//            
-//            orient.x = Float.parseFloat(bufferedReader.readLine());
-//            orient.y = Float.parseFloat(bufferedReader.readLine());
-//            orient.z = Float.parseFloat(bufferedReader.readLine());
-//            orient.w = Float.parseFloat(bufferedReader.readLine());
-//            
-//            trans.x = Float.parseFloat(bufferedReader.readLine());
-//            trans.y = Float.parseFloat(bufferedReader.readLine());
-//            trans.z = Float.parseFloat(bufferedReader.readLine());
-//            
-//            try {
-//                model.getMrImage(0).setAttribute("ImageOrientationQ", orient);
-//                model.getMrImage(0).setAttribute("ImageTranslation", trans);
-//            }
-//            catch(NullPointerException e) {
-//                
-//            }
-//            
-//            this.center = Integer.parseInt(bufferedReader.readLine());
-//            this.window = Integer.parseInt(bufferedReader.readLine());
-//            this.mr_center = Integer.parseInt(bufferedReader.readLine());
-//            this.mr_window = Integer.parseInt(bufferedReader.readLine());
-//            
-//            if (model != null) {
-//                model.setAttribute("MRcenter", (float)mr_center);
-//                model.setAttribute("MRwindow", (float)mr_window);
-//                model.setAttribute("CTcenter", (float)center);
-//                model.setAttribute("CTwindow", (float)window);
-//            }
-//            
-//            canvas.setCenterWindow(center, window);
-//            canvas.setMRCenterWindow(mr_center, mr_window);
-//            canvas1.setCenterWindow(center, window);
-//            canvas1.setMRCenterWindow(mr_center, mr_window);
-//            canvas2.setCenterWindow(center, window);
-//            canvas2.setMRCenterWindow(mr_center, mr_window);
-//            canvas3.setCenterWindow(center, window);
-//            canvas3.setMRCenterWindow(mr_center, mr_window);
-//
-//            //Close reader
-//            bufferedReader.close();
-        }
-        catch (Exception e) {
-            Logger.getGlobal().log(Level.WARNING, "Error reading scene file.", e);
-        }
-        finally {
-            percentDone("Ready", -1);
-        }
-        
     }
 
     private void setShowTargets(boolean bShow) {
@@ -2299,10 +2304,27 @@ public class DefaultView extends View {
             //zeroImageTranslations();
     }
     
-    private void updatePressureCalc() {
+    public void updatePressureCalc() {
+        // If this is called from another thread (scripting engine) queue
+        // and wait for execution on this thread.
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    DefaultView.this.updatePressureCalc();
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+        
         if (canvas.getShowPressure() && pressureCalcNeedsUpdate) {
                        
-            this.transRayTracer.calcPressureEnvelope(new Quaternion(this.trackball.getCurrent()));
+            this.transRayTracer.calcPressureEnvelope(new Quaternion(this.trackball.getCurrent()), 30, 30, 0, 1f);
 
             canvas.setShowPressure(true);
             canvas.setOverlayImage(transRayTracer.getEnvelopeImage());
@@ -2380,17 +2402,13 @@ public class DefaultView extends View {
             model.setAttribute("doFrame", doFrame);
         }
         
-        try {
-            this.transRayTracer.setBoneSpeed((Float)model.getAttribute("boneSOS"));
-        }
-        catch(NullPointerException e) {
+        if (model.getAttribute("boneSOS") == null)
+        {
             model.setAttribute("boneSOS", transRayTracer.getBoneSpeed());
         }  
         
-        try {
-            this.transRayTracer.setBoneRefractionSpeed((Float)model.getAttribute("boneRefractionSOS"));
-        }
-        catch(NullPointerException e) {
+        if (model.getAttribute("boneRefractionSOS") == null)
+        {
             model.setAttribute("boneRefractionSOS", transRayTracer.getBoneRefractionSpeed());
         }
         
@@ -3206,15 +3224,7 @@ public class DefaultView extends View {
     
     @Override
     public boolean getIsDirty() {
-        
-        synchronized(this) {
-            if (deferredLoadScene) {
-                deferredLoadScene = false;
-                loadScene(deferredFilename);
-                notifyAll();
-            }
-        }
-        
+                
         // empty updateEventQueue
         ////////////////////////////
         updateEventQueue.handleEvents(this);
@@ -3292,10 +3302,35 @@ public class DefaultView extends View {
                     orientAnimator.set(trackball.getCurrent(), orient, 1.5f);
                     orientAnimator.setTrackball(trackball);
                     return;
+                case "boneSOS":
+                {
+                    this.transRayTracer.setBoneSpeed((Float)arg.getNewValue());
+                    Slider phaseSlider = (Slider)Renderable.lookupByTag("phaseCorrectionSlider");
+                    if (phaseSlider != null) {
+                        this.transRayTracer.setPhaseCorrectionAmount(phaseSlider.getCurrentValue());
+                    }
+                    updateTargetAndSteering();
+                    this.setIsDirty(true);
+                    return;
+                }
+                case "boneRefractionSOS":
+                {
+                    this.transRayTracer.setBoneRefractionSpeed((Float)arg.getNewValue());
+                    Slider phaseSlider = (Slider)Renderable.lookupByTag("phaseCorrectionSlider");
+                    if (phaseSlider != null) {
+                        this.transRayTracer.setPhaseCorrectionAmount(phaseSlider.getCurrentValue());
+                    }
+                    updateTargetAndSteering();
+                    this.setIsDirty(true);
+                    return;
+                }
+                case "autoBone":
+                    transRayTracer.setAutoBone((Boolean)arg.getNewValue());
+                    updateTargetAndSteering();
+                    this.setIsDirty(true);
+                    return;
                 case "currentTargetPoint":
                 case "currentTargetSteering":
-                case "boneSOS":
-                case "boneRefractionSOS":
                 case "phaseCorrectionAmount":
                     Slider phaseSlider = (Slider)Renderable.lookupByTag("phaseCorrectionSlider");
                     if (phaseSlider != null) {
@@ -3471,6 +3506,11 @@ public class DefaultView extends View {
                         int defIndex = model.getTransducer().getTransducerDefinitionIndex();
                         this.transducerPatternSelector.setSelectionIndex(defIndex);
                         transRayTracer.init(model.getTransducer().buildElements(Transducer.getTransducerDef(defIndex)));
+                        try {
+                            transRayTracer.setBoneSpeed((Float)model.getAttribute("boneSOS"));
+                            transRayTracer.setBoneRefractionSpeed((Float)model.getAttribute("boneRefractionSOS"));
+                        }
+                        catch (NullPointerException npe) {}
                         activeElementsBar.setMinMax(0, model.getTransducer().getElementCount());
                         updateTargetAndSteering();
                     }
@@ -3489,6 +3529,7 @@ public class DefaultView extends View {
                         
                         updateSelectedChannelData();
                     }
+//                    this.updatePressureCalc();
                     return;
                 case "sdrCalc":
                     if (transRayTracer.getVisible()) {
@@ -4916,7 +4957,7 @@ public class DefaultView extends View {
                     em.printStackTrace();
                 }
                 break;
-            case "exportCTnrrd":
+            case "exportSonication":
                 {
                     File exportDir = null;
                     fileDialog.setDialogTitle("Choose a directory for export of image volumes (.NRRD)");
@@ -4926,12 +4967,32 @@ public class DefaultView extends View {
                         
                         File exportFile = new File(exportDir.getPath() + File.separator + "ctvol.nrrd");
                         exportNRRDImage(model.getCtImage(), exportFile);
+                        exportNIFTIImage(model.getCtImage(), exportDir.getPath() + File.separator + "ctvol.nii.gz");
                         for (int s=0; s<model.getMrImageCount(); s++) {
                             exportFile = new File(exportDir.getPath() + File.separator + "mrvol" + s + ".nrrd");                            
                             exportNRRDImage(model.getMrImage(s), exportFile);
+                            exportNIFTIImage(model.getMrImage(s), exportDir.getPath() + File.separator + "mrvol" + s + ".nii.gz");
                         }
+                        
+                        // Save pressure field as 2D NIFTI
+                        transRayTracer.calcPressureEnvelope(new Quaternion(this.trackball.getCurrent()), 60, 60, 60, 0.5f);
+                        exportNIFTIImage(transRayTracer.getEnvelopeImage(), exportDir.getPath() + File.separator + "pressure" + ".nii.gz");
+
                         exportFile = new File(exportDir.getPath() + File.separator + "transducer.fcsv");
                         this.exportTransducerElements(this.transducerModel, exportFile);
+                        
+                        exportFile = new File(exportDir.getPath() + File.separator + "transducerMat.txt");
+                        this.exportTransducerMatrix(exportFile);
+                        
+                        exportFile = new File(exportDir.getPath() + File.separator + "skullMeasures.txt");                        
+                        this.transRayTracer.writeSkullMeasuresFile(exportFile);
+                        
+                        exportFile = new File(exportDir.getPath() + File.separator + "sonicationPhases.act");                        
+                        this.transRayTracer.writeACTFileForWorkstation(exportFile);
+                        
+                        exportFile = new File(exportDir.getPath() + File.separator + "elementBeamPaths.txt");                        
+                        this.exportTransducerBeamPaths(exportFile);
+
                     }
                 }
                 break;
@@ -5072,35 +5133,7 @@ public class DefaultView extends View {
                 messageDialog.setMessageText("Close Plan");
 //                if (result == JOptionPane.YES_OPTION) {
                 if (messageDialog.open()) {
-                    if (this.model != null) {
-                        this.model.clear();
-                        this.transRayTracer.clearEnvelopeImage();
-                        this.setDisplayCTimage(null);
-                        this.setDisplayMRimage(null);
-                        model.setSelectedSonication(-1); // TODO: SelectedSonication and currentSonication need to be unified
-                        model.setAttribute("currentTargetPoint", new Vector3f());
-                        model.setAttribute("currentTargetSteering", new Vector3f());
-                        model.setAttribute("currentSonication", -1);
-                        
-                        // clear thermometry graph
-                        this.thermometryChart.newChart();
-                        this.thermometryChart.generateChart();
-                        
-                        this.pcdSpectrumChart.newChart();
-                        this.pcdSpectrumChart.generateChart();
-                        
-                        try {
-                            ((TextBox)(Renderable.lookupByTag("tbSonicationMaxTemp"))).setText("");
-                            ((TextBox)(Renderable.lookupByTag("tbSonicationMaxDose"))).setText("");
-                        }
-                        catch(Exception npe){}
-
-                        
-                        updateSonicationList();
-                        updateMRlist();
-                        
-                        Main.setTitle(null);
-                    }
+                      initModel("Untitled", new Model());
                 }
                 break;
             case "prefDoTransitionEffects": // This is a preference, update preference key
@@ -5463,6 +5496,32 @@ public class DefaultView extends View {
         this.updateSonicationList();
     }
     
+    void exportTransducerMatrix(File exportFile) {
+
+        float anglex = this.transducerTiltX / 180f * (float) Math.PI;
+        float angley = this.transducerTiltY / 180f * (float) Math.PI;
+
+        Matrix4f txfm = new Matrix4f();
+
+        txfm.rotate(-anglex, new Vector3f(1, 0, 0));
+        txfm.rotate(-angley, new Vector3f(0, 1, 0));
+
+        try {
+            FileOutputStream fos = new FileOutputStream(exportFile);
+            PrintWriter p = new PrintWriter(fos);
+            p.print("#Transducer rotation matrix\n");
+            p.print("#   -rotation is about the focal point\n");
+            p.print("#   -coordinate system is RAS\n");
+            p.print(txfm);
+            
+            p.flush();
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+    
     void exportTransducerElements(Transducer trans, File exportFile) {
         try {
             FileOutputStream fos = new FileOutputStream(exportFile);
@@ -5520,6 +5579,65 @@ public class DefaultView extends View {
             e.printStackTrace();
         }
     }
+        
+    void exportTransducerBeamPaths(File exportFile) {
+        try {
+            FileOutputStream fos = new FileOutputStream(exportFile);
+    
+            PrintWriter p = new PrintWriter(fos);
+            
+            p.print("# Beam path per element\n");            
+            p.println("element\tnormal.x\tnormal.y\tnormal.z\telement.x\telement.y\telement.z\touter.x\touter.y\touter.z\tinner.x\tinner.y\tinner.z\tend.x\tend.y\tend.z");
+            
+            Vector3f naturalFocusPosition = new Vector3f(currentTarget.getXpos(),
+                                                        -currentTarget.getYpos(),
+                                                        -currentTarget.getZpos());
+            
+            float anglex = this.transducerTiltX/180f*(float)Math.PI;
+            float angley = this.transducerTiltY/180f*(float)Math.PI;
+            
+            System.out.println("transducer elements");
+            System.out.println(naturalFocusPosition);
+            
+            Matrix4f txfm = new Matrix4f();
+            
+            txfm.translate(naturalFocusPosition);
+            
+            txfm.rotate(-anglex, new Vector3f(1, 0, 0));
+            txfm.rotate(-angley, new Vector3f(0, 1, 0));
+            
+            TransducerRayTracer.RayData[] raydata = this.transRayTracer.getRayData();
+            
+            for (int i=0; i<raydata.length; i++) {
+                
+                p.print(i + "\t");
+                
+                Vector3f n = raydata[i].outerNormal;
+                p.print(n.x + "\t");
+                p.print(n.y + "\t");
+                p.print(n.z + "\t");
+                
+                for (int j=0; j<raydata[i].rayVerts.length; j++) {
+                    Vector3f v = raydata[i].rayVerts[j];
+                    Vector4f v2 = new Vector4f(v.x, v.y, v.z, 1f);
+               
+                    Matrix4f.transform(txfm, v2, v2);
+                
+                    p.print(v2.x + "\t");
+                    p.print(-v2.y + "\t");
+                    p.print(-v2.z + "\t");
+                }
+                p.println();
+            }
+                   
+            p.flush();
+            
+            fos.close();
+        }
+        catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
     
     void exportNRRDImage(ImageVolume image, File exportFile) {
         try {
@@ -5531,25 +5649,7 @@ public class DefaultView extends View {
             sb.put(data);
             sb.flip();
             
-            // Make sure ImageOrientationQ quaternion is set if it hasn't already
-            ImageVolumeUtil.setupImageOrientationInfo(image);
-            
-            // get the image translation
-            Vector3f origin = new Vector3f((Vector3f) image.getAttribute("ImageTranslation"));
-            
-            // negate the translation (not sure why at the moment)
-            origin.negate();
-                        
-            // get the image orientation quaternion and compute a 4x4 rotation matrix
-            Quaternion orientq = (Quaternion) image.getAttribute("ImageOrientationQ");
-            Matrix4f rot = (Matrix4f)Trackball.toMatrix4f(orientq).transpose();
-            
-            // negate the Z direction
-            rot.m20 = -rot.m20;
-            rot.m21 = -rot.m21;
-            rot.m22 = -rot.m22;
-
-System.out.println("Image transformation matrix:\n" + rot.toString());
+            Matrix4f rot = externalizeImageTransform(image);
 
             // create basis vectors and rotate them
             Vector4f dir[] = new Vector4f[3];
@@ -5561,22 +5661,7 @@ System.out.println("Image transformation matrix:\n" + rot.toString());
             dir[0] = (Vector4f)Matrix4f.transform(rot, dir[0], null).scale(image.getDimension(0).getSampleWidth(0));
             dir[1] = (Vector4f)Matrix4f.transform(rot, dir[1], null).scale(image.getDimension(1).getSampleWidth(0));
             dir[2] = (Vector4f)Matrix4f.transform(rot, dir[2], null).scale(image.getDimension(2).getSampleWidth(0));
-                                    
-            // get offset from center of image volume to upper left corner of first slice 
-            Vector4f originOffset = new Vector4f(
-                    image.getDimension(0).getSize() * image.getDimension(0).getSampleWidth(0) * 0.5f,
-                    image.getDimension(1).getSize() * image.getDimension(1).getSampleWidth(0) * 0.5f,
-                    image.getDimension(2).getSize() * image.getDimension(2).getSampleWidth(0) * 0.5f,
-                    0f);
             
-            // rotate offset vector
-            Matrix4f.transform(rot, originOffset, originOffset);
-            
-            // subtract offset from the image origin                        
-            origin = (Vector3f) Vector3f.sub(origin, new Vector3f(originOffset.x, originOffset.y, originOffset.z), null);
-            
-System.out.println("Image transslation:\n" + origin);
-
             // write the NRRD header
             FileOutputStream fos = new FileOutputStream(exportFile);
     
@@ -5594,7 +5679,7 @@ System.out.println("Image transslation:\n" + origin);
             //p.write("space dimension: 3\n");
             p.write("space: LPS\n");
             
-            p.write("space origin: (" + origin.x + "," + origin.y + "," + origin.z + ")\n");
+            p.write("space origin: (" + rot.m30 + "," + rot.m31 + "," + rot.m32 + ")\n");
 
             p.write("space directions: ");
             for (int i = 0; i < 3; i++) {
@@ -5620,4 +5705,277 @@ System.out.println("Image transslation:\n" + origin);
             em.printStackTrace();
         }
     }
+    
+   Matrix4f externalizeImageTransform(ImageVolume image) {
+             // Make sure ImageOrientationQ quaternion is set if it hasn't already
+            ImageVolumeUtil.setupImageOrientationInfo(image);
+            
+            // get the image translation
+            Vector3f origin = new Vector3f((Vector3f) image.getAttribute("ImageTranslation"));
+            
+            // negate the translation (not sure why at the moment)
+            origin.negate();
+            
+                                    
+            // get the image orientation quaternion and compute a 4x4 rotation matrix
+            Quaternion orientq = (Quaternion) image.getAttribute("ImageOrientationQ");
+            Matrix4f rot = (Matrix4f)Trackball.toMatrix4f(orientq).transpose();
+                       
+            // negate the Z direction
+            rot.m20 = -rot.m20;
+            rot.m21 = -rot.m21;
+            rot.m22 = -rot.m22;
+                                                
+            // get offset from center of image volume to upper left corner of first slice 
+            Vector4f originOffset = new Vector4f(
+                    image.getDimension(0).getSize() * image.getDimension(0).getSampleWidth(0) * 0.5f,
+                    image.getDimension(1).getSize() * image.getDimension(1).getSampleWidth(0) * 0.5f,
+                    image.getDimension(2).getSize() * image.getDimension(2).getSampleWidth(0) * 0.5f,
+                    0f);
+                        
+            // rotate offset vector
+            Matrix4f.transform(rot, originOffset, originOffset);
+                                   
+            // subtract offset from the image origin                        
+            origin = (Vector3f) Vector3f.sub(origin, new Vector3f(originOffset.x, originOffset.y, originOffset.z), null);
+                        
+            rot.m30 = origin.x;
+            rot.m31 = origin.y;
+            rot.m32 = origin.z;
+            
+            return rot;
+   }
+   
+   void exportNIFTIImage(ImageVolume image, String exportFile) {
+        try {
+            
+            int nx = image.getDimension(0).getSize();
+            int ny = image.getDimension(1).getSize();
+            int nz = image.getDimension(2).getSize();
+            
+            float rescaleSlope = 1f;
+            try {
+                rescaleSlope = (Float) image.getAttribute("RescaleSlope");
+            }
+            catch(Exception e) {
+                rescaleSlope = 1f;
+            }
+
+            float rescaleIntercept = 0;
+            try {
+                rescaleIntercept = (Float) image.getAttribute("RescaleIntercept");
+            }
+            catch(Exception e) {
+                rescaleIntercept = 0;
+            }
+            
+            NiftiVolume niftiVol = new NiftiVolume(
+                    nx, ny, nz,
+                    1
+            );
+                        
+            // get the image voxel data in a buffer to write
+            if (image.getData() instanceof short[]) {
+                niftiVol.header.datatype = NiftiHeader.NIFTI_TYPE_UINT16;
+                short data[] = (short[]) image.getData();
+
+                for (int k=0; k<nz; k++) {
+                    for (int j=0; j<ny; j++) {
+                        for (int i=0; i<nx; i++) {
+                            double val = Short.toUnsignedInt(data[i + j*ny + k*nx*ny]);
+                            niftiVol.data.set(i, j, k, 0, val);
+                        }
+                    }                 
+                }
+            }
+            else if (image.getData() instanceof float[]) {
+                double min = Float.MAX_VALUE;
+                double max = Float.MIN_VALUE;
+                niftiVol.header.datatype = NiftiHeader.NIFTI_TYPE_FLOAT32;
+                float data[] = (float[]) image.getData();
+
+                for (int k=0; k<nz; k++) {
+                    for (int j=0; j<ny; j++) {
+                        for (int i=0; i<nx; i++) {
+                            double val = data[i + j*ny + k*nx*ny];
+                            if (val < min) min = val;
+                            if (val > max) max = val;
+                            niftiVol.data.set(i, j, k, 0, val);
+                        }
+                    }                 
+                }
+                
+                niftiVol.header.cal_max = (float)max;
+                niftiVol.header.cal_min = (float)min;
+            }
+            
+            Matrix4f rot = externalizeImageTransform(image);
+                                 
+            // Fill in NIFTI header            
+            niftiVol.header.xyz_unit_code = NiftiHeader.NIFTI_UNITS_MM;
+            niftiVol.header.intent_code = NiftiHeader.NIFTI_INTENT_NONE;
+
+            niftiVol.header.scl_inter = rescaleIntercept;
+            niftiVol.header.scl_slope = rescaleSlope;
+            
+            niftiVol.header.pixdim[0] = 3; // this will get overwritten by qfac (1 or -1)
+            niftiVol.header.pixdim[1] = image.getDimension(0).getSampleWidth(0);
+            niftiVol.header.pixdim[2] = image.getDimension(1).getSampleWidth(0);
+            niftiVol.header.pixdim[3] = image.getDimension(2).getSampleWidth(0);
+                        
+            // Fill in QForm info            
+            FillQFormInfo(niftiVol, rot);
+
+           // write the NIFTI volume
+           niftiVol.write(exportFile);
+
+       } catch (Exception em) {
+           em.printStackTrace();
+       }
+    }
+   
+   void FillSFormInfo(ImageVolume image, NiftiVolume vol, Matrix4f rot, Vector3f origin) {
+
+            vol.header.sform_code = NiftiHeader.NIFTI_XFORM_SCANNER_ANAT;            
+            
+            // create basis vectors and rotate them
+            Vector4f dir[] = new Vector4f[3];
+            
+            dir[0] = new Vector4f(1, 0, 0, 0);
+            dir[1] = new Vector4f(0, 1, 0, 0);
+            dir[2] = new Vector4f(0, 0, 1, 0);
+            
+            dir[0] = (Vector4f)Matrix4f.transform(rot, dir[0], null).scale(image.getDimension(0).getSampleWidth(0));
+            dir[1] = (Vector4f)Matrix4f.transform(rot, dir[1], null).scale(image.getDimension(1).getSampleWidth(0));
+            dir[2] = (Vector4f)Matrix4f.transform(rot, dir[2], null).scale(image.getDimension(2).getSampleWidth(0));
+
+            // negate x and y directions for LPS -> RAS
+            vol.header.srow_x[0] = -dir[0].x;
+            vol.header.srow_x[1] = -dir[1].x;
+            vol.header.srow_x[2] = -dir[2].x;
+            vol.header.srow_x[3] = -origin.x;
+
+            vol.header.srow_y[0] = -dir[0].y;
+            vol.header.srow_y[1] = -dir[1].y;
+            vol.header.srow_y[2] = -dir[2].y;
+            vol.header.srow_y[3] = -origin.y;
+
+            vol.header.srow_z[0] = dir[0].z;
+            vol.header.srow_z[1] = dir[1].z;
+            vol.header.srow_z[2] = dir[2].z;
+            vol.header.srow_z[3] = origin.z;   
+   }
+   
+    void FillQFormInfo(NiftiVolume vol, Matrix4f rotIn) {
+
+        Matrix4f rot = Matrix4f.transpose(rotIn, null);
+        
+        // ok so we didn't want to transpose the 4th column translation values.
+        float tmpf;
+        tmpf = rot.m03;
+        rot.m03 = rot.m30;
+        rot.m30 = tmpf;
+        
+        tmpf = rot.m13;
+        rot.m13 = rot.m31;
+        rot.m31 = tmpf;
+        
+        tmpf = rot.m23;
+        rot.m23 = rot.m32;
+        rot.m32 = tmpf;
+
+        // Flip from LPS to RAS
+        rot.m00 = -rot.m00;
+        rot.m01 = -rot.m01;
+        rot.m02 = -rot.m02;
+        rot.m10 = -rot.m10;
+        rot.m11 = -rot.m11;
+        rot.m12 = -rot.m12;
+
+        //
+        // The following quaternion calc is transliterated from:
+        // https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1_io.c
+        ///////////////////////////////////////////////////////////////////
+        float det = rot.determinant();
+
+        if (det <= 0) {
+            vol.header.qfac = -1;
+            /* improper ==> flip 3rd column */
+            rot.m02 = -rot.m02;
+            rot.m12 = -rot.m12;
+            rot.m22 = -rot.m22;
+        } else {
+            vol.header.qfac = 1;
+        }
+
+        double a = rot.m00 + rot.m11 + rot.m22 + 1.0;
+        double b, c, d;
+
+        if (a > 0.5) {
+            a = 0.5 * Math.sqrt(a);
+            b = 0.25 * (rot.m21 - rot.m12) / a;
+            c = 0.25 * (rot.m02 - rot.m20) / a;
+            d = 0.25 * (rot.m10 - rot.m01) / a;
+        } else {
+            System.out.println("*** nifti quatern degenerate case ****");
+            // trickier case 
+            double xd = 1.0 + rot.m00 - (rot.m11 + rot.m22);  // 4*b*b
+            double yd = 1.0 + rot.m11 - (rot.m00 + rot.m22);  // 4*c*c 
+            double zd = 1.0 + rot.m22 - (rot.m00 + rot.m11);  // 4*d*d 
+            if (xd > 1.0) {
+                b = 0.5 * Math.sqrt(xd);
+                c = 0.25 * (rot.m01 + rot.m10) / b;
+                d = 0.25 * (rot.m02 + rot.m20) / b;
+                a = 0.25 * (rot.m21 - rot.m12) / b;
+            } else if (yd > 1.0) {
+                c = 0.5 * Math.sqrt(yd);
+                b = 0.25 * (rot.m01 + rot.m10) / c;
+                d = 0.25 * (rot.m12 + rot.m21) / c;
+                a = 0.25 * (rot.m02 - rot.m20) / c;
+            } else {
+                d = 0.5 * Math.sqrt(zd);
+                b = 0.25 * (rot.m02 + rot.m20) / d;
+                c = 0.25 * (rot.m12 + rot.m21) / d;
+                a = 0.25 * (rot.m10 - rot.m01) / d;
+            }
+            if (a < 0.0) {
+                b = -b;
+                c = -c;
+                d = -d;
+            }
+        }
+        ///////////////////////////////////////////////////////
+        //
+        //
+        //
+
+        vol.header.qform_code = NiftiHeader.NIFTI_XFORM_SCANNER_ANAT;
+        vol.header.qoffset[0] = -rot.m30; //-origin.x;
+        vol.header.qoffset[1] = -rot.m31; //-origin.y;
+        vol.header.qoffset[2] =  rot.m32; //origin.z;
+
+        vol.header.quatern[0] = (float) b;
+        vol.header.quatern[1] = (float) c;
+        vol.header.quatern[2] = (float) d;
+
+        vol.header.pixdim[0] = vol.header.qfac;
+
+        // zero out sform info just to be thorough
+        vol.header.srow_x[0] = 0;
+        vol.header.srow_x[1] = 0;
+        vol.header.srow_x[2] = 0;
+        vol.header.srow_x[3] = 0;
+
+        vol.header.srow_y[0] = 0;
+        vol.header.srow_y[1] = 0;
+        vol.header.srow_y[2] = 0;
+        vol.header.srow_y[3] = 0;
+
+        vol.header.srow_z[0] = 0;
+        vol.header.srow_z[1] = 0;
+        vol.header.srow_z[2] = 0;
+        vol.header.srow_z[3] = 0;
+
+    }
+
 }

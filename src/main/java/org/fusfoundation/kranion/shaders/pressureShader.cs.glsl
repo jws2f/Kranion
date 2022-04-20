@@ -56,6 +56,11 @@ struct pressureRecord {
             float   pressure;
 };
 
+struct skullParams {
+    float corticalBoneSpeed;
+    float averageBoneSpeed;
+    float innerCorticalBoneSpeed;
+};
 
 layout(std430, binding=0) buffer elements{
             elemStart e[];
@@ -75,6 +80,10 @@ layout(std430, binding=3) buffer resultPressure{
 
 layout(std430, binding=4) buffer outputPhase{
 		float outPhase[];
+};
+
+layout(std430, binding=5) buffer skullParamsPerElement{
+		skullParams boneSpeeds[];
 };
 
 
@@ -128,7 +137,7 @@ void main()
     if (finalRaySegmentDistance >= 0) {
 
         float rayTimeFirstTwoSegments = distance(pos1, rayStart)/(waterSpeed*1000.0)
-                        + skullThickness/(boneSpeed*1000.0);
+                        + skullThickness/(boneSpeeds[gid].averageBoneSpeed*1000.0);
 
         float rayTimeFirstTwoSegmentsWater = distance(pos1, rayStart)/(waterSpeed*1000.0)
                         + skullThickness/(waterSpeed*1000.0);
@@ -172,7 +181,7 @@ void main()
         float mag = 1.0 * d[gid].skullTransmissionCoeff * abs(sin(sincArg)/(sincArg));
         //p[gid].pressure = mag * cos(2 * M_PI * CENTER_FREQ * sampleRayTime - acos(rayPhaseCorrection)); //(rayTime - sampleRayTime));
 
-//        float phi = skullThickness * (1.0/waterSpeed - 1.0/boneSpeed);
+//        float phi = skullThickness * (1.0/waterSpeed - 1.0/boneSpeeds[gid].averageBoneSpeed);
 
         float elementTime = steeringRayTime; //  steeringRayTime + (steeringRayTime - rayTime);
         float elementTimeWaterOnly = steeringRayTimeWaterOnly; //  rayTimeWaterOnly  + (steeringRayTimeWaterOnly - rayTimeWaterOnly);

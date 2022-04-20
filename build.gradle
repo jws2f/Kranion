@@ -28,10 +28,13 @@ apply plugin: 'com.github.johnrengelman.shadow'
 
 
 run {
-    systemProperty "java.library.path", 'lib'
+    environment 'LD_LIBRARY_PATH', '$LD_LIBRARY_PATH:./lib'
+    systemProperty "java.class.path", "./lib"
+    systemProperty "java.library.path", "./lib"
 }
 
-applicationDefaultJvmArgs = ["-D64", "-Xms1800m", "-javaagent:./lib/jar-loader.jar"]
+//applicationDefaultJvmArgs = ["-D64", "-Xms1800m", "-javaagent:./lib/jar-loader.jar"]
+applicationDefaultJvmArgs = ["-D64", "-Xms1800m"]
 
 dependencies {
     compile fileTree(dir: 'lib', include: '*.jar')

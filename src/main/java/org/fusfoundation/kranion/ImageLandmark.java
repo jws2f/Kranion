@@ -264,6 +264,11 @@ public class ImageLandmark extends Landmark {
                         location.set(newWorldLoc);
                         if (this.getCommand() != null && !getCommand().isEmpty()) {
                             model.setAttribute(getCommand(), new Vector3f(location));
+                            if (this.getConstraint() != null) {
+                                model.setAttribute(getCommand() + ".offset", getConstraint().getOffset());
+                                model.setAttribute(getCommand() + ".point", getConstraint().getPoint());
+                                model.setAttribute(getCommand() + ".direction", getConstraint().getDirection());
+                            }
                         }
                         return true;                
                     }
@@ -315,6 +320,27 @@ public class ImageLandmark extends Landmark {
                     setIsDirty(true);
                 }
                 break;
+        }
+        
+        if (getConstraint() != null) {
+            if (propertyName.equals(getCommand() + ".offset")) {
+                if (getConstraint().getOffset() != (Float) newValue) {
+                    getConstraint().setOffset((Float) newValue);
+                    setIsDirty(true);
+                }
+            }
+            else if (propertyName.equals(getCommand() + ".point")) {
+                if (getConstraint().getPoint() != (Vector3f) newValue) {
+                    getConstraint().setPoint((Vector3f) newValue);
+                    setIsDirty(true);
+                }
+            }
+            else if (propertyName.equals(getCommand() + ".direction")) {
+                if (getConstraint().getDirection() != (Vector3f) newValue) {
+                    getConstraint().setDirection((Vector3f) newValue);
+                    setIsDirty(true);
+                }
+            }
         }
     }
 }

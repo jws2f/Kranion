@@ -243,6 +243,7 @@ public class Model implements Serializable, PropertyChangeListener {
         
         ct_image = image;
         if (image != null) {
+            image.setThread(myThread);
             ct_image.addPropertyChangeListener(this);
         }
         
@@ -452,10 +453,13 @@ public class Model implements Serializable, PropertyChangeListener {
         }
 
         Object oldValue = attributes.get(name);
-        attributes.put(name, value, isTransient);
         
-        //notify
-        propertyChangeSupport.firePropertyChange("Model.Attribute["+name+"]", null, value);
+//        if (oldValue != value) {
+            attributes.put(name, value, isTransient);
+
+            //notify
+            propertyChangeSupport.firePropertyChange("Model.Attribute["+name+"]", null, value);
+//        }
     }
     
     public boolean getIsAttributeTransient(String name) {

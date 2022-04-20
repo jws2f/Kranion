@@ -997,7 +997,9 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
 //                    (-imageTranslation.z) - 150f);
 
             Quaternion imageOrientation = (Quaternion)image.getAttribute("ImageOrientationQ");
-            if (imageOrientation == null) return null;
+            if (imageOrientation == null) {
+                imageOrientation = new Quaternion().setIdentity();
+            }
             
             FloatBuffer texOrientBuffer = BufferUtils.createFloatBuffer(16);
 		Trackball.toMatrix4f(imageOrientation).store(texOrientBuffer);
@@ -1409,10 +1411,13 @@ private Vector3f setupLightPosition(Vector4f lightPosIn, ImageVolume image) {
             Quaternion imageOrientationQ = (Quaternion)image.getAttribute("ImageOrientationQ");
             float[]    imagePosition = (float[])image.getAttribute("ImagePosition");
             Vector3f    imageTranslation = (Vector3f)image.getAttribute("ImageTranslation");
-            if (imageTranslation == null) {
+            if (imageOrientationQ == null) {
+                imageOrientationQ = new Quaternion().setIdentity();
+            }
+             if (imageTranslation == null) {
                 imageTranslation = new Vector3f();
             }
-            
+           
             if (imagePosition != null) {
 //                imageTranslation.x += imagePosition[0];
 //                imageTranslation.y += imagePosition[1];

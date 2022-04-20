@@ -77,6 +77,10 @@ public class ImageVolume4D implements ImageVolume, Serializable {
         alloc(0, voxelType);
     }
     
+    public void setThread(Thread owner) {
+        myThread = owner;
+    }
+    
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         this.propertyChangeSupport.addPropertyChangeListener(listener);
     }
@@ -471,9 +475,11 @@ public class ImageVolume4D implements ImageVolume, Serializable {
 
         Object oldVal = attributes.get(name);
         
-        attributes.put(name, value, isTransient);
-        //notify
-        propertyChangeSupport.firePropertyChange("Attribute["+name+"]", oldVal, value);
+//        if (!oldVal.equals(value)) {
+            attributes.put(name, value, isTransient);
+            //notify
+            propertyChangeSupport.firePropertyChange("Attribute["+name+"]", oldVal, value);
+//        }
     }
     
     public int getVoxelType() { return voxelType.get(0); }
