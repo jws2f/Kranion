@@ -91,6 +91,14 @@ public class CTSoundSpeed {
         
     }
     
+    public static float getMinSpeed() {
+        return densityToSpeed[0][1];
+    }
+    
+    public static float getMaxSpeed() {
+        return densityToSpeed[densityToSpeed.length-1][1];
+    }
+    
     public static void main(String[] params) {
         for (int i=0; i<densityToSpeed.length; i++) {
                 System.out.println(densityToSpeed[i][0] + " - " + densityToSpeed[i][1]);

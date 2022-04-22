@@ -46,7 +46,6 @@ import java.util.Observer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JFileChooser;
-import org.fusfoundation.kranion.model.Model;
 
 import org.fusfoundation.kranion.model.image.ImageVolume;
 import org.lwjgl.BufferUtils;
@@ -79,6 +78,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private static ShaderProgram sdrShader;
     private static ShaderProgram pressureShader;
     private static ShaderProgram pickShader;
+    private static ShaderProgram skullParamEstimationShader;
+    private static ShaderProgram skullProbeShader;
+    
+    private LookupTable sosTable;
     
     private int posSSBo=0; // buffer of element starting center points
     private int colSSBo=0; // buffer of color data per element
@@ -128,7 +131,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     private boolean needsSDRCalc = true;
     private boolean needsPressureCalc = true;
     
-    private float normDiscDiam = 1f;
+    private boolean autoBone = false;
+    
+    private float normDiscRadius = 1f;
     
     protected Thread myThread;
     
@@ -298,7 +303,29 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         return steering;
     }
     
+    public void setAutoBone(boolean isAuto) {
+        if (isAuto != autoBone) {
+            autoBone = isAuto;
+            setIsDirty(true);
+        }
+    }
+    
     public void setBoneSpeed(float speed) {
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    TransducerRayTracer.this.setBoneSpeed(speed);
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+                
         if (boneSpeed != speed) {
             setIsDirty(true);
         }
@@ -309,7 +336,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
             FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
             for (int i=0; i<this.elementCount; i++) {
-                floatBuffer.put(i*2+1, boneSpeed);
+                floatBuffer.put(i*3+1, boneSpeed);
             }
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -319,6 +346,21 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     public void setBoneRefractionSpeed(float speed) {
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    TransducerRayTracer.this.setBoneRefractionSpeed(speed);
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+        
         if (boneRefractionSpeed != speed) {
             setIsDirty(true);
         }
@@ -329,7 +371,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
             FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
             for (int i=0; i<this.elementCount; i++) {
-                floatBuffer.put(i*2, boneRefractionSpeed);
+                floatBuffer.put(i*3, boneRefractionSpeed);
+                floatBuffer.put(i*3+2, boneRefractionSpeed);
             }
             glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -345,7 +388,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneSpeedSSBo);
                 ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
                 FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
-                result = floatBuffer.get(i*2+1);
+                result = floatBuffer.get(i*3+1);
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
             }
@@ -365,7 +408,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneSpeedSSBo);
                 ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
                 FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
-                result = floatBuffer.get(i * 2);
+                result = floatBuffer.get(i * 3);
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
             }
@@ -375,6 +418,56 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         return result;
     }
+    
+    public float getInnerBoneRefractionSpeed(int i) {
+        float result = -1;
+        
+        if (boneSpeedSSBo != 0) {
+            try {
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneSpeedSSBo);
+                ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+                FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+                result = floatBuffer.get(i*3 + 2);
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+            }
+            catch (Exception e) {
+            }
+        }
+        
+        return result;
+    }    
+    
+    public void setBoneRefractionSpeed(int i, float speed) {        
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    TransducerRayTracer.this.setBoneRefractionSpeed(i, speed);
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+        
+        if (boneSpeedSSBo != 0) {
+            try {
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, boneSpeedSSBo);
+                ByteBuffer byteBuffer = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_READ_WRITE, null);
+                FloatBuffer floatBuffer = byteBuffer.asFloatBuffer();
+                floatBuffer.put(i*3, speed);
+                floatBuffer.put(i*3 + 2, speed);
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+            }
+            catch (Exception e) {
+            }
+        }        
+    }    
     
     public void setBoneThreshold(float v) {
         if (boneThreshold != v) {
@@ -423,6 +516,18 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             pressureShader.addShader(GL_COMPUTE_SHADER, "shaders/pressureShader.cs.glsl");
             pressureShader.compileShaderProgram();
         }
+        
+        if (skullParamEstimationShader==null) {
+            skullParamEstimationShader = new ShaderProgram();
+            skullParamEstimationShader.addShader(GL_COMPUTE_SHADER, "shaders/skullProbePerElement.cs.glsl");
+            skullParamEstimationShader.compileShaderProgram();            
+        }
+        
+        if (skullProbeShader==null) {
+            skullProbeShader = new ShaderProgram();
+            skullProbeShader.addShader(GL_COMPUTE_SHADER, "shaders/skullProbePerElement.cs.glsl");
+            skullProbeShader.compileShaderProgram();            
+        }
     }
     
     public void init(Transducer trans) {
@@ -465,10 +570,10 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             floatPosBuffer.put(norm.z);
             floatPosBuffer.put(0f);
 
-            radiusSum += Math.sqrt(trans.getElementArea(i) / Math.PI / 2.0);
+            radiusSum += Math.sqrt(trans.getElementArea(i) / Math.PI );
         }
         
-        this.normDiscDiam = (float)(radiusSum / elementCount / 2); // using half of average element radius for normal disc representation size. TODO: per element radius?
+        this.normDiscRadius = (float)(radiusSum / elementCount ) / 2f; // using half of average element radius for normal disc representation size. TODO: per element radius?
         floatPosBuffer.flip();
         
         
@@ -667,8 +772,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 
         boneSpeedSSBo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, boneSpeedSSBo);
-        FloatBuffer boneSpeedBuffer = ByteBuffer.allocateDirect(elementCount*4 * 2).order(ByteOrder.nativeOrder()).asFloatBuffer();
-        for (int i=0; i<elementCount*2; i++) {
+        FloatBuffer boneSpeedBuffer = ByteBuffer.allocateDirect(elementCount*4 * 3).order(ByteOrder.nativeOrder()).asFloatBuffer();
+        for (int i=0; i<elementCount*3; i++) {
                  //ct values along transit of skull per element
                 boneSpeedBuffer.put(0f);
         }
@@ -740,6 +845,18 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBufferData(GL_ARRAY_BUFFER, floatPosBuffer, GL_DYNAMIC_DRAW);
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        sosTable = new LookupTable(4096);
+        
+        for (int i=0; i<4096; i++) {
+            float speed = CTSoundSpeed.lookupSpeed(i);
+            
+            speed = (speed - CTSoundSpeed.getMinSpeed())/(CTSoundSpeed.getMaxSpeed() - CTSoundSpeed.getMinSpeed());
+            sosTable.setLUTvalue(i, speed, 0, 0, 0);
+        }
+        sosTable.setMinValue(CTSoundSpeed.getMinSpeed());
+        sosTable.setMaxValue(CTSoundSpeed.getMaxSpeed());
+        
     }
     
     private void doCalc() {
@@ -747,6 +864,33 @@ public class TransducerRayTracer extends Renderable implements Pickable {
     }
     
     private void doCalc(Vector3f center, Vector4f offset) {
+        if (!autoBone) {
+            boneSpeed = (Float)Main.getModel().getAttribute("boneSOS");
+            boneRefractionSpeed = (Float)Main.getModel().getAttribute("boneRefractionSOS");
+            setBoneSpeed(boneSpeed);
+            setBoneRefractionSpeed(boneRefractionSpeed);
+            doRayTrace(center, offset);
+        }
+        else {
+            setBoneRefractionSpeed(2900);
+            doRayTrace(center, offset) ;;
+            for (int i=0; i<3; i++) {
+    //            doSkullProbe(); remove if unecessary
+                doSkullParameterCalc();
+                doRayTrace(center, offset);
+            }
+        }
+        doSDRCalc();
+        
+        this.updateObservers(new PropertyChangeEvent(this, "rayCalc", null, true));        
+
+    }
+    
+    private void doRayTrace() {
+        doRayTrace(centerOfRotation, new Vector4f(0, 0, 0, 1));
+    }
+    
+    private void doRayTrace(Vector3f center, Vector4f offset) {
         
         needsCalc = false;
         
@@ -804,8 +948,8 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         texLoc = glGetUniformLocation(shaderProgID, "elementCount");
         glUniform1i(texLoc, this.elementCount);
         
-        texLoc = glGetUniformLocation(shaderProgID, "normDiscDiam");
-        glUniform1f(texLoc, normDiscDiam);
+        texLoc = glGetUniformLocation(shaderProgID, "normDiscRadius");
+        glUniform1f(texLoc, normDiscRadius);
        
         
 //        int targetLoc = glGetUniformLocation(shaderprogram, "target");
@@ -841,9 +985,142 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         
         refractShader.stop();
         
-        this.updateObservers(new PropertyChangeEvent(this, "rayCalc", null, true));        
     }
     
+    private void doSkullParameterCalc() {
+         needsCalc = false;
+        
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    TransducerRayTracer.this.doSkullParameterCalc();
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+        
+        sosTable.setupTexture(8);
+            
+        skullParamEstimationShader.start();
+        
+        int shaderProgID = skullParamEstimationShader.getShaderProgramID();
+        
+        int texLoc = glGetUniformLocation(shaderProgID, "elementCount");
+        glUniform1i(texLoc, this.elementCount);
+        
+        texLoc = glGetUniformLocation(shaderProgID, "ct_tex");
+        glUniform1i(texLoc, 0);
+        int texMatLoc = glGetUniformLocation(shaderProgID, "ct_tex_matrix");
+        glUniformMatrix4(texMatLoc, false, this.matrixBuf);
+        int rescaleLoc = glGetUniformLocation(shaderProgID, "ct_rescale_intercept");
+        glUniform1f(rescaleLoc, this.rescaleIntercept);
+        rescaleLoc = glGetUniformLocation(shaderProgID, "ct_rescale_slope");
+        glUniform1f(rescaleLoc, this.rescaleSlope);
+        
+        texLoc = glGetUniformLocation(shaderProgID, "normDiscRadius");
+        glUniform1f(texLoc, normDiscRadius);
+
+        texLoc = glGetUniformLocation(shaderProgID, "minSOSVal");
+        glUniform1f(texLoc, sosTable.getMinValue());
+        
+        texLoc = glGetUniformLocation(shaderProgID, "maxSOSVal");
+        glUniform1f(texLoc, sosTable.getMaxValue());
+        
+        texLoc = glGetUniformLocation(shaderProgID, "sos_lut_tex");
+        glUniform1i(texLoc, 8);
+        
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, outSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, distSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, sdrSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, boneSpeedSSBo);
+        
+        // run compute shader
+        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+        org.lwjgl.opengl.GL43.glDispatchCompute(elementCount / 256 + 1, 1, 1);
+        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+        
+        skullParamEstimationShader.stop();
+    }
+    
+    public void doSkullProbe() {
+        // Calculate per element SDR data
+        //
+        // doCalc() must be called first to compute the per element ray segments
+        //
+
+//        needsSDRCalc = false;
+        
+//        if (needsCalc) {
+//            doCalc();
+//        }
+        
+        if (Thread.currentThread() != myThread) {
+
+            CrossThreadCallable c = new CrossThreadCallable() {
+                @Override
+                public Void call() {
+                    TransducerRayTracer.this.doSkullProbe();
+                    return null;
+                }
+            };
+
+            Main.callCrossThreadCallable(c);
+
+            return;
+        }
+        
+//        System.out.println("TransducerRayTracer::doSDRCalc() " + Thread.currentThread().getId() + " - " + myThread.getId());
+        
+        skullProbeShader.start();
+        int shaderProgID = skullProbeShader.getShaderProgramID();
+        
+        int texLoc = glGetUniformLocation(shaderProgID, "ct_tex");
+        glUniform1i(texLoc, 0);
+        int texMatLoc = glGetUniformLocation(shaderProgID, "ct_tex_matrix");
+        glUniformMatrix4(texMatLoc, false, this.matrixBuf);
+        int rescaleLoc = glGetUniformLocation(shaderProgID, "ct_rescale_intercept");
+        glUniform1f(rescaleLoc, this.rescaleIntercept);
+        rescaleLoc = glGetUniformLocation(shaderProgID, "ct_rescale_slope");
+        glUniform1f(rescaleLoc, this.rescaleSlope);
+        texLoc = glGetUniformLocation(shaderProgID, "elementCount");
+        glUniform1i(texLoc, this.elementCount);
+        
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, outSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, distSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, sdrSSBo);
+        
+        // have the SDR shader recolor rays and skull strike discs for any elements that hit air
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, colSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, outDiscSSBo);
+        
+        // run compute shader
+        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+        org.lwjgl.opengl.GL43.glDispatchCompute(elementCount / 256 + 1, 1, 1);
+        org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+        
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
+        
+        skullProbeShader.stop();
+        
+//        this.updateObservers(new PropertyChangeEvent(this, "sdrCalc", null, true));        
+    }
+       
     private void doPickCalc() {
         pickShader.start();
         
@@ -872,22 +1149,15 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         texLoc = glGetUniformLocation(shaderProgID, "elementCount");
         glUniform1i(texLoc, this.elementCount);
         
-        texLoc = glGetUniformLocation(shaderProgID, "normDiscDiam");
-        glUniform1f(texLoc, normDiscDiam);
+        texLoc = glGetUniformLocation(shaderProgID, "normDiscRadius");
+        glUniform1f(texLoc, normDiscRadius);
        
 //        int targetLoc = glGetUniformLocation(shaderprogram, "target");
 //        glUniform3f(targetLoc, 0f, 0f, 300f);
 
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, posSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, colSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, distSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, outDiscSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, outRaysSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, phaseSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, skullFloorRaysSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, skullFloorDiscSSBo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, boneSpeedSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, colSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, outDiscSSBo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, outRaysSSBo);
         
         // run compute shader
         org.lwjgl.opengl.GL42.glMemoryBarrier(org.lwjgl.opengl.GL42.GL_ALL_BARRIER_BITS);
@@ -897,14 +1167,6 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, 0);
-
         
         pickShader.stop();
         
@@ -1904,15 +2166,62 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         return result;
     }
     
+    public float getCorticalBoneSpeed(int elementIndex) {
+        FloatBuffer speeds = this.getFloatBufferThreadSafe(GL_SHADER_STORAGE_BUFFER, this.boneSpeedSSBo, GL_READ_WRITE);
+        return speeds.get(elementIndex*3);
+    }
+    
+    public List<Float> getHUprofile(int elementIndex, float threshold) {
+
+        List<Float> result = new ArrayList<>();
+        
+//        glBindBuffer(GL_SHADER_STORAGE_BUFFER,sdrSSBo);
+//        ByteBuffer sdrOutput = glMapBuffer(GL_SHADER_STORAGE_BUFFER,GL_READ_ONLY,null);
+//        FloatBuffer huValues = sdrOutput.asFloatBuffer();
+        FloatBuffer huValues = this.getFloatBufferThreadSafe(GL_SHADER_STORAGE_BUFFER, sdrSSBo, GL_READ_WRITE);
+        
+        float[] huOut = new float[60];
+        
+        huValues.position(elementIndex*63);
+        huValues.get(huOut);
+
+        int left = 0;
+        int right = 59;
+
+        for (int x=0; x<59; x++) {
+            if (huOut[x] >= threshold) {
+                left = x;
+                break;
+            }
+        }
+
+        for (int x=59; x>=0; x--) {
+            if (huOut[x] >= threshold) {
+                right = x;
+                break;
+            }
+        }
+
+        for (int x=left; x<=right; x++) {
+            result.add(huOut[x]);
+        }
+                    
+        return result;
+    }
+    
     public void calcPressureEnvelope(Quaternion pressureFieldOrientation) {
+        calcPressureEnvelope(pressureFieldOrientation, 30, 30, 0, 1);
+    }
+    
+    public void calcPressureEnvelope(Quaternion pressureFieldOrientation, int nx, int ny, int nz, float sampleSize) {
         
         if (CTimage == null) return;
         
-        float voxelsize = 1f;
+        float voxelsize = sampleSize;
 
-        int volumeHalfWidthX = 15;
-        int volumeHalfWidthY = 15;
-        int volumeHalfWidthZ = 0;
+        int volumeHalfWidthX = nx/2;
+        int volumeHalfWidthY = ny/2;
+        int volumeHalfWidthZ = nz/2;
         int volumeWidthX = 2*volumeHalfWidthX+1;
         int volumeWidthY = 2*volumeHalfWidthY+1;
         int volumeWidthZ = 2*volumeHalfWidthZ+1;
@@ -1926,24 +2235,25 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             envelopeImage = new ImageVolume4D(ImageVolume.FLOAT_VOXEL, volumeWidthX, volumeWidthY, volumeWidthZ, 1);
             envelopeImage.getDimension(0).setSampleWidth(voxelsize);
             envelopeImage.getDimension(1).setSampleWidth(voxelsize);
-            envelopeImage.getDimension(2).setSampleWidth(1f);
+            envelopeImage.getDimension(2).setSampleWidth(voxelsize);
             
             envelopeImage.getDimension(0).setSampleSpacing(voxelsize);
             envelopeImage.getDimension(1).setSampleSpacing(voxelsize);
-            envelopeImage.getDimension(2).setSampleSpacing(1f);
+            envelopeImage.getDimension(2).setSampleSpacing(voxelsize);
 //        }
         
         Vector4f offset = new Vector4f();
         
         envelopeImage.setAttribute("ImageTranslation", new Vector3f(-centerOfRotation.x - steering.x, -centerOfRotation.y + steering.y, -centerOfRotation.z + steering.z));
+
         if (pressureFieldOrientation == null) {
             pressureFieldOrientation = new Quaternion();
         }
         
-        Quaternion r1 = new Quaternion();
-        r1.setFromAxisAngle(new Vector4f(1, 0, 0, 3.14159f)); // flip around the x-axis
-        Quaternion r2 = new Quaternion();
-        r2.setFromAxisAngle(new Vector4f(0, 1, 0, 3.14159f)); // flip around the y-axis
+//        Quaternion r1 = new Quaternion();
+//        r1.setFromAxisAngle(new Vector4f(1, 0, 0, 3.14159f)); // flip around the x-axis
+//        Quaternion r2 = new Quaternion();
+//        r2.setFromAxisAngle(new Vector4f(0, 1, 0, 3.14159f)); // flip around the y-axis
  
         envelopeImage.setAttribute("ImageOrientationQ", pressureFieldOrientation);
         
@@ -1958,6 +2268,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         Quaternion.mul(tmpq, rotY, tmpq);
         
         Matrix4f pfoMat = Trackball.toMatrix4f(tmpq.negate(null));
+//        Matrix4f pfoMat = Trackball.toMatrix4f(tmpq);
         
                 
         float[] voxels = (float[])envelopeImage.getData();
@@ -1966,9 +2277,9 @@ public class TransducerRayTracer extends Renderable implements Pickable {
         this.colormap_max = -Float.MAX_VALUE;
                 
 //        setupImageTexture(CTimage, 0, new Vector3f(centerOfRotation.x, centerOfRotation.y, centerOfRotation.z), new Vector4f(0f, 0f, 0f, 1f)/*offset*/);
-        setupImageTexture(CTimage, 0, centerOfRotation);
-
-        doCalc();
+//        setupImageTexture(CTimage, 0, centerOfRotation);
+//
+//        doCalc();
         
         glActiveTexture(GL_TEXTURE0 + 0);
         glDisable(GL_TEXTURE_3D);
@@ -1978,7 +2289,7 @@ public class TransducerRayTracer extends Renderable implements Pickable {
                 for (int k = -volumeHalfWidthZ; k <= volumeHalfWidthZ; k++) {
                     float pressure = 0f;
 
-                    offset.set(-i * voxelsize, -j * voxelsize, -k * voxelsize, 1f);
+                    offset.set(-i * voxelsize, -j * voxelsize, k * voxelsize, 1f); // k is not negated, seems to produce the correct orientation in the computed volume
                                         
                     Matrix4f.transform(pfoMat, new Vector4f(offset), offset);
                     
@@ -2019,45 +2330,49 @@ public class TransducerRayTracer extends Renderable implements Pickable {
             double realImage[] = new double[volumeWidthX * volumeWidthY];
             double imagImage[] = new double[volumeWidthX * volumeWidthY];
 
-            // transform rows
-            for (int y = 0; y < volumeWidthY; y++) {
+            for (int z = 0; z < volumeWidthZ; z++) {
+                
+                int sliceOffset = z * volumeWidthX * volumeWidthY;
+
+                // transform rows
+                for (int y = 0; y < volumeWidthY; y++) {
+                    for (int x = 0; x < volumeWidthX; x++) {
+                        realRow[x] = voxels[sliceOffset + y * volumeWidthX + x];
+                        imagRow[x] = 0.0;
+                    }
+                    FastFourierTransform.transform(realRow, imagRow);
+                    for (int x = 0; x < volumeWidthX; x++) {
+                        realImage[y * volumeWidthX + x] = realRow[x];
+                        imagImage[y * volumeWidthX + x] = imagRow[x];
+                    }
+                }
+
+                double[] realCol = new double[volumeWidthY];
+                double[] imagCol = new double[volumeWidthY];
+
+                // transform cols
                 for (int x = 0; x < volumeWidthX; x++) {
-                    realRow[x] = voxels[y * volumeWidthX + x];
-                    imagRow[x] = 0.0;
+                    for (int y = 0; y < volumeWidthY; y++) {
+                        realCol[y] = realImage[y * volumeWidthX + x];
+                        imagCol[y] = imagImage[y * volumeWidthX + x];
+                    }
+                    FastFourierTransform.transform(realCol, imagCol);
+                    for (int y = 0; y < volumeWidthY; y++) {
+                        realImage[y * volumeWidthX + x] = realCol[y];
+                        imagImage[y * volumeWidthX + x] = imagCol[y];
+                    }
                 }
-                FastFourierTransform.transform(realRow, imagRow);
+
+                // hilbert transform (really Analytic Signal mask)
+                // Assumes width and height are odd valued for now
                 for (int x = 0; x < volumeWidthX; x++) {
-                    realImage[y * volumeWidthX + x] = realRow[x];
-                    imagImage[y * volumeWidthX + x] = imagRow[x];
-                }
-            }
+                    for (int y = 0; y < volumeWidthY; y++) {
 
-            double[] realCol = new double[volumeWidthY];
-            double[] imagCol = new double[volumeWidthY];
+                        int index = y * volumeWidthX + x;
 
-            // transform cols
-            for (int x = 0; x < volumeWidthX; x++) {
-                for (int y = 0; y < volumeWidthY; y++) {
-                    realCol[y] = realImage[y * volumeWidthX + x];
-                    imagCol[y] = imagImage[y * volumeWidthX + x];
-                }
-                FastFourierTransform.transform(realCol, imagCol);
-                for (int y = 0; y < volumeWidthY; y++) {
-                    realImage[y * volumeWidthX + x] = realCol[y];
-                    imagImage[y * volumeWidthX + x] = imagCol[y];
-                }
-            }
-
-            // hilbert transform (really Analytic Signal mask)
-            // Assumes width and height are odd valued for now
-            for (int x = 0; x < volumeWidthX; x++) {
-                for (int y = 0; y < volumeWidthY; y++) {
-
-                    int index = y * volumeWidthX + x;
-
-                    // Mask values
-                    double real_coeff = 0.0;
-                    double imag_coeff = 0.0;
+                        // Mask values
+                        double real_coeff = 0.0;
+                        double imag_coeff = 0.0;
 
 // //Best result so far with spectrum truncation
 //                if (x==0 && y==0) {
@@ -2069,92 +2384,98 @@ public class TransducerRayTracer extends Renderable implements Pickable {
 //                else if (x>=(volumeWidthX+1)/2 && y<(volumeWidthY+1)/2) {
 //                    real_coeff = 2.0;
 //                }
-                    // spiral signum operator
-                    //
-                    // Larkin, Bone, Oldfield, "Natural demodulation of two-dimension fringe
-                    // patterns. I. General background of the spiral phase quadrature transform",
-                    // J. Opt. Soc. Am. A/Vol. 18 No. 8/August 2001.
-                    //
-                    double dx = x < (volumeWidthX + 1) / 2 ? x : x - volumeWidthX;
-                    double dy = y < (volumeWidthY + 1) / 2 ? y : y - volumeWidthY;
-                    double smag = Math.sqrt(dx * dx + dy * dy);
+                        // spiral signum operator
+                        //
+                        // Larkin, Bone, Oldfield, "Natural demodulation of two-dimension fringe
+                        // patterns. I. General background of the spiral phase quadrature transform",
+                        // J. Opt. Soc. Am. A/Vol. 18 No. 8/August 2001.
+                        //
+                        double dx = x < (volumeWidthX + 1) / 2 ? x : x - volumeWidthX;
+                        double dy = y < (volumeWidthY + 1) / 2 ? y : y - volumeWidthY;
+                        double smag = Math.sqrt(dx * dx + dy * dy);
 
-                    if (x == 0 && y == 0) {
-                        real_coeff = 0;
-                        imag_coeff = 0;
-                    } else {
-                        real_coeff = dx / smag;
-                        imag_coeff = dy / smag;
+                        if (x == 0 && y == 0) {
+                            real_coeff = 0;
+                            imag_coeff = 0;
+                        } else {
+                            real_coeff = dx / smag;
+                            imag_coeff = dy / smag;
+                        }
+
+                        // FFT values
+                        double r = realImage[index];
+                        double i = imagImage[index];
+
+                        // complex multiply mask value with FFT value
+                        realImage[index] = (real_coeff * r - imag_coeff * i);
+                        imagImage[index] = (real_coeff * i + imag_coeff * r);
                     }
-
-                    // FFT values
-                    double r = realImage[index];
-                    double i = imagImage[index];
-
-                    // complex multiply mask value with FFT value
-                    realImage[index] = (real_coeff * r - imag_coeff * i);
-                    imagImage[index] = (real_coeff * i + imag_coeff * r);
                 }
-            }
 
-            // inv transform rows
-            for (int y = 0; y < volumeWidthY; y++) {
+                // inv transform rows
+                for (int y = 0; y < volumeWidthY; y++) {
+                    for (int x = 0; x < volumeWidthX; x++) {
+                        realRow[x] = realImage[y * volumeWidthX + x];
+                        imagRow[x] = imagImage[y * volumeWidthX + x];
+                    }
+                    FastFourierTransform.inverseTransform(realRow, imagRow);
+                    for (int x = 0; x < volumeWidthX; x++) {
+                        realImage[y * volumeWidthX + x] = realRow[x] / volumeWidthX;
+                        imagImage[y * volumeWidthX + x] = imagRow[x] / volumeWidthX;
+                    }
+                }
+
+                // inv transform cols
                 for (int x = 0; x < volumeWidthX; x++) {
-                    realRow[x] = realImage[y * volumeWidthX + x];
-                    imagRow[x] = imagImage[y * volumeWidthX + x];
+                    for (int y = 0; y < volumeWidthY; y++) {
+                        realCol[y] = realImage[y * volumeWidthX + x];
+                        imagCol[y] = imagImage[y * volumeWidthX + x];
+                    }
+                    FastFourierTransform.inverseTransform(realCol, imagCol);
+                    for (int y = 0; y < volumeWidthY; y++) {
+                        realImage[y * volumeWidthX + x] = realCol[y] / volumeWidthY;
+                        imagImage[y * volumeWidthX + x] = imagCol[y] / volumeWidthY;
+                    }
                 }
-                FastFourierTransform.inverseTransform(realRow, imagRow);
+
+                this.colormap_min = Float.MAX_VALUE;
+                this.colormap_max = -Float.MAX_VALUE;
+
                 for (int x = 0; x < volumeWidthX; x++) {
-                    realImage[y * volumeWidthX + x] = realRow[x] / volumeWidthX;
-                    imagImage[y * volumeWidthX + x] = imagRow[x] / volumeWidthX;
-                }
-            }
+                    for (int y = 0; y < volumeWidthY; y++) {
+                        int index = y * volumeWidthX + x;
 
-            // inv transform cols
-            for (int x = 0; x < volumeWidthX; x++) {
-                for (int y = 0; y < volumeWidthY; y++) {
-                    realCol[y] = realImage[y * volumeWidthX + x];
-                    imagCol[y] = imagImage[y * volumeWidthX + x];
-                }
-                FastFourierTransform.inverseTransform(realCol, imagCol);
-                for (int y = 0; y < volumeWidthY; y++) {
-                    realImage[y * volumeWidthX + x] = realCol[y] / volumeWidthY;
-                    imagImage[y * volumeWidthX + x] = imagCol[y] / volumeWidthY;
-                }
-            }
+                        double realVal = realImage[index];
+                        double imagVal = imagImage[index];
 
-            this.colormap_min = Float.MAX_VALUE;
-            this.colormap_max = -Float.MAX_VALUE;
-
-            for (int x = 0; x < volumeWidthX; x++) {
-                for (int y = 0; y < volumeWidthY; y++) {
-                    int index = y * volumeWidthX + x;
-
-                    double realVal = realImage[index];
-                    double imagVal = imagImage[index];
-
-                    double sigval = voxels[index];
+                        double sigval = voxels[sliceOffset + index];
 
 //                 float mag = (float)Math.sqrt(sigval*sigval + hilbertval*hilbertval);
-                    float mag = (float) Math.abs(sigval) + (float) Math.sqrt(realVal * realVal + imagVal * imagVal);
+                        float mag = (float) Math.abs(sigval) + (float) Math.sqrt(realVal * realVal + imagVal * imagVal);
 //                 float mag = (float)hilbertval;
 //mag = (float)(sigval);
 
-                    if (mag > colormap_max) {
-                        colormap_max = mag;
-                    } else if (mag < colormap_min) {
-                        colormap_min = mag;
-                    }
+                        if (mag > colormap_max) {
+                            colormap_max = mag;
+                        } else if (mag < colormap_min) {
+                            colormap_min = mag;
+                        }
 //                else {
 //                    System.out.println("Bad mag = " + mag);
 //                }
 
-                    voxels[index] = mag;
-                }
-            }
+// The following was to create a visible fiducial mark for verifying orientation
+//                        if (z==0 && y==0 && x==volumeWidthX/2) {
+//                            mag = 1000;
+//                        }
 
-            ///////////////////////////////
-            //
+                        voxels[sliceOffset + index] = mag;
+                    }
+                }
+
+                ///////////////////////////////
+                //
+            }
         }
         
         // normalize the pressure field
@@ -2959,6 +3280,21 @@ System.out.println("pressure maximum = " + colormap_range);
         if (pressureShader != null) {
             pressureShader.release();
             pressureShader = null;
+        }
+        
+        if (skullParamEstimationShader != null) {
+            skullParamEstimationShader.release();
+            skullParamEstimationShader = null;
+        }
+        
+        if (skullProbeShader != null) {
+            skullProbeShader.release();
+            skullProbeShader = null;
+        }
+        
+        if (sosTable != null) {
+            sosTable.release();
+            sosTable = null;
         }
         
         clearEnvelopeImage();

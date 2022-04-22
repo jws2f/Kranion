@@ -110,6 +110,16 @@ public class ACPCdisplay extends GUIControl {
         model = m;
         view = v;
         
+        Vector3f pt=null;
+        
+        try {
+            pt = (Vector3f)model.getAttribute("AC");
+        }
+        catch(Exception e) {}
+        if (pt == null) {
+            pt = new Vector3f(0, -10, 0);
+        }
+        
         if (ac_lm == null) {
             ac_lm = new ImageLandmark(model.getCtImage());
             ac_lm.setColor(1, 0, 0, 1);
@@ -118,8 +128,17 @@ public class ACPCdisplay extends GUIControl {
             ac_lm.setCommand("AC");
             ac_lm.setShowOnlyIfSelected(true);
             model.addPropertyChangeListener(ac_lm);
-            model.setAttribute("AC", new Vector3f(0, -10, 0));            
+            model.setAttribute("AC", new Vector3f(pt));            
         }
+        
+        try {
+            pt = (Vector3f)model.getAttribute("PC");
+        }
+        catch(Exception e) {}
+        if (pt == null) {
+            pt = new Vector3f(0, 10, 0);
+        }
+        
         if (pc_lm == null) {
             pc_lm = new ImageLandmark(model.getCtImage());
             pc_lm.setColor(0, 1, 0, 1);
@@ -128,8 +147,17 @@ public class ACPCdisplay extends GUIControl {
             pc_lm.setCommand("PC");
             pc_lm.setShowOnlyIfSelected(true);
             model.addPropertyChangeListener(pc_lm);
-            model.setAttribute("PC", new Vector3f(0, 10, 0));
+            model.setAttribute("PC", new Vector3f(pt));
         }
+        
+        try {
+            pt = (Vector3f)model.getAttribute("ACPCSup");
+        }
+        catch(Exception e) {}
+        if (pt == null) {
+            pt = new Vector3f(0, 0, 20);
+        }
+        
         if (sup_lm == null) {
             sup_lm = new ImageLandmark(model.getCtImage());
             sup_lm.setColor(0.3f, 0.3f, 1, 1);
@@ -138,13 +166,27 @@ public class ACPCdisplay extends GUIControl {
             sup_lm.setCommand("ACPCSup");
             sup_lm.setShowOnlyIfSelected(false);
             model.addPropertyChangeListener(sup_lm);
-            model.setAttribute("ACPCSup", new Vector3f(0, 0, 20));
+            model.setAttribute("ACPCSup", new Vector3f(pt));
         }
                 
         for (int i=0; i<tb_landmarks.length; i++) {
             if (tb_landmarks[i] != null) {
+                String cmd = "tbLandmark" + i;
+                tb_landmarks[i].setCommand(cmd);
                 tb_landmarks[i].setPropertyPrefix("Model.Attribute");
                 model.addPropertyChangeListener(tb_landmarks[i]);
+                
+                pt = null;
+                try {
+                    pt = (Vector3f)model.getAttribute(cmd);
+                    ImageLandmarkConstraint lmc = tb_landmarks[i].getConstraint();
+                    if (lmc != null) {
+                        lmc.filterImagePoint(pt); //need the contraint offset to get set
+                    }
+                    tb_landmarks[i].setLocation(new Vector3f(pt));
+                }
+                catch(Exception e) {                    
+                }
             }
         }
     }

@@ -49,8 +49,16 @@ public class ImageLandmarkConstraint {
         point = new Vector3f(p);
     }
     
+    public Vector3f getPoint() {
+        return point;
+    }
+    
     public void setDirection(Vector3f d) {
         direction = new Vector3f(d);
+    }
+    
+    public Vector3f getDirection() {
+        return direction;
     }
     
     public float getOffset() {
