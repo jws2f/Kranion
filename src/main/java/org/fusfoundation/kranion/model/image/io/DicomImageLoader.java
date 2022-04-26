@@ -1565,7 +1565,7 @@ public class DicomImageLoader implements ImageLoader {
         
         for (int i=0; i<4; i++) {
             try {
-                Logger.getGlobal().log(Level.WARNING, new String(cookie, "8859_1"));
+                Logger.getGlobal().log(Level.INFO, new String(cookie, "8859_1"));
             }
             catch (UnsupportedEncodingException e) {
             }

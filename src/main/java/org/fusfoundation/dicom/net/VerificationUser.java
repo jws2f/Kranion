@@ -31,7 +31,7 @@ import org.fusfoundation.dicom.DicomNumber;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import org.apache.logging.log4j.Logger;
+import java.util.logging.Logger;
 
 /**
  *
@@ -43,7 +43,8 @@ public class VerificationUser implements ServiceClassUser {
    
    static private final UID uids[] = {UID.Verification};
    static private final UID tsyn[] = {UID.ExplicitVRBigEndian, UID.ExplicitVRLittleEndian, UID.ImplicitVRLittleEndian};
-   static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
+   static final private Logger logger = Logger.getGlobal();
+
 
    /** Creates a new instance of VerificationUser */
     public VerificationUser() {
@@ -56,12 +57,12 @@ public class VerificationUser implements ServiceClassUser {
             command.addVR(new VR("CommandField", new DicomNumber(0x0030)));
             command.addVR(new VR("DataSetType", new DicomNumber(0x0101)));
           
-          logger.debug(command);
+          logger.info(command.toString());
           
           int msgId = association.WriteCommand(command, contextId);
           DicomObject response = association.ReadCommand(contextId);
           
-          logger.debug(response);
+          logger.info(response.toString());
          
           if (response != null) {
              int status = response.getVR("Status").getIntValue();
@@ -93,7 +94,7 @@ public class VerificationUser implements ServiceClassUser {
           return true;
        }
        else {
-          logger.error("SCU not active on this Association");
+          logger.severe("SCU not active on this Association");
           return false;
        }
     }

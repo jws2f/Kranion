@@ -30,7 +30,7 @@ import org.fusfoundation.dicom.DicomException;
 import org.fusfoundation.dicom.DicomObject;
 import org.fusfoundation.dicom.DicomNumber;
 import java.io.IOException;
-import org.apache.logging.log4j.Logger;
+import java.util.logging.Logger;
 
 /**
  *
@@ -44,7 +44,8 @@ public class StorageUser implements ServiceClassUser {
    
    static private final UID uids[] = {UID.MRImageStorage, UID.CTImageStorage};
    static private final UID tsyn[] = {UID.ExplicitVRBigEndian, UID.ExplicitVRLittleEndian, UID.ImplicitVRLittleEndian};
-   static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
+   static final private Logger logger = Logger.getGlobal();
+
    
    static public int STATUS_SUCCESS = 0x0000;
    static public int STATUS_WARNING = 0xB000;
@@ -85,14 +86,14 @@ public class StorageUser implements ServiceClassUser {
          command.addVR(new VR("DataSetType", new DicomNumber(0xFEFE))); // dataset follows
          command.addVR(new VR("AffectedSOPInstanceUID", new DicomString(affectedSopInstanceUID)));
          
-         logger.debug("Send C-Store command...");
-         logger.debug(command);
+         logger.info("Send C-Store command...");
+         logger.info(command.toString());
          // Send the command followed by the image dataset
          int msgId = association.WriteCommand(command, cntxid);
-         logger.debug("Send C-Store message " + msgId + "...");
+         logger.info("Send C-Store message " + msgId + "...");
          association.WriteMessage(obj, cntxid);
          
-         logger.debug("Read respone...");
+         logger.info("Read respone...");
          // Get the response
          DicomObject response = association.ReadCommand(cntxid);
          if (response != null) {
@@ -108,18 +109,18 @@ public class StorageUser implements ServiceClassUser {
                return true;
             }
             else {
-               logger.error("C-Store error:");
-               logger.error(response);
+               logger.severe("C-Store error:");
+               logger.severe(response.toString());
             }
          }
          else {
-            logger.error("Got a null response");
+            logger.severe("Got a null response");
             return false;
          }
          
       }
       
-      logger.error("Service User is inactive");
+      logger.severe("Service User is inactive");
       return false;
    }
    

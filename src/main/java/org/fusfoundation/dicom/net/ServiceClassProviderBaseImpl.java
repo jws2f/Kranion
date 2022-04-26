@@ -24,13 +24,12 @@
 package org.fusfoundation.dicom.net;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import org.fusfoundation.dicom.DicomObject;
 import org.fusfoundation.dicom.VrReader;
 import org.fusfoundation.dicom.UID;
 import org.fusfoundation.dicom.net.Association;
-
-import org.apache.logging.log4j.Logger;
 
 /**
  *
@@ -48,28 +47,28 @@ public abstract class ServiceClassProviderBaseImpl implements Runnable, ServiceC
     private VrReader inputVRStream;
     private int pcID; // Presentation Context ID
     
-   static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
+    static final private Logger logger = Logger.getGlobal();
 
     /** Creates a new instance of ServiceClassProviderBaseImpl */
     public ServiceClassProviderBaseImpl() {
     }
     
     public Thread ProcessCommand(Association assoc, int PresentationContextID, DicomObject cmd, VrReader messageStream) {
-        if (logger.isDebugEnabled()) logger.debug("Received command");
+        logger.info("Received command");
         inputVRStream = messageStream;
         command = cmd;
         association = assoc;
         pcID = PresentationContextID;
 
         if (worker != null && worker.isAlive()) {
-            if (logger.isDebugEnabled()) logger.debug("Waiting for worker to finish.");
+            logger.info("Waiting for worker to finish.");
             try {
                 worker.join();
             }
             catch(java.lang.InterruptedException e) {
                 System.out.println(e);
             }
-            if (logger.isDebugEnabled()) logger.debug("Worker is finished.");
+            logger.info("Worker is finished.");
         }
 
         worker = new Thread(this);
@@ -89,8 +88,8 @@ public abstract class ServiceClassProviderBaseImpl implements Runnable, ServiceC
             // Something we didn't plan for happend
             // so notify the caller that we are aborting
             // this Association (probably a little rude)
-            logger.warn("Unexpected exception thrown: " + e);
-            logger.warn("Sending A-ABORT");
+            logger.warning("Unexpected exception thrown: " + e);
+            logger.warning("Sending A-ABORT");
             try
             {
                association.sendAbort(true, 0);
@@ -98,12 +97,12 @@ public abstract class ServiceClassProviderBaseImpl implements Runnable, ServiceC
             }
             catch(IOException e2)
             {
-               logger.error("Failed to abort: " + e2);
+               logger.severe("Failed to abort: " + e2);
             }
         }
         finally
         {
-            if (logger.isDebugEnabled()) logger.debug("Command completed (or aborted), shutting down thread.");
+            logger.info("Command completed (or aborted), shutting down thread.");
         }
     }
     

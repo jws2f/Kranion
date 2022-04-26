@@ -39,14 +39,14 @@ import org.fusfoundation.dicom.PersonName;
 import java.util.*;
 import java.net.*;
 import java.io.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AssociationFactory {
    private HashMap serviceClassProviders;
    private HashMap serviceClassUsers;
    
-   static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
+   static final private Logger logger = Logger.getGlobal();;
    
    public AssociationFactory() {
       serviceClassProviders = new HashMap();
@@ -109,15 +109,15 @@ public class AssociationFactory {
          assoc.callingAETitle = req.getCallingAETitle();
          assoc.setMaxPDULength(req.getMaxPDULength());
          
-         logger.debug("Called AET: " + req.getCalledAETitle());
-         logger.debug("Calling AET: " + req.getCallingAETitle());
-         logger.debug("Max PDU length: " + req.getMaxPDULength());
+         logger.log(Level.INFO, "Called AET: " + req.getCalledAETitle());
+         logger.log(Level.INFO, "Calling AET: " + req.getCallingAETitle());
+         logger.log(Level.INFO, "Max PDU length: " + req.getMaxPDULength());
          
          Collection pcs = req.getPresentationContexts();
          iter = pcs.iterator();
          while(iter.hasNext()) {
             PresentationContext pc = (PresentationContext)(iter.next());
-            logger.debug("Negotiatiated: " + pc.getID() + " result = " + pc.getResult());
+            logger.log(Level.INFO, "Negotiatiated: " + pc.getID() + " result = " + pc.getResult());
             if (pc.getResult() == 0) {
                UID uid = pc.getAbstractSyntax().getUID();
                ServiceClassUser scu = (ServiceClassUser)serviceClassUsers.get(uid);
@@ -128,7 +128,7 @@ public class AssociationFactory {
          }
       }
       catch (IOException e) {
-         logger.error(e.toString());
+         logger.log(Level.SEVERE, e.toString());
          return null;
       }
             
@@ -178,7 +178,7 @@ public class AssociationFactory {
          return assoc;
       }
       catch(IOException e) {
-         logger.error(e.toString());
+         logger.log(Level.SEVERE, e.toString());
          return null;
       }
    }
@@ -277,10 +277,10 @@ public class AssociationFactory {
             }
          }
          catch (UnknownHostException e) {
-            logger.error(e);
+            logger.log(Level.SEVERE, e.toString());
          }
          catch (IOException e) {
-            logger.error(e);
+            logger.log(Level.SEVERE, e.toString());
          }
          
          return;
@@ -304,15 +304,15 @@ public class AssociationFactory {
                //break;
             }
             catch (IOException e) {
-               logger.warn("Unexpected exception thrown: " + e);
+               logger.log(Level.WARNING, "Unexpected exception thrown: " + e);
             }
          }
       }
       catch (IOException e) {
-         logger.error("Failed to create ServerSocket: " + e);
+         logger.log(Level.SEVERE, "Failed to create ServerSocket: " + e);
       }
       finally {
-         logger.info("Server terminating.");
+         logger.log(Level.INFO, "Server terminating.");
       }
    }
 }

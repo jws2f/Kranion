@@ -35,9 +35,9 @@ package org.fusfoundation.dicom.net;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-
 import java.util.Iterator;
-import org.apache.logging.log4j.Logger;
+import java.util.logging.Logger;
+
 
 import org.fusfoundation.dicom.UID;
 import org.fusfoundation.dicom.DicomObject;
@@ -62,7 +62,7 @@ public class VerificationService
 
   static private final UID uids[] = {UID.Verification};
   static private final UID tsyn[] = {UID.ExplicitVRBigEndian, UID.ExplicitVRLittleEndian, UID.ImplicitVRLittleEndian};
-  static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
+  static final private Logger logger = Logger.getGlobal();
 
   /** Default constuctor
    */  
@@ -102,7 +102,7 @@ public class VerificationService
               response.addVR(new VR("DataSetType", new DicomNumber(0x0101)));
               response.addVR(new VR("Status", new DicomNumber(0x0)));
 
-              if (logger.isDebugEnabled()) logger.debug("Response:\n" + response);
+              logger.info("Response:\n" + response);
 
               Iterator i = response.iterator();
               while (i.hasNext()) {

@@ -25,7 +25,8 @@ package org.fusfoundation.dicom.net;
 
 import java.io.*;
 import java.util.*;
-import org.apache.logging.log4j.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.fusfoundation.dicom.UID;
 
 /**
@@ -47,7 +48,8 @@ public class AssociationRequest {
    private ArrayList presentationContexts;
    private long maxPDULength = 32768;
    
-   static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
+   static final private Logger logger = Logger.getGlobal();;
+
    
    public AssociationRequest() {
       maxPDULength = 32768;
@@ -328,7 +330,7 @@ public class AssociationRequest {
          throw new IOException("Association rejected.");
       }
       else {
-         logger.error("Unexpected response from remote AE");
+         logger.log(Level.SEVERE, "Unexpected response from remote AE");
          throw new IOException("Unexpected response from remote AE");
       }
       
@@ -360,7 +362,7 @@ public class AssociationRequest {
       while (bis.available() > 0) {
          pdu = PDU.readItem(bis);
          // Read Presentation Contexts
-         logger.debug("PDU type = " + pdu.getType());
+         logger.log(Level.INFO, "PDU type = " + pdu.getType());
          if (pdu.getType() == 0x21) {
             DataInputStream pctxt = pdu.getInputStream();
             

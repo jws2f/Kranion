@@ -27,6 +27,7 @@ import org.fusfoundation.util.StringConvert;
 import org.fusfoundation.util.PrintfFormat;
 import java.io.*;
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Title:
@@ -38,6 +39,8 @@ import java.util.*;
  */
 
 public class VR implements Serializable, Comparable {
+    
+    private static final Logger logger = Logger.getGlobal();
     
     private int group, element;
     private int vrType;
@@ -84,8 +87,8 @@ public class VR implements Serializable, Comparable {
             
             valueTypeMap.put(new Integer(VR.AT), Class.forName("org.fusfoundation.dicom.DicomAttrTag"));
         } catch (ClassNotFoundException e) {
-            System.out.println("VrValue type mapping error in VR.java");
-            e.printStackTrace();
+            logger.severe("VrValue type mapping error in VR.java");
+            //e.printStackTrace();
         }
     }
     
@@ -414,7 +417,7 @@ public class VR implements Serializable, Comparable {
             return VR.UN;
         }
         
-        System.out.println("Unknown VR code: " + twoLetterName);
+        logger.info("Unknown VR code: " + twoLetterName);
         
         return VR.UN;
     }

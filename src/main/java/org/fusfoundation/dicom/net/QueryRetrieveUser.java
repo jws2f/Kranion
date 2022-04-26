@@ -35,7 +35,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
-import org.apache.logging.log4j.Logger;
+import java.util.logging.Logger;
 
 /**
  *
@@ -51,7 +51,8 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
    static private final UID uids[] = {UID.PatientRootQueryRetrieveFind, UID.PatientRootQueryRetrieveMove, UID.PatientRootQueryRetrieveGet};
    static private final UID provideruids[] = {UID.CTImageStorage};
    static private final UID tsyn[] = {UID.ExplicitVRBigEndian, UID.ExplicitVRLittleEndian, UID.ImplicitVRLittleEndian};
-   static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
+   static final private Logger logger = Logger.getGlobal();;
+
    
    static private final int RESPONSE_REFUSED = 0xA700;
    static private final int RESPONSE_REFUSED_OUT_OF_RESOURCES_MATCHING = 0xA701;
@@ -71,19 +72,19 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
    public void setPresentationContextId(UID sopclass, int cntxid) {
       if (sopclass.equals(UID.PatientRootQueryRetrieveFind)) {
          findContextId = cntxid;
-         logger.debug("Find Presentation Context ID = " + cntxid);
+         logger.info("Find Presentation Context ID = " + cntxid);
       }
       else if (sopclass.equals(UID.PatientRootQueryRetrieveMove)) {
          moveContextId = cntxid;
-         logger.debug("Move Presentation Context ID = " + cntxid);
+         logger.info("Move Presentation Context ID = " + cntxid);
       }
       else if (sopclass.equals(UID.PatientRootQueryRetrieveGet)) {
          getContextId = cntxid;
-         logger.debug("Get Presentation Context ID = " + cntxid);
+         logger.info("Get Presentation Context ID = " + cntxid);
       }
       else if (sopclass.equals(UID.CTImageStorage)) {
          ctStoreContextId = cntxid;
-         logger.debug("CTImageStorage Presentation Context ID = " + cntxid);
+         logger.info("CTImageStorage Presentation Context ID = " + cntxid);
       }
    }
    
@@ -112,7 +113,7 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
    }
    
    public void setAssociation(Association assoc) {
-      logger.debug("Got an Association");
+      logger.info("Got an Association");
       association = assoc;
    }
    
@@ -124,14 +125,14 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
       LinkedList qresult = new LinkedList();
       
       if (isActive()) {
-         logger.debug("Sending query");
+         logger.info("Sending query");
          DicomObject command = new DicomObject();
          command.addVR(new VR("AffectedSOPClassUID", new DicomString(UID.PatientRootQueryRetrieveFind.toString())));
          command.addVR(new VR("CommandField", new DicomNumber(0x0020)));
          command.addVR(new VR("DataSetType", new DicomNumber(0xFEFE)));
          command.addVR(new VR("Priority", new DicomNumber(0x0000)));
          
-         logger.debug(command);
+         logger.info(command.toString());
          
          int msgId = association.WriteCommand(command, findContextId);
          
@@ -143,16 +144,16 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
             message.addVR((VR)vrIterator.next());
          }
          
-         logger.debug(message);
+         logger.info(message.toString());
          
          association.WriteMessage(message, findContextId);
          
-         logger.debug("Reading response");
+         logger.info("Reading response");
          
          while (true) {
             DicomObject response = association.ReadCommand(findContextId);
             
-            logger.debug(response);
+            logger.info(response.toString());
             
             if (response != null) {
                int status = response.getVR("Status").getIntValue();
@@ -161,37 +162,37 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
                int dataSetType = response.getVR("DataSetType").getIntValue();
                
                if (status == QueryRetrieveUser.RESPONSE_PENDING || status == QueryRetrieveUser.RESPONSE_PENDING_WITH_WARNING) {
-                  logger.debug("Command Response: PENDING");
+                  logger.info("Command Response: PENDING");
                   if (dataSetType != 0x0101) {
                      
                      DicomObject results = association.ReadMessage(findContextId);
-                     logger.debug(results);
+                     logger.info(results.toString());
                      
                      qresult.add(results);
                   }
                }
                else if (status == QueryRetrieveUser.RESPONSE_SUCCESS) {
-                  logger.debug("Command Response: SUCCESS");
+                  logger.info("Command Response: SUCCESS");
                   break;
                }
                else if (status == QueryRetrieveUser.RESPONSE_FAILED) {
-                  logger.debug("Command Response: FAILED");
+                  logger.info("Command Response: FAILED");
                   break;
                }
                else if (status == QueryRetrieveUser.RESPONSE_CANCEL) {
-                  logger.debug("Command Response: CANCEL");
+                  logger.info("Command Response: CANCEL");
                   break;
                }
                else if (status == QueryRetrieveUser.RESPONSE_REFUSED) {
-                  logger.debug("Command Response: REFUSED");
+                  logger.info("Command Response: REFUSED");
                   break;
                }
                else if ((status & 0xf000) == 0xC000) {
-                  logger.debug("Command Response: UNABLE_TO_PROCESS");
+                  logger.info("Command Response: UNABLE_TO_PROCESS");
                   break;
                }
                else {
-                  logger.error("Command Response: Unknown response code.");
+                  logger.severe("Command Response: Unknown response code.");
                }
                
                
@@ -200,7 +201,7 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
          
       }
       else {
-         logger.error("SCU not active on this Association");
+         logger.severe("SCU not active on this Association");
       }
       
       return qresult;
@@ -238,7 +239,7 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
       LinkedList qresult = new LinkedList();
       
       if (isActive()) {
-         logger.debug("Sending move command");
+         logger.info("Sending move command");
          DicomObject command = new DicomObject();
          command.addVR(new VR("AffectedSOPClassUID", new DicomString(UID.PatientRootQueryRetrieveMove.toString())));
          command.addVR(new VR("CommandField", new DicomNumber(0x0021)));
@@ -246,7 +247,7 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
          command.addVR(new VR("Priority", new DicomNumber(0x0000)));
          command.addVR(new VR("MoveDestination", new DicomString(destinationAE)));
          
-         logger.debug(command);
+         logger.info(command.toString());
          
          int msgId = association.WriteCommand(command, moveContextId);
          
@@ -258,16 +259,16 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
             message.addVR((VR)vrIterator.next());
          }
          
-         logger.debug(message);
+         logger.info(message.toString());
          
          association.WriteMessage(message, moveContextId);
          
-         logger.debug("Reading response");
+         logger.info("Reading response");
          
          while (true) {
             DicomObject response = association.ReadCommand(moveContextId);
             
-            logger.debug(response);
+            logger.info(response.toString());
             
             if (response != null) {
                int status = response.getVR("Status").getIntValue();
@@ -277,48 +278,48 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
                
                if (status == QueryRetrieveUser.RESPONSE_PENDING ||
                status == QueryRetrieveUser.RESPONSE_PENDING_WITH_WARNING) {
-                  logger.debug("Command Response: PENDING");
+                  logger.info("Command Response: PENDING");
                   if (dataSetType != 0x0101) {
                      
                      DicomObject results = association.ReadMessage(moveContextId);
-                     logger.debug(results);
+                     logger.info(results.toString());
                      
-                     logger.debug("Suboperations: " + results.getVR("NumberOfRemainingSuboperations").getValue());
+                     logger.info("Suboperations: " + results.getVR("NumberOfRemainingSuboperations").getValue());
                      
                   }
                }
                else if (status == QueryRetrieveUser.RESPONSE_SUCCESS) {
-                  logger.debug("Command Response: SUCCESS");
+                  logger.info("Command Response: SUCCESS");
                   break;
                }
                else if (status == QueryRetrieveUser.RESPONSE_SUBOPERATIONS_COMPLETE_WITH_FAILURES) {
-                  logger.debug("Command Response: SUBOPERATIONS COMPLETE WITH FAILURES");
+                  logger.info("Command Response: SUBOPERATIONS COMPLETE WITH FAILURES");
                   break;
                }
                else if (status == QueryRetrieveUser.RESPONSE_FAILED) {
-                  logger.debug("Command Response: FAILED");
+                  logger.info("Command Response: FAILED");
                   break;
                }
                else if (status == QueryRetrieveUser.RESPONSE_REFUSED_UNKNOWN_DESTINATION) {
-                  logger.debug("Command Response: REFUSED: UNKNOWN_DESTINATION");
+                  logger.info("Command Response: REFUSED: UNKNOWN_DESTINATION");
                   break;
                }
                else if (status == QueryRetrieveUser.RESPONSE_CANCEL) {
-                  logger.debug("Command Response: CANCEL");
+                  logger.info("Command Response: CANCEL");
                   break;
                }
                else if (status == QueryRetrieveUser.RESPONSE_REFUSED ||
                status == QueryRetrieveUser.RESPONSE_REFUSED_OUT_OF_RESOURCES_MATCHING ||
                status == QueryRetrieveUser.RESPONSE_REFUSED_OUT_OF_RESOURCES_SUBOPERATIONS) {
-                  logger.debug("Command Response: REFUSED");
+                  logger.info("Command Response: REFUSED");
                   break;
                }
                else if ((status & 0xf000) == 0xC000) {
-                  logger.debug("Command Response: UNABLE_TO_PROCESS");
+                  logger.info("Command Response: UNABLE_TO_PROCESS");
                   break;
                }
                else {
-                  logger.error("Command Response: Unknown response code: " + status);
+                  logger.severe("Command Response: Unknown response code: " + status);
                }
                
             }
@@ -326,7 +327,7 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
          
       }
       else {
-         logger.error("SCU not active on this Association");
+         logger.severe("SCU not active on this Association");
       }
       
       return qresult;
@@ -365,14 +366,14 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
       LinkedList qresult = new LinkedList();
       
       if (isActive()) {
-         logger.debug("Sending C-GET command");
+         logger.info("Sending C-GET command");
          DicomObject command = new DicomObject();
          command.addVR(new VR("AffectedSOPClassUID", new DicomString(UID.PatientRootQueryRetrieveGet.toString())));
          command.addVR(new VR("CommandField", new DicomNumber(0x0010)));
          command.addVR(new VR("DataSetType", new DicomNumber(0xFEFE))); // Identifier message follows
          command.addVR(new VR("Priority", new DicomNumber(0x0000)));
          
-         logger.debug(command);
+         logger.info(command.toString());
          
          int msgId = association.WriteCommand(command, getContextId);
          
@@ -384,80 +385,80 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
             message.addVR((VR)vrIterator.next());
          }
          
-         logger.debug(message);
+         logger.info(message.toString());
          
          association.WriteMessage(message, getContextId);
          
-         logger.debug("Reading response");
+         logger.info("Reading response");
          
          while (true) {
             DicomObject response = association.ReadCommand(-1);
             
             if (response != null) {
-               logger.debug("Received comand: " + response);
+               logger.info("Received comand: " + response);
                
                int cmdField = response.getVR("CommandField").getIntValue();
                int dataSetType = response.getVR("DataSetType").getIntValue();
                String sopClass = response.getVR("AffectedSOPClassUID").getStringValue();
                
                if (cmdField == 0x8010) { // C-GET Resonse
-                  logger.debug("C-GET Response: " + response);
+                  logger.info("C-GET Response: " + response);
                   int status = response.getVR("Status").getIntValue();
                   int recvMsgId = response.getVR("MessageIDBeingRespondedTo").getIntValue();
                          
                   if (status == QueryRetrieveUser.RESPONSE_PENDING ||
                   status == QueryRetrieveUser.RESPONSE_PENDING_WITH_WARNING) {
-                     logger.debug("Command Response: PENDING");
+                     logger.info("Command Response: PENDING");
                      if (dataSetType != 0x0101) {
                         
                         DicomObject results = association.ReadMessage(moveContextId);
-                        logger.debug(results);
+                        logger.info(results.toString());
                         
-                        logger.debug("Suboperations: " + results.getVR("NumberOfRemainingSuboperations").getValue());
+                        logger.info("Suboperations: " + results.getVR("NumberOfRemainingSuboperations").getValue());
                         
                      }
                   }
                   else if (status == QueryRetrieveUser.RESPONSE_SUCCESS) {
-                     logger.debug("Command Response: SUCCESS");
+                     logger.info("Command Response: SUCCESS");
                      break;
                   }
                   else if (status == QueryRetrieveUser.RESPONSE_SUBOPERATIONS_COMPLETE_WITH_FAILURES) {
-                     logger.debug("Command Response: SUBOPERATIONS COMPLETE WITH FAILURES");
+                     logger.info("Command Response: SUBOPERATIONS COMPLETE WITH FAILURES");
                      break;
                   }
                   else if (status == QueryRetrieveUser.RESPONSE_FAILED) {
-                     logger.debug("Command Response: FAILED");
+                     logger.info("Command Response: FAILED");
                      break;
                   }
                   else if (status == QueryRetrieveUser.RESPONSE_REFUSED_UNKNOWN_DESTINATION) {
-                     logger.debug("Command Response: REFUSED: UNKNOWN_DESTINATION");
+                     logger.info("Command Response: REFUSED: UNKNOWN_DESTINATION");
                      break;
                   }
                   else if (status == QueryRetrieveUser.RESPONSE_CANCEL) {
-                     logger.debug("Command Response: CANCEL");
+                     logger.info("Command Response: CANCEL");
                      break;
                   }
                   else if (status == QueryRetrieveUser.RESPONSE_REFUSED ||
                   status == QueryRetrieveUser.RESPONSE_REFUSED_OUT_OF_RESOURCES_MATCHING ||
                   status == QueryRetrieveUser.RESPONSE_REFUSED_OUT_OF_RESOURCES_SUBOPERATIONS) {
-                     logger.debug("Command Response: REFUSED");
+                     logger.info("Command Response: REFUSED");
                      break;
                   }
                   else if ((status & 0xf000) == 0xC000) {
-                     logger.debug("Command Response: UNABLE_TO_PROCESS");
+                     logger.info("Command Response: UNABLE_TO_PROCESS");
                      break;
                   }
                   else {
-                     logger.error("Command Response: Unknown response code: " + status);
+                     logger.severe("Command Response: Unknown response code: " + status);
                   }
                }
                else if (cmdField == 0x0001) { // C-STORE Req
                   logger.info("C-STORE Req: ");
-                  logger.debug(response);
+                  logger.info(response.toString());
                   
                   DicomObject image = association.ReadMessage(-1);
                   qresult.add(image);
-                  logger.debug("Received image: " + image);
+                  logger.info("Received image: " + image);
                   
                   int cstoremsgId = response.getVR("MessageID").getIntValue();
                   String instanceUID = response.getVR("AffectedSOPInstanceUID").getStringValue();
@@ -480,7 +481,7 @@ public class QueryRetrieveUser implements ServiceClassUser, ServiceClassProvider
          
       }
       else {
-         logger.error("SCU not active on this Association");
+         logger.severe("SCU not active on this Association");
       }
       
       return qresult;

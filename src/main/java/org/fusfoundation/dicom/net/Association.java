@@ -45,7 +45,8 @@ import java.net.*;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
-import org.apache.logging.log4j.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Association {
    
@@ -62,9 +63,9 @@ public class Association {
    
    private int messageId=1;
    private long maxPDULength = 0;
-   
-   static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
-   
+   private static final Logger logger = Logger.getGlobal();
+
+      
    public Association(InputStream istream, OutputStream ostream) throws IOException {
       is = istream;
       os = ostream;
@@ -272,7 +273,8 @@ public class Association {
          // if the maximum PDU size has been exceeded, then write a PDU
          // and reset the buffer and VR streams, initializing with the overage
          if (bos.size() > maxPDULength) { // fix this later with real max PDU size
-            logger.debug("pdu buffer size = " + bos.size());
+            logger.log(Level.INFO, "pdu buffer size = " + bos.size());
+            
             // probably a better way to avoid copying the array here
             byte[] buf = bos.toByteArray();
             System.arraycopy(buf, 0, pdubuf, 0, (int)maxPDULength);
@@ -285,8 +287,8 @@ public class Association {
             pdubuf[3] = (byte)(pdvlen & 0xff);
             pdubuf[4] = (byte)(contextID & 0xff);
             pdu.setBuffer(pdubuf);
-            logger.debug("message fragment length = " + pdvlen);
-            logger.debug("writing PDU - message fragment");
+            logger.log(Level.INFO, "message fragment length = " + pdvlen);
+            logger.log(Level.INFO, "writing PDU - message fragment");
             pdu.writePDU(os);
             
             // reinitialize the output streams
@@ -304,7 +306,7 @@ public class Association {
          pdu.setType(PDU.P_DATA_TF);
          byte[] bosbuf = bos.toByteArray();
          pdvlen = bosbuf.length - 4;
-         logger.debug("final message fragment length = " + pdvlen);
+         logger.log(Level.INFO, "final message fragment length = " + pdvlen);
          bosbuf[0] = (byte)((pdvlen & 0xff000000) >>> 24);
          bosbuf[1] = (byte)((pdvlen & 0xff0000) >>> 16);
          bosbuf[2] = (byte)((pdvlen & 0xff00) >>> 8);
@@ -312,7 +314,7 @@ public class Association {
          bosbuf[4] = (byte)(contextID & 0xff);
          bosbuf[5] = (byte)(0x2);
          pdu.setBuffer(bosbuf);
-         logger.debug("writing PDU - final message fragment");
+         logger.log(Level.INFO, "writing PDU - final message fragment");
          pdu.writePDU(os);
       }
    }
@@ -321,8 +323,8 @@ public class Association {
       VR msgid = new VR("MessageID", new DicomNumber(this.messageId));
       obj.addVR(msgid);
       
-      logger.debug("Association: writing command:");
-      logger.debug(obj);
+      logger.log(Level.INFO, "Association: writing command:");
+      logger.log(Level.INFO, obj.toString());
       
       Iterator iter = obj.iterator();
       ByteArrayOutputStream bos = new ByteArrayOutputStream(256);
@@ -412,21 +414,21 @@ public class Association {
          byte itemBuf[] = p.getBuffer();
          
          int ctxID = itemBuf[0] & 0xff; // Context ID
-         logger.debug("Context ID: " + itemBuf[0]);
+         logger.log(Level.INFO, "Context ID: " + itemBuf[0]);
          
          // if contextId is <= 0 then treat as "don't care"
          // otherwise enforce the expectation of a particular
          // presentation context id
          if (contextId > 0 && ctxID != contextId) {
-            logger.error("Unexpected presentation context");
+            logger.log(Level.INFO, "Unexpected presentation context");
             break;
          }
          
          if ((itemBuf[1] & 0x1) == 0x1) { // Command Fragment
-            logger.debug("Command");
+            logger.log(Level.INFO, "Command");
             cmdBuffer.write(itemBuf, 2, itemBuf.length - 2);
             if ((itemBuf[1] & 0x2) == 0x2) {
-               logger.debug("Last command fragment");
+               logger.log(Level.INFO, "Last command fragment");
                ByteArrayInputStream cmdbytes = new ByteArrayInputStream(cmdBuffer.toByteArray());
                DicomObjectReader ord = new DicomObjectReader(cmdbytes);
                DicomObject cmd = ord.read();
@@ -437,7 +439,7 @@ public class Association {
             }
          } // end if command fragment
          else {
-            logger.error("Not a command, or erroneous message control header");
+            logger.log(Level.INFO, "Not a command, or erroneous message control header");
             break;
          }
          
@@ -456,23 +458,23 @@ public class Association {
          byte itemBuf[] = p.getBuffer();
          
          int ctxID = itemBuf[0] & 0xff; // Context ID
-         logger.debug("Context ID: " + itemBuf[0]);
+         logger.log(Level.INFO, "Context ID: " + itemBuf[0]);
          
          // if contextId is <= 0 then treat as "don't care"
          // otherwise enforce the expectation of a particular
          // presentation context id
          if (contextId > 0 && ctxID != contextId) {
-            logger.error("Unexpected presentation context");
+            logger.log(Level.SEVERE, "Unexpected presentation context");
             break;
          }
          
-         logger.debug("Message Control Header = " + (itemBuf[1] & 0xff));
+         logger.log(Level.INFO, "Message Control Header = " + (itemBuf[1] & 0xff));
          
          if ((itemBuf[1] & 0x1) == 0x0) { // Message Fragment
-            logger.debug("Command");
+            logger.log(Level.INFO, "Command");
             msgBuffer.write(itemBuf, 2, itemBuf.length - 2);
             if ((itemBuf[1] & 0x2) == 0x2) {
-               logger.debug("Last message fragment");
+               logger.log(Level.INFO, "Last message fragment");
                ByteArrayInputStream msgbytes = new ByteArrayInputStream(msgBuffer.toByteArray());
                DicomObjectReader ord = new DicomObjectReader(msgbytes);
                DicomObject msg = ord.read();
@@ -483,7 +485,7 @@ public class Association {
             }
          } // end if command fragment
          else {
-            logger.error("Not a message dataset, or erroneous message control header");
+            logger.log(Level.SEVERE, "Not a message dataset, or erroneous message control header");
             break;
          }
          
@@ -515,14 +517,14 @@ public class Association {
 
       while(true) {
          
-         logger.debug("reading pdu...");
+         logger.log(Level.INFO, "reading pdu...");
          PDU pdu = PDU.readPDU(is);
-         logger.debug("PDU size: " + pdu.size());
+         logger.log(Level.INFO, "PDU size: " + pdu.size());
          byte tmp[] = pdu.getBuffer();
          
          if (pdu.getType() == PDU.A_ABORT) {
             //sendReleaseRp();
-            logger.warn("Got A-ABORT");
+            logger.log(Level.WARNING, "Got A-ABORT");
             return;
          }
          else if (pdu.getType() == PDU.A_RELEASE_RQ) {
@@ -544,14 +546,14 @@ public class Association {
                byte itemBuf[] = p.getBuffer();
                
                int ctxID = itemBuf[0] & 0xff; // Context ID
-               logger.debug("Context ID: " + itemBuf[0]);
+               logger.log(Level.INFO, "Context ID: " + itemBuf[0]);
                
                if ((itemBuf[1] & 0x1) == 0x1) { // Command Fragment
-                  logger.debug("Command");
+                  logger.log(Level.INFO, "Command");
                   cmdBuffer.write(itemBuf, 2, itemBuf.length - 2);
                   if ((itemBuf[1] & 0x2) == 0x2) {
-                     logger.debug("Last");
-                     logger.debug("Sending stream to the service.");
+                     logger.log(Level.INFO, "Last");
+                     logger.log(Level.INFO, "Sending stream to the service.");
                      ByteArrayInputStream cmdbytes = new ByteArrayInputStream(cmdBuffer.toByteArray());
                      DicomObjectReader ord = new DicomObjectReader(cmdbytes);
                      DicomObject cmd = ord.read();
@@ -567,19 +569,19 @@ public class Association {
                   }
                }
                else { // Message Fragment
-                  logger.debug("Message fragment - " + itemBuf.length);
+                  logger.log(Level.INFO, "Message fragment - " + itemBuf.length);
                   try {
-                     logger.debug("writing fragment to service");
+                     logger.log(Level.INFO, "writing fragment to service");
                      pos.write(itemBuf, 2, itemBuf.length - 2);
-                     logger.debug("done writing");
+                     logger.log(Level.INFO, "done writing");
                   }
                   catch (Exception e) {
                      System.out.println(e);
                   }
                   
                   if ((itemBuf[1] & 0x2) == 0x2) {
-                     logger.debug("Last");
-                     logger.debug("Closing message stream.");
+                     logger.log(Level.INFO, "Last");
+                     logger.log(Level.INFO, "Closing message stream.");
                      pos.close();
                //      tpos = new PipedOutputStream();
                //      pos = new BufferedOutputStream(tpos);
@@ -603,7 +605,7 @@ public class Association {
          }
          else { // Some unknown or unexpected PDU type
             sendAbort(true, 0);
-            logger.warn("Some unknown or unexpected PDU type: [" + pdu.getType() + "] Dropping Association.");
+            logger.log(Level.WARNING, "Some unknown or unexpected PDU type: [" + pdu.getType() + "] Dropping Association.");
             return;
          }
       } // end outer while

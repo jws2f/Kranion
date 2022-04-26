@@ -33,6 +33,7 @@ import java.sql.DriverManager;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.PreparedStatement;
+import java.util.logging.Logger;
 
 import org.fusfoundation.dicom.UID;
 import org.fusfoundation.dicom.DicomObject;
@@ -47,8 +48,6 @@ import org.fusfoundation.dicom.part10.DicomFileWriter;
 
 import org.fusfoundation.dicom.net.Association;
 
-import org.apache.logging.log4j.Logger;
-
 /**
  *
  * @author  jsnell
@@ -59,8 +58,8 @@ public class StorageService extends ServiceClassProviderBaseImpl {
    UID.DigitalXrayForPresentationImageStorage, UID.SecondaryCaptureImageStorage,
    UID.UltrasoundImageStorage};
    private static final UID tsyn[] = {UID.ExplicitVRBigEndian, UID.ExplicitVRLittleEndian, UID.ImplicitVRLittleEndian};
-   static final Logger logger = org.apache.logging.log4j.LogManager.getLogger();
-   
+   static final private Logger logger = Logger.getGlobal();
+
    private Connection c = null;
    private PreparedStatement ps1, ps2, ps3, ps4;
    
@@ -71,7 +70,7 @@ public class StorageService extends ServiceClassProviderBaseImpl {
             Class.forName("org.postgresql.Driver");
          }
          catch (ClassNotFoundException e) {
-            logger.error("Failed to load DB driver");
+            logger.severe("Failed to load DB driver");
             throw new DicomRuntimeException(e.toString());
          }
                   
@@ -82,7 +81,7 @@ public class StorageService extends ServiceClassProviderBaseImpl {
             c = DriverManager.getConnection("jdbc:postgresql://localhost/dicomstorage",
             "jsnell", "illuminator");
          } catch (SQLException se) {
-            logger.error("Couldn't connect to DB");
+            logger.severe("Couldn't connect to DB");
             throw new DicomRuntimeException(se.toString());
          }
                   
@@ -93,7 +92,7 @@ public class StorageService extends ServiceClassProviderBaseImpl {
             ps4 = c.prepareStatement("INSERT INTO objects VALUES (?, ?, ?, ?)");
          }
          catch (SQLException se) {
-            logger.error("We got an exception while preparing a statement:" +
+            logger.severe("We got an exception while preparing a statement:" +
             "Probably bad SQL.");
             throw new DicomRuntimeException(se.toString());
          }
@@ -139,7 +138,7 @@ public class StorageService extends ServiceClassProviderBaseImpl {
          DicomObject imageObject = new DicomObject();
          VR v;
          while ((v = messageStream.readVR()) != null) {
-            if (logger.isDebugEnabled()) logger.debug(v);
+            logger.info(v.toString());
             imageObject.addVR(v);
          }
          logger.info("Dataset received.");
@@ -191,7 +190,7 @@ public class StorageService extends ServiceClassProviderBaseImpl {
             }
             catch (Exception e) {}
          } catch (SQLException se) {
-            logger.error("We got an exception while preparing a statement:" +
+            logger.severe("We got an exception while preparing a statement:" +
             "Probably bad SQL.");
             throw new DicomRuntimeException(se.toString());
          }
@@ -199,7 +198,7 @@ public class StorageService extends ServiceClassProviderBaseImpl {
          try {
             ps1.executeUpdate();
          } catch (SQLException se) {
-            logger.error(se.toString());
+            logger.severe(se.toString());
             //throw new DicomRuntimeException(se.toString());
          }
          
@@ -223,14 +222,14 @@ public class StorageService extends ServiceClassProviderBaseImpl {
             catch (Exception e) {}
             ps2.setString(5, imageObject.getVR("PatientID").getStringValue());
          } catch (SQLException se) {
-            logger.error(se.toString());
+            logger.severe(se.toString());
             throw new DicomRuntimeException(se.toString());
          }
          
          try {
             ps2.executeUpdate();
          } catch (SQLException se) {
-            logger.error(se.toString());
+            logger.severe(se.toString());
             //throw new DicomRuntimeException(se.toString());
          }
          
@@ -249,14 +248,14 @@ public class StorageService extends ServiceClassProviderBaseImpl {
             catch (Exception e) {}
             ps3.setString(4, imageObject.getVR("StudyInstanceUID").getStringValue());
          } catch (SQLException se) {
-            logger.error(se.toString());
+            logger.severe(se.toString());
             throw new DicomRuntimeException(se.toString());
          }
          
          try {
             ps3.executeUpdate();
          } catch (SQLException se) {
-            //logger.error(se.toString());
+            //logger.severe(se.toString());
             //throw new DicomRuntimeException(se.toString());
          }
          
@@ -267,14 +266,14 @@ public class StorageService extends ServiceClassProviderBaseImpl {
             ps4.setString(3, file.getPath());
             ps4.setString(4, imageObject.getVR("SeriesInstanceUID").getStringValue());
          } catch (SQLException se) {
-            logger.error(se.toString());
+            logger.severe(se.toString());
             throw new DicomRuntimeException(se.toString());
          }
          
          try {
             ps4.executeUpdate();
          } catch (SQLException se) {
-            logger.error("Duplicate Object Found: " + se.toString());
+            logger.severe("Duplicate Object Found: " + se.toString());
             //throw new DicomRuntimeException("Duplicate Object Found: " + se.toString());
          }
          
@@ -286,7 +285,7 @@ public class StorageService extends ServiceClassProviderBaseImpl {
          response.addVR(new VR("DataSetType", new DicomNumber(0x0101))); // No dataset
          response.addVR(new VR("Status", new DicomNumber(0x0))); // Success
          
-         if (logger.isDebugEnabled()) logger.debug("Response:\n" + response);
+         logger.info("Response:\n" + response);
          
          Iterator i = response.iterator();
          while (i.hasNext()) {
